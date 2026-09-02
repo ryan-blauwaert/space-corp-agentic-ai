@@ -34,3 +34,38 @@ Avoid:
 - unnecessarily long commit messages
 
 Keep the message focused on the user-facing or architectural capability delivered.
+
+## Branch Naming
+
+Use short, descriptive branch names tied to the active roadmap waypoint when applicable.
+
+Format:
+
+`<type>/<waypoint>-<short-description>`
+
+Allowed types:
+- `feat` — new capability
+- `fix` — bug fix
+- `docs` — documentation-only change
+- `test` — tests or evaluations only
+- `refactor` — behavior-preserving structural change
+- `chore` — tooling, configuration, CI, or maintenance
+
+Examples:
+- `feat/0.2-minimal-backend`
+- `feat/1.2-facility-domain-model`
+- `fix/3.3-vector-retrieval`
+- `docs/0.1-project-roadmap`
+- `test/2.2-query-safety`
+- `refactor/4.2-retrieval-interface`
+- `chore/ci-test-pipeline`
+
+Rules:
+- use lowercase
+- use hyphens between words
+- keep names concise
+- describe the capability, not the implementation method
+- include the roadmap waypoint when the work belongs to one
+- create a new branch for each independently reviewable capability
+- do not use personal, temporary, or agent-specific names such as `dev`, `working`, `codex`, or `new-stuff`
+- delete merged branches unless there is a specific reason to keep them
