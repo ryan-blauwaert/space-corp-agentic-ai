@@ -18,3 +18,19 @@ We are only setting up the development foundation. Do not implement AI features 
 - Backend will start with Python, FastAPI, and pytest.
 - Keep interfaces typed.
 - Do not introduce dependencies without explaining why.
+
+## Commit Messages
+
+Use concise, feature-centric commit messages.
+
+Prefer:
+- `feat: add facility health endpoint`
+- `test: add facility API coverage`
+- `fix: handle missing facility records`
+
+Avoid:
+- implementation-detail-heavy messages
+- vague messages like `updates`, `changes`, or `fix stuff`
+- unnecessarily long commit messages
+
+Keep the message focused on the user-facing or architectural capability delivered.
