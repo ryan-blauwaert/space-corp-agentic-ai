@@ -1,8 +1,10 @@
 from fastapi import FastAPI, status
 
+from app.config import Settings
 from app.schemas.health import HealthResponse
 
-app = FastAPI()
+settings = Settings()
+app = FastAPI(title=settings.application_name)
 
 
 @app.get(
