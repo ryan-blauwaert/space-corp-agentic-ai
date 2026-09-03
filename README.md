@@ -159,9 +159,35 @@ Additional architecture and roadmap documentation will be added as the project e
 
 ## Local Development
 
-Coming soon.
+The backend requires Python 3.12 or later.
 
-The initial backend service and development commands will be added in the first implementation milestone.
+Create a virtual environment and install the application with development dependencies:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e ".[dev]"
+```
+
+Start the local API:
+
+```bash
+uvicorn app.main:app --reload
+```
+
+Verify the health endpoint in another terminal:
+
+```bash
+curl http://127.0.0.1:8000/health
+```
+
+The endpoint returns `200 OK` with `{"status":"ok"}`.
+
+Run the test suite:
+
+```bash
+pytest
+```
 
 ## Project Status
 
