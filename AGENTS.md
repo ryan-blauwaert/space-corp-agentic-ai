@@ -28,6 +28,17 @@ We are only setting up the development foundation. Do not implement AI features 
 - When `app/main.py` contains enough routes to justify separate test files, route tests may be organized under `tests/app/main/`, such as `tests/app/main/test_health.py` and `tests/app/main/test_<route_name>.py`.
 - Apply the same source-to-test path convention to other modules. For example, tests for `app/config.py` should live in `tests/app/test_config.py`.
 
+## Test Coverage
+
+For each change:
+
+- map automated tests to the active waypoint's completion criteria
+- cover the primary success path
+- cover meaningful failure or edge cases introduced by the change
+- do not stop after adding a nominal number of tests
+- before declaring work complete, identify any known coverage gaps
+- if a gap is intentionally left uncovered, explain why
+
 ## Commit Messages
 
 Use concise, feature-centric commit messages.
