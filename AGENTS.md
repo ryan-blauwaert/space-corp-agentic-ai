@@ -18,6 +18,7 @@ We are only setting up the development foundation. Do not implement AI features 
 - Backend will start with Python, FastAPI, and pytest.
 - Keep interfaces typed.
 - Do not introduce dependencies without explaining why.
+- When all completion criteria for a roadmap waypoint have been verified, update its status to complete as part of the same work.
 
 ## Test Organization
 

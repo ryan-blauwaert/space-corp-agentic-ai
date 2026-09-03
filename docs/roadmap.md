@@ -175,7 +175,7 @@ Creates the application boundary that future capabilities can build upon.
 
 ### Status
 
-- [ ] Complete
+- [x] Complete
 
 ---
 
