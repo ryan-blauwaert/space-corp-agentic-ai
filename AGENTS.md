@@ -19,6 +19,14 @@ We are only setting up the development foundation. Do not implement AI features 
 - Keep interfaces typed.
 - Do not introduce dependencies without explaining why.
 
+## Test Organization
+
+- Mirror the application source structure under `tests/`.
+- Name test files with the `test_` prefix.
+- Tests for `app/main.py` should initially live in `tests/app/test_main.py`.
+- When `app/main.py` contains enough routes to justify separate test files, route tests may be organized under `tests/app/main/`, such as `tests/app/main/test_health.py` and `tests/app/main/test_<route_name>.py`.
+- Apply the same source-to-test path convention to other modules. For example, tests for `app/config.py` should live in `tests/app/test_config.py`.
+
 ## Commit Messages
 
 Use concise, feature-centric commit messages.
