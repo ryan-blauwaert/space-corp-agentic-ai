@@ -49,3 +49,11 @@ def test_settings_reject_unsupported_logging_level(
 
     with pytest.raises(ValidationError):
         Settings()
+
+
+def test_settings_reject_unsupported_environment(monkeypatch: MonkeyPatch) -> None:
+    clear_settings_environment(monkeypatch)
+    monkeypatch.setenv("SPACE_CORP_ENVIRONMENT", "local")
+
+    with pytest.raises(ValidationError):
+        Settings()
