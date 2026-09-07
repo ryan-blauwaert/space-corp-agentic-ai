@@ -236,6 +236,7 @@ The application can connect to a PostgreSQL database.
 - local development database configuration
 - migration mechanism
 - database connectivity test
+- documented workspace isolation approach, including connection and permission implications
 
 ### Architectural Value
 
@@ -250,6 +251,9 @@ Creates the foundation for operational data, workflow state, evaluations, and au
 - initial empty migration applies successfully
 - automated test verifies database connectivity
 - database startup and migration commands are documented
+- workspace isolation direction is documented before domain schema implementation; the initial approach is workspace-scoped records in shared tables, with application authorization and PostgreSQL row-level security as additional enforcement
+
+This waypoint records the isolation design only. Workspace records and enforcement begin with the domain schema; reviewer sessions and reset controls arrive in Waypoint 2.5.
 
 ### Status
 
@@ -280,6 +284,7 @@ A facility may represent:
 - repository interface
 - repository implementation
 - basic CRUD or read capability
+- minimal workspace identity and ownership for facility records; local development may use one default workspace
 
 ### User Value
 
@@ -296,6 +301,9 @@ Establishes the pattern used for domain modeling and persistence.
 - facility list can be queried
 - automated repository tests pass
 - domain and persistence concerns remain separated where practical
+- facility repository operations require explicit workspace scope
+- database permissions and row-level security enforce workspace isolation using an application role that cannot bypass those policies
+- tests with two workspaces verify isolation and reject cross-workspace access
 
 ### Status
 
@@ -334,6 +342,9 @@ Establishes API → domain/service → repository layering.
 - single facility endpoint works
 - invalid facility ID returns appropriate response
 - API behavior is covered by automated tests
+- facility API operations use a trusted workspace context and cannot select another workspace through arbitrary client-supplied identifiers
+
+Until reviewer sessions are introduced in Waypoint 2.5, local API development may use a server-configured default workspace. This is not sufficient for public multi-user access.
 
 ### Status
 
@@ -370,6 +381,9 @@ Creates the minimum relational world required for later structured reasoning.
 - foreign-key constraints enforce valid relationships
 - basic repository tests exist for each major entity
 - schema supports the first planned demo questions
+- mutable operational records carry workspace ownership; intentionally shared immutable reference data is documented
+- foreign keys and uniqueness constraints include workspace scope where needed to prevent cross-workspace relationships and allow repeated baseline identifiers
+- tests verify isolation across related entities and reject cross-workspace references
 
 ### Status
 
@@ -408,6 +422,9 @@ Creates controlled test and demo data.
 - seeded identifiers are deterministic where practical
 - seed validation checks pass
 - dataset can be recreated from scratch
+- the canonical synthetic baseline has an explicit version and remains unchanged by reviewer edits
+- the seed process can populate a specified workspace with internally consistent records and deterministic identifiers within that workspace
+- seeding one workspace does not modify another; tests cover repeatability, isolation, and baseline-version tracking
 
 ### Status
 
@@ -582,6 +599,49 @@ Everything after this section is an enhancement.
 
 ---
 
+## Waypoint 2.5 — Reviewer Demo Workspaces
+
+### Capability
+
+A reviewer can start a private browser session, explore and edit synthetic operational data, observe how changes affect answers, and reset to a stable baseline.
+
+### Deliverables
+
+- server-validated browser session access without requiring an account initially
+- private workspaces populated from the versioned baseline
+- a small data browser with validated editing of selected operational fields
+- guided scenarios showing how data changes affect grounded answers
+- reset that creates a fresh workspace and retires the previous one
+- workspace expiration, cleanup, and bounded usage
+
+### User Value
+
+Reviewers can explore the system independently and repeat demonstrations without affecting other visitors or the canonical dataset.
+
+### Architectural Value
+
+Exercises workspace isolation through the UI, API, structured-query execution, conversations, and generated results. A workspace identifier alone does not authorize access; the server derives access from the validated session.
+
+### Completion Criteria
+
+- a reviewer can create a seeded private session through the browser
+- selected records can be inspected and edited through validated deterministic endpoints
+- changed records are reflected in subsequent query results and answers
+- two concurrent reviewers cannot access or modify each other's data, conversations, or results
+- reset restores the selected baseline version by switching to a fresh workspace
+- retired workspaces reject subsequent writes and cannot affect replacement workspaces
+- expired workspaces are cleaned up, and expiration and usage limits are communicated in the UI
+- automated tests cover unauthorized access, cross-workspace isolation, editing validation, reset, stale requests, and expiration
+- reset and session behavior are documented
+
+Data editing here is ordinary application functionality. Agent-initiated write tools remain in Phase 5. Background jobs and durable workflows extend these guarantees when their own waypoints introduce them.
+
+### Status
+
+- [ ] Complete
+
+---
+
 # Phase 3 — Unstructured Knowledge and RAG
 
 ## Objective
@@ -612,6 +672,7 @@ Examples:
 - documents can be ingested
 - source identity and version are preserved
 - document lookup works without vector search
+- shared immutable documents and workspace-owned documents are explicitly distinguished, with access and provenance tests
 
 ### Status
 
@@ -665,6 +726,7 @@ Semantic search retrieves relevant document chunks.
 - vector similarity search works
 - retrieval results include provenance
 - at least ten manually verified queries retrieve expected documents
+- workspace-owned chunks and vector results remain isolated; retired-workspace results cannot appear in a replacement workspace
 
 ### Status
 
@@ -718,6 +780,7 @@ Responses should include evidence provenance.
 - unsupported questions return appropriately cautious responses
 - initial RAG gold set exists
 - basic groundedness evaluation exists
+- retrieval context, generated artifacts, and any caches respect workspace ownership and reset boundaries
 
 ### Status
 
@@ -869,6 +932,8 @@ First true agentic action.
 - unauthorized execution fails
 - audit trail exists
 - automated tests cover success and failure
+- tool authorization, audit records, and idempotency keys are workspace-scoped
+- retired-workspace actions are rejected; demo external effects are simulated and confined to the demo
 
 ### Status
 
@@ -927,6 +992,7 @@ A workflow instance can persist execution state.
 - workflow can be loaded by ID
 - workflow transitions are validated
 - state transitions are tested
+- workflow instances and related evidence belong to a workspace; reset retires their execution context
 
 ### Status
 
@@ -950,6 +1016,7 @@ Sensitive actions can be safely gated.
 - prohibited action does not execute before approval
 - authorized user can approve or reject
 - approval event is audited
+- approval access and decisions are workspace-scoped, and approvals from retired workspaces cannot authorize actions
 
 ### Status
 
@@ -984,6 +1051,8 @@ Demonstrates real durable orchestration rather than an in-memory confirmation lo
 - previously completed tools are not repeated unnecessarily
 - write operations remain idempotent
 - trace links pre-pause and post-resume execution
+- jobs and resumed workflows revalidate workspace activity before side effects; reset cannot redirect old work into a replacement workspace
+- tests cover reset while a workflow is paused or running, including concurrent reset and write attempts
 
 ### Status
 
@@ -1523,6 +1592,21 @@ Demonstrates:
 
 ---
 
+## Reviewer-Ready Demo
+
+Requires:
+
+- completion through **Waypoint 2.5**
+- a hosted deployment reachable through a public demo link, with no local installation required
+- validation of session isolation, reset, expiration, and usage limits in the hosted environment
+- documented deployment configuration and baseline version
+
+Adds private, editable reviewer sessions with guided scenarios and a repeatable reset experience.
+
+The technical MVP remains Waypoint 2.4. Hosting is an explicit requirement of this release milestone and does not depend on the later CI/CD phase. Hosting choices and deployment work should be scoped separately when preparing this release.
+
+---
+
 ## MVP+ — Hybrid Knowledge Assistant
 
 Requires completion through:
@@ -1596,11 +1680,11 @@ Adds:
 
 Current phase:
 
-**Phase 0 — Development Foundation**
+**Phase 1 — Structured Operational Backend**
 
 Current recommended waypoint:
 
-**Waypoint 0.1 — Repository Conventions**
+**Waypoint 1.1 — PostgreSQL Integration**
 
 The project should not begin implementing later phases until the current waypoint is complete.
 
