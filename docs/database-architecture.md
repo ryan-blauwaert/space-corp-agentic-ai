@@ -10,7 +10,7 @@ Mutable operational records will use shared PostgreSQL tables and carry a worksp
 
 Isolation will be enforced in layers:
 
-1. Application authorization derives the permitted workspace from trusted server-side context rather than an arbitrary client-supplied identifier.
+1. A future application authorization or reviewer-session boundary derives the permitted workspace from trusted server-side context rather than an arbitrary client-supplied identifier.
 2. Repository operations require an explicit workspace scope so ownership is visible at the persistence boundary.
 3. PostgreSQL row-level security (RLS) provides database enforcement for `facilities`, including direct queries that bypass repository filtering.
 
@@ -23,11 +23,11 @@ The migration role and the application role have different responsibilities:
 - The migration role owns schema changes and may create or alter tables, policies, and roles as required by migrations.
 - The application role receives only the privileges required for application reads and writes. It must not have `BYPASSRLS` and must not own workspace-scoped tables.
 
-The local migration role is `space_corp`; the local application role is `space_corp_app`. The latter is explicitly `NOBYPASSRLS` and has no schema ownership, superuser, database-creation, or role-creation capability. RLS behavior is verified using that application role, including cross-workspace reads, writes, unscoped access, and connection reuse.
+The local migration role is `space_corp`; the local application role is `space_corp_app`. The latter is explicitly `NOBYPASSRLS`, owns neither `workspaces` nor `facilities`, has no role memberships, and has no superuser, database-creation, or role-creation capability. RLS behavior is verified using that application role, including cross-workspace reads, writes, unscoped access, and connection reuse.
 
 ## Connection and Workspace Context
 
-Each application workspace transaction sets the trusted workspace identifier with `set_config('app.workspace_id', ..., true)`. The Facility policy reads that setting with `current_setting`; absent context denies access.
+`Database.workspace_session()` sets a caller-supplied workspace identifier with `set_config('app.workspace_id', ..., true)`. It is a lower-level persistence mechanism, not an authorization decision: the upcoming request/session boundary must resolve and authorize the workspace before calling it. The Facility policy reads that setting with `current_setting`; absent context denies access.
 
 The setting must be transaction-local. A persistent connection-level setting can leak a previous workspace into a reused pooled connection. Connection management must therefore:
 
@@ -36,7 +36,7 @@ The setting must be transaction-local. A persistent connection-level setting can
 - use a transaction-local setting, which PostgreSQL resets before a pooled connection is reused
 - reject workspace-scoped operations when trusted context is absent
 
-Application code must not rely on an untrusted request field to establish this context.
+The future request/session layer must not establish this context from an untrusted request field alone.
 
 ## Local Development and Testing
 
@@ -54,4 +54,4 @@ The following are intentionally deferred:
 - baseline seeding
 - other domain tables
 
-Deferring these items keeps Waypoint 1.1 focused on connectivity and migration foundations while preserving the requirements for subsequent work.
+Deferring these items keeps Waypoint 1.2 focused on the first workspace-scoped domain entity while preserving the requirements for subsequent work.

@@ -29,7 +29,7 @@ createdb --owner=space_corp space_corp
 createdb --owner=space_corp space_corp_test
 ```
 
-Apply migrations as the schema owner, then provision the restricted application login. The provisioning script creates `space_corp_app` with `NOBYPASSRLS`, grants its data privileges for both local databases, and grants matching defaults for future tables owned by `space_corp`.
+Apply migrations as the schema owner, then provision the restricted application login. The provisioning script creates `space_corp_app` with `NOBYPASSRLS`, grants its data privileges for both local databases, and grants matching defaults for future tables owned by `space_corp`. It rejects a pre-existing application role with role memberships or Facility/workspace tables not owned by `space_corp`; resolve those conditions before rerunning it.
 
 ```bash
 export SPACE_CORP_MIGRATION_DATABASE_URL="postgresql+psycopg://space_corp@localhost:5432/space_corp"

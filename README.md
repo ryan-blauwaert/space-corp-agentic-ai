@@ -215,7 +215,7 @@ The application reads the process environment; it does not automatically load `.
 
 ### PostgreSQL Development
 
-PostgreSQL is required for Waypoint 1.1 migration and integration checks. Follow the [local PostgreSQL setup guide](docs/local-postgresql.md) to choose a native macOS or Docker-based instance, create separate development and test databases, and configure credentials safely.
+PostgreSQL is required for the Phase 1 persistence, migration, and integration checks. Follow the [local PostgreSQL setup guide](docs/local-postgresql.md) to choose a native macOS or Docker-based instance, create separate development and test databases, and configure credentials safely.
 
 Configure the migration-owner URL before applying migrations:
 

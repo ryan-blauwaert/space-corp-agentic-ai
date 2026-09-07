@@ -250,9 +250,40 @@ def test_application_role_enforces_workspace_rls_and_resets_pooled_context(
             False,
             False,
         )
+        table_owners = dict(
+            session.execute(
+                text(
+                    "SELECT relation.relname, owner.rolname "
+                    "FROM pg_class AS relation "
+                    "JOIN pg_namespace AS schema "
+                    "ON schema.oid = relation.relnamespace "
+                    "JOIN pg_roles AS owner ON owner.oid = relation.relowner "
+                    "WHERE schema.nspname = 'public' "
+                    "AND relation.relname IN ('workspaces', 'facilities')"
+                )
+            ).all()
+        )
+        role_memberships = session.execute(
+            text(
+                "SELECT granted_role.rolname "
+                "FROM pg_auth_members AS membership "
+                "JOIN pg_roles AS member ON member.oid = membership.member "
+                "JOIN pg_roles AS granted_role ON granted_role.oid = membership.roleid "
+                "WHERE member.rolname = 'space_corp_app'"
+            )
+        ).scalars().all()
+
+        assert table_owners == {
+            "facilities": "space_corp",
+            "workspaces": "space_corp",
+        }
+        assert role_memberships == []
 
         connection_ids: list[int] = []
         with application_database.workspace_session(first_workspace_id) as session:
+            assert session.execute(text("SELECT current_user")).scalar_one() == (
+                "space_corp_app"
+            )
             connection_ids.append(
                 session.execute(text("SELECT pg_backend_pid()")).scalar_one()
             )
@@ -288,10 +319,15 @@ def test_application_role_enforces_workspace_rls_and_resets_pooled_context(
                 )
 
         with application_database.session() as session:
+            final_connection_id = session.execute(
+                text("SELECT pg_backend_pid()")
+            ).scalar_one()
             assert session.execute(select(FacilityRecord.id)).scalars().all() == []
             assert session.execute(
                 text("SELECT current_setting('app.workspace_id', true)")
             ).scalar_one() in (None, "")
+
+        assert final_connection_id == connection_ids[0]
     finally:
         with migration_database.session() as session:
             session.execute(
