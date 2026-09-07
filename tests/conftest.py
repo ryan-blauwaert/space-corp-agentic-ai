@@ -1,11 +1,19 @@
 import os
+from collections.abc import Iterator
+from pathlib import Path
 
 import pytest
+from alembic import command
+from alembic.config import Config
 from sqlalchemy.engine import make_url
+from sqlalchemy.orm import Session
+
+from app.database import Database
 
 
 TEST_DATABASE_URL_ENVIRONMENT_VARIABLE = "SPACE_CORP_TEST_DATABASE_URL"
 TEST_DATABASE_NAME_PREFIX = "space_corp_test"
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 @pytest.fixture
@@ -26,3 +34,20 @@ def integration_database_url(monkeypatch: pytest.MonkeyPatch) -> str:
 
     monkeypatch.setenv("SPACE_CORP_DATABASE_URL", database_url)
     return database_url
+
+
+@pytest.fixture
+def integration_session(integration_database_url: str) -> Iterator[Session]:
+    config = Config(str(PROJECT_ROOT / "alembic.ini"))
+    command.upgrade(config, "head")
+    database = Database(integration_database_url)
+    session = database.session_factory()
+    transaction = session.begin()
+
+    try:
+        yield session
+    finally:
+        if transaction.is_active:
+            transaction.rollback()
+        session.close()
+        database.dispose()

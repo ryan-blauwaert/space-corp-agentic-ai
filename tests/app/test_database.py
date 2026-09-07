@@ -102,6 +102,7 @@ def test_postgresql_connection(integration_database_url: str) -> None:
 def test_migrations_apply(integration_database_url: str) -> None:
     config = Config(str(PROJECT_ROOT / "alembic.ini"))
     command.upgrade(config, "head")
+    command.upgrade(config, "head")
     engine = create_database_engine(integration_database_url)
 
     try:
@@ -113,6 +114,42 @@ def test_migrations_apply(integration_database_url: str) -> None:
         assert revision == "0002_workspace_and_facility"
     finally:
         engine.dispose()
+
+
+@pytest.mark.integration
+def test_migrations_match_persistence_models(integration_database_url: str) -> None:
+    config = Config(str(PROJECT_ROOT / "alembic.ini"))
+    command.upgrade(config, "head")
+
+    command.check(config)
+
+
+@pytest.mark.integration
+def test_workspace_and_facility_migration_downgrades_and_reapplies(
+    integration_database_url: str,
+) -> None:
+    config = Config(str(PROJECT_ROOT / "alembic.ini"))
+    command.upgrade(config, "head")
+
+    try:
+        command.downgrade(config, "0001_initial")
+        engine = create_database_engine(integration_database_url)
+
+        try:
+            with engine.connect() as connection:
+                workspace_table, facility_table = connection.execute(
+                    text(
+                        "SELECT to_regclass('public.workspaces'), "
+                        "to_regclass('public.facilities')"
+                    )
+                ).one()
+
+            assert workspace_table is None
+            assert facility_table is None
+        finally:
+            engine.dispose()
+    finally:
+        command.upgrade(config, "head")
 
 
 @pytest.mark.integration

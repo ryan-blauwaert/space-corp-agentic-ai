@@ -15,6 +15,11 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.facilities.domain import (
+    FACILITY_CODE_MAX_LENGTH,
+    FACILITY_LOCATION_MAX_LENGTH,
+    FACILITY_NAME_MAX_LENGTH,
+)
 from app.persistence.base import Base
 
 if TYPE_CHECKING:
@@ -51,10 +56,12 @@ class FacilityRecord(Base):
         nullable=False,
         index=True,
     )
-    code: Mapped[str] = mapped_column(String(64), nullable=False)
-    name: Mapped[str] = mapped_column(String(256), nullable=False)
+    code: Mapped[str] = mapped_column(String(FACILITY_CODE_MAX_LENGTH), nullable=False)
+    name: Mapped[str] = mapped_column(String(FACILITY_NAME_MAX_LENGTH), nullable=False)
     facility_type: Mapped[str] = mapped_column(String(64), nullable=False)
-    location: Mapped[str] = mapped_column(String(256), nullable=False)
+    location: Mapped[str] = mapped_column(
+        String(FACILITY_LOCATION_MAX_LENGTH), nullable=False
+    )
     operational_status: Mapped[str] = mapped_column(String(32), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

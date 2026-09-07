@@ -1,35 +1,12 @@
-from collections.abc import Iterator
-from pathlib import Path
 from uuid import UUID, uuid4
 
 import pytest
-from alembic import command
-from alembic.config import Config
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.database import Database
 from app.facilities.domain import FacilityOperationalStatus, FacilityType, NewFacility
 from app.facilities.repository import SqlAlchemyFacilityRepository
 from app.workspaces.models import WorkspaceRecord
-
-
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
-
-
-@pytest.fixture
-def integration_session(integration_database_url: str) -> Iterator[Session]:
-    config = Config(str(PROJECT_ROOT / "alembic.ini"))
-    command.upgrade(config, "head")
-    database = Database(integration_database_url)
-    session = database.session_factory()
-    transaction = session.begin()
-
-    try:
-        yield session
-    finally:
-        transaction.rollback()
-        session.close()
-        database.dispose()
 
 
 @pytest.fixture
@@ -62,6 +39,8 @@ def test_repository_creates_and_retrieves_facility(
     retrieved = repository.get_by_id(workspace_id, created.id)
 
     assert retrieved == created
+    assert created.created_at is not None
+    assert created.updated_at is not None
 
 
 @pytest.mark.integration
@@ -101,3 +80,34 @@ def test_repository_excludes_another_workspaces_facility(
 
     assert repository.get_by_id(workspace_id, other_facility.id) is None
     assert repository.list_by_workspace(workspace_id) == []
+
+
+@pytest.mark.integration
+def test_repository_preserves_special_characters(
+    integration_session: Session,
+    workspace_id: UUID,
+) -> None:
+    repository = SqlAlchemyFacilityRepository(integration_session)
+    facility = NewFacility(
+        code="LUN-β-01",
+        name="O'Brien's Lunar Operations",
+        facility_type=FacilityType.LUNAR_INSTALLATION,
+        location="Mare Imbrium; sector α",
+        operational_status=FacilityOperationalStatus.OPERATIONAL,
+    )
+
+    created = repository.create(workspace_id, facility)
+
+    assert repository.get_by_id(workspace_id, created.id) == created
+
+
+@pytest.mark.integration
+def test_repository_propagates_duplicate_code_constraint(
+    integration_session: Session,
+    workspace_id: UUID,
+) -> None:
+    repository = SqlAlchemyFacilityRepository(integration_session)
+    repository.create(workspace_id, make_new_facility())
+
+    with pytest.raises(IntegrityError):
+        repository.create(workspace_id, make_new_facility())
