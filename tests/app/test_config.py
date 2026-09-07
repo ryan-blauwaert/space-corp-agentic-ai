@@ -38,7 +38,7 @@ def test_settings_load_environment_overrides(monkeypatch: MonkeyPatch) -> None:
     assert settings.environment == "test"
     assert settings.application_name == "Test Operations API"
     assert settings.logging_level == "DEBUG"
-    assert settings.database_url == "postgresql://localhost/test"
+    assert str(settings.database_url) == "postgresql://localhost/test"
 
 
 def test_settings_reject_unsupported_logging_level(
@@ -54,6 +54,14 @@ def test_settings_reject_unsupported_logging_level(
 def test_settings_reject_unsupported_environment(monkeypatch: MonkeyPatch) -> None:
     clear_settings_environment(monkeypatch)
     monkeypatch.setenv("SPACE_CORP_ENVIRONMENT", "local")
+
+    with pytest.raises(ValidationError):
+        Settings()
+
+
+def test_settings_reject_non_postgresql_database_url(monkeypatch: MonkeyPatch) -> None:
+    clear_settings_environment(monkeypatch)
+    monkeypatch.setenv("SPACE_CORP_DATABASE_URL", "sqlite:///space-corp.db")
 
     with pytest.raises(ValidationError):
         Settings()
