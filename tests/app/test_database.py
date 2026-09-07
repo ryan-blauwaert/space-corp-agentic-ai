@@ -101,7 +101,11 @@ def test_database_session_rolls_back_and_closes_on_failure() -> None:
         database.dispose()
 
 
-def test_create_database_requires_configured_url() -> None:
+def test_create_database_requires_configured_url(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("SPACE_CORP_DATABASE_URL", raising=False)
+
     with pytest.raises(DatabaseConfigurationError, match="SPACE_CORP_DATABASE_URL"):
         create_database(Settings())
 
