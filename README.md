@@ -198,7 +198,7 @@ Settings are loaded from environment variables when the application starts. All 
 | `SPACE_CORP_ENVIRONMENT` | `development` | `development`, `test`, or `production`; identifies the application environment. |
 | `SPACE_CORP_APPLICATION_NAME` | `Agentic AI Operations Platform` | A string used as the FastAPI title, visible in the API documentation and OpenAPI schema. |
 | `SPACE_CORP_LOGGING_LEVEL` | `INFO` | `DEBUG`, `INFO`, `WARNING`, `ERROR`, or `CRITICAL`; validated and stored, but not yet applied to logger configuration. |
-| `SPACE_CORP_DATABASE_URL` | Unset (`None`) | An optional string reserved for future database integration. It is not yet validated as a URL or used to establish a connection. |
+| `SPACE_CORP_DATABASE_URL` | Unset (`None`) | An optional validated PostgreSQL URL. Database resources are created only when this setting is configured; migration and local startup commands are added in a later increment of the PostgreSQL waypoint. |
 
 For example, start the API with a different application name:
 
