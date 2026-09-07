@@ -18,6 +18,20 @@ class FacilityOperationalStatus(StrEnum):
 
 
 @dataclass(frozen=True, slots=True)
+class NewFacility:
+    """Validated Facility data before it is assigned persistence identifiers."""
+
+    code: str
+    name: str
+    facility_type: FacilityType
+    location: str
+    operational_status: FacilityOperationalStatus
+
+    def __post_init__(self) -> None:
+        _validate_required_text(self.code, self.name, self.location)
+
+
+@dataclass(frozen=True, slots=True)
 class Facility:
     """A workspace-owned operational facility."""
 
@@ -32,7 +46,14 @@ class Facility:
     updated_at: datetime
 
     def __post_init__(self) -> None:
-        for field_name in ("code", "name", "location"):
-            value = getattr(self, field_name)
-            if not value.strip():
-                raise ValueError(f"Facility {field_name} must not be blank.")
+        _validate_required_text(self.code, self.name, self.location)
+
+
+def _validate_required_text(code: str, name: str, location: str) -> None:
+    for field_name, value in {
+        "code": code,
+        "name": name,
+        "location": location,
+    }.items():
+        if not value.strip():
+            raise ValueError(f"Facility {field_name} must not be blank.")

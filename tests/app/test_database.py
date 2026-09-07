@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -6,7 +5,7 @@ import pytest
 from alembic import command
 from alembic.config import Config
 from sqlalchemy import text
-from sqlalchemy.engine import Engine, make_url
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
 from app.config import Settings
@@ -18,29 +17,7 @@ from app.database import (
 )
 
 
-TEST_DATABASE_URL_ENVIRONMENT_VARIABLE = "SPACE_CORP_TEST_DATABASE_URL"
-TEST_DATABASE_NAME_PREFIX = "space_corp_test"
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-
-
-@pytest.fixture
-def integration_database_url(monkeypatch: pytest.MonkeyPatch) -> str:
-    database_url = os.getenv(TEST_DATABASE_URL_ENVIRONMENT_VARIABLE)
-
-    if database_url is None:
-        pytest.skip(
-            f"{TEST_DATABASE_URL_ENVIRONMENT_VARIABLE} is not configured."
-        )
-
-    database_name = make_url(database_url).database
-    if database_name is None or not database_name.startswith(TEST_DATABASE_NAME_PREFIX):
-        pytest.fail(
-            f"{TEST_DATABASE_URL_ENVIRONMENT_VARIABLE} must use a database name "
-            f"starting with {TEST_DATABASE_NAME_PREFIX!r}."
-        )
-
-    monkeypatch.setenv("SPACE_CORP_DATABASE_URL", database_url)
-    return database_url
 
 
 def test_create_database_engine_uses_psycopg_driver() -> None:

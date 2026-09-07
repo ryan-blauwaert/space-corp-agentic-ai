@@ -8,6 +8,7 @@ from app.facilities.domain import (
     Facility,
     FacilityOperationalStatus,
     FacilityType,
+    NewFacility,
 )
 
 
@@ -35,9 +36,35 @@ def test_facility_retains_workspace_owned_operational_data() -> None:
     assert facility.operational_status is FacilityOperationalStatus.OPERATIONAL
 
 
+def test_new_facility_contains_validated_creation_data() -> None:
+    facility = NewFacility(
+        code="LUN-OPS-01",
+        name="Lunar Operations One",
+        facility_type=FacilityType.LUNAR_INSTALLATION,
+        location="Mare Imbrium",
+        operational_status=FacilityOperationalStatus.OPERATIONAL,
+    )
+
+    assert facility.code == "LUN-OPS-01"
+
+
 @pytest.mark.parametrize("field_name", ["code", "name", "location"])
 def test_facility_rejects_blank_required_text(field_name: str) -> None:
     facility = make_facility()
+
+    with pytest.raises(ValueError, match=field_name):
+        replace(facility, **{field_name: "   "})
+
+
+@pytest.mark.parametrize("field_name", ["code", "name", "location"])
+def test_new_facility_rejects_blank_required_text(field_name: str) -> None:
+    facility = NewFacility(
+        code="LUN-OPS-01",
+        name="Lunar Operations One",
+        facility_type=FacilityType.LUNAR_INSTALLATION,
+        location="Mare Imbrium",
+        operational_status=FacilityOperationalStatus.OPERATIONAL,
+    )
 
     with pytest.raises(ValueError, match=field_name):
         replace(facility, **{field_name: "   "})
