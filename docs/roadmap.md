@@ -257,7 +257,10 @@ This waypoint records the isolation design only. Workspace records and enforceme
 
 ### Status
 
-- [ ] Complete
+- [x] Complete — 2026-09-07
+- Verification: local PostgreSQL development and test databases connected successfully; `0001_initial` applied; full suite passed with real integration checks.
+- Commit: `f45d96c feat: add PostgreSQL migration foundation`.
+- Architectural decision: use shared workspace-scoped tables, application authorization, and future PostgreSQL row-level security; workspace persistence and enforcement begin in Waypoint 1.2.
 
 ---
 
@@ -1817,7 +1820,7 @@ Current phase:
 
 Current recommended waypoint:
 
-**Waypoint 1.1 — PostgreSQL Integration**
+**Waypoint 1.2 — First Domain Entity: Facility**
 
 The project should not begin implementing later phases until the current waypoint is complete.
 
