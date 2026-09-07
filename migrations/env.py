@@ -1,12 +1,14 @@
 from alembic import context
-from sqlalchemy import pool
 
 from app.config import Settings
 from app.database import DatabaseConfigurationError, create_database_engine
+from app.facilities.models import FacilityRecord  # noqa: F401
+from app.persistence.base import Base
+from app.workspaces.models import WorkspaceRecord  # noqa: F401
 
 
 config = context.config
-target_metadata = None
+target_metadata = Base.metadata
 
 
 def database_url() -> str:

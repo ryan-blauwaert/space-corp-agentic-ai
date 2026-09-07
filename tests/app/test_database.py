@@ -118,7 +118,7 @@ def test_postgresql_connection(integration_database_url: str) -> None:
 
 
 @pytest.mark.integration
-def test_initial_migration_applies(integration_database_url: str) -> None:
+def test_migrations_apply(integration_database_url: str) -> None:
     config = Config(str(PROJECT_ROOT / "alembic.ini"))
     command.upgrade(config, "head")
     engine = create_database_engine(integration_database_url)
@@ -129,6 +129,29 @@ def test_initial_migration_applies(integration_database_url: str) -> None:
                 text("SELECT version_num FROM alembic_version")
             ).scalar_one()
 
-        assert revision == "0001_initial"
+        assert revision == "0002_workspace_and_facility"
+    finally:
+        engine.dispose()
+
+
+@pytest.mark.integration
+def test_workspace_and_facility_tables_exist(integration_database_url: str) -> None:
+    config = Config(str(PROJECT_ROOT / "alembic.ini"))
+    command.upgrade(config, "head")
+    engine = create_database_engine(integration_database_url)
+
+    try:
+        with engine.connect() as connection:
+            table_names = set(
+                connection.execute(
+                    text(
+                        "SELECT table_name FROM information_schema.tables "
+                        "WHERE table_schema = 'public' "
+                        "AND table_name IN ('workspaces', 'facilities')"
+                    )
+                ).scalars()
+            )
+
+        assert table_names == {"workspaces", "facilities"}
     finally:
         engine.dispose()
