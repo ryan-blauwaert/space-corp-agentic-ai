@@ -11,3 +11,4 @@ class Settings(BaseSettings):
     application_name: str = "Agentic AI Operations Platform"
     logging_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     database_url: PostgresDsn | None = None
+    migration_database_url: PostgresDsn | None = None

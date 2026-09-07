@@ -11,6 +11,7 @@ def clear_settings_environment(monkeypatch: MonkeyPatch) -> None:
         "SPACE_CORP_APPLICATION_NAME",
         "SPACE_CORP_LOGGING_LEVEL",
         "SPACE_CORP_DATABASE_URL",
+        "SPACE_CORP_MIGRATION_DATABASE_URL",
     ):
         monkeypatch.delenv(variable_name, raising=False)
 
@@ -24,6 +25,7 @@ def test_settings_use_development_defaults(monkeypatch: MonkeyPatch) -> None:
     assert settings.application_name == "Agentic AI Operations Platform"
     assert settings.logging_level == "INFO"
     assert settings.database_url is None
+    assert settings.migration_database_url is None
 
 
 def test_settings_load_environment_overrides(monkeypatch: MonkeyPatch) -> None:
@@ -32,6 +34,9 @@ def test_settings_load_environment_overrides(monkeypatch: MonkeyPatch) -> None:
     monkeypatch.setenv("SPACE_CORP_APPLICATION_NAME", "Test Operations API")
     monkeypatch.setenv("SPACE_CORP_LOGGING_LEVEL", "DEBUG")
     monkeypatch.setenv("SPACE_CORP_DATABASE_URL", "postgresql://localhost/test")
+    monkeypatch.setenv(
+        "SPACE_CORP_MIGRATION_DATABASE_URL", "postgresql://localhost/migration_test"
+    )
 
     settings = Settings()
 
@@ -39,6 +44,7 @@ def test_settings_load_environment_overrides(monkeypatch: MonkeyPatch) -> None:
     assert settings.application_name == "Test Operations API"
     assert settings.logging_level == "DEBUG"
     assert str(settings.database_url) == "postgresql://localhost/test"
+    assert str(settings.migration_database_url) == "postgresql://localhost/migration_test"
 
 
 def test_settings_reject_unsupported_logging_level(

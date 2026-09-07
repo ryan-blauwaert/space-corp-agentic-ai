@@ -11,20 +11,21 @@ config = context.config
 target_metadata = Base.metadata
 
 
-def database_url() -> str:
+def migration_database_url() -> str:
     settings = Settings()
 
-    if settings.database_url is None:
+    if settings.migration_database_url is None:
         raise DatabaseConfigurationError(
-            "SPACE_CORP_DATABASE_URL must be configured before running migrations."
+            "SPACE_CORP_MIGRATION_DATABASE_URL must be configured before running "
+            "migrations."
         )
 
-    return str(settings.database_url)
+    return str(settings.migration_database_url)
 
 
 def run_migrations_offline() -> None:
     context.configure(
-        url=database_url(),
+        url=migration_database_url(),
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -35,7 +36,7 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    engine = create_database_engine(database_url())
+    engine = create_database_engine(migration_database_url())
 
     try:
         with engine.connect() as connection:
