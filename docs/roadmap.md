@@ -592,29 +592,34 @@ These checks provide measurable grounding guarantees; they do not claim that a g
 
 ---
 
-## Waypoint 2.4 — Minimal User Interface
+## Waypoint 2.4 — Operational Query Interface
 
 ### Capability
 
-A user can submit a question and view the answer through a basic web interface.
+A user can explore the synthetic operational context, submit a question, and understand a grounded answer through a professional web interface.
 
-### UI Scope
+### Sequencing and Readiness
 
-Only:
+The frontend build begins only after the first backend vertical slice is complete: the Phase 1 operational API and dataset, plus the controlled model, structured-query, and answer-synthesis capabilities in Waypoints 2.1 through 2.3. Do not defer the first frontend until later RAG, action, workflow, or observability phases; those capabilities should extend an already working interface when they exist.
 
-- input box
-- submit action
-- response display
-- loading state
-- basic error state
+Before implementation, document the initial user journeys, route map, API error and empty-state behavior, and visual direction. This is a short readiness artifact for this waypoint, not a separate frontend implementation phase.
+
+### Initial UI Scope
+
+- application shell with an operations-oriented visual language and clear navigation
+- read-only facility and operational-data context using the Phase 1 API
+- question input and submission flow
+- answer and supporting-record display
+- loading, empty, validation, and failure states
+- responsive and keyboard-accessible core flows
 
 ### User Value
 
-Transforms the backend into a demonstrable product.
+Transforms the first intelligent backend capability into a credible, usable product demonstration.
 
 ### Architectural Value
 
-Establishes frontend/backend API boundary.
+Establishes a typed frontend/backend API boundary and validates that the backend's first complete vertical slice serves a real user workflow.
 
 ### Frontend Organization and Contract
 
@@ -630,17 +635,32 @@ For either layout, use the backend OpenAPI schema as the API contract and genera
 
 ### Completion Criteria
 
-- UI launches locally
-- question reaches backend
-- answer is displayed
-- failure is shown gracefully
-- no advanced styling required
+- frontend launches locally with reproducible setup and build commands
+- application shell exposes the initial operational-data and question-answer journeys
+- read-only facility context is retrieved through the documented backend API
+- question reaches the backend and the grounded answer with supporting records is displayed
+- loading, empty, validation, and backend-failure states are shown clearly without exposing internal errors
+- core flows are usable with keyboard navigation and at common desktop and narrow viewport sizes
 - frontend client types match the documented backend contract, and the regeneration command is reproducible
+- component tests cover the primary query flow and meaningful client-side states
 - the paired frontend and backend pass an end-to-end question/answer and error-handling smoke test
 
 ### Status
 
 - [ ] Complete
+
+---
+
+## Frontend Evolution After the MVP
+
+The interface grows only when an underlying backend capability is complete:
+
+- Waypoint 2.5 adds private reviewer sessions, selected-record editing, reset, expiration, and usage-limit communication.
+- Phases 3 and 4 add document provenance, retrieval evidence, and clearly distinguished multi-source results.
+- Phase 5 adds action-request status and explicit side-effect feedback; Phase 6 adds approval and durable-workflow state.
+- Phases 7 and 8 may add a separately scoped internal operations surface for traces, evaluations, and system health when it provides concrete inspection value. It is not required for the public MVP interface.
+
+This sequencing keeps the project backend-first while ensuring that each major backend capability is exercised through an appropriate user experience rather than accumulated as API-only infrastructure.
 
 ---
 
@@ -650,7 +670,7 @@ The project reaches **Minimum Viable Product** when Waypoint 2.4 is complete.
 
 The MVP must demonstrate:
 
-1. working frontend
+1. professional operational query interface
 2. working backend
 3. persisted structured operational data
 4. natural-language structured-data question
