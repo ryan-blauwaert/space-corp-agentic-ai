@@ -198,7 +198,8 @@ Settings are loaded from environment variables when the application starts. All 
 | `SPACE_CORP_ENVIRONMENT` | `development` | `development`, `test`, or `production`; identifies the application environment. |
 | `SPACE_CORP_APPLICATION_NAME` | `Agentic AI Operations Platform` | A string used as the FastAPI title, visible in the API documentation and OpenAPI schema. |
 | `SPACE_CORP_LOGGING_LEVEL` | `INFO` | `DEBUG`, `INFO`, `WARNING`, `ERROR`, or `CRITICAL`; validated and stored, but not yet applied to logger configuration. |
-| `SPACE_CORP_DATABASE_URL` | Unset (`None`) | An optional validated PostgreSQL URL used by database resources and Alembic migrations. |
+| `SPACE_CORP_DATABASE_URL` | Unset (`None`) | An optional validated PostgreSQL URL used by application database resources. It should use the restricted application role. |
+| `SPACE_CORP_MIGRATION_DATABASE_URL` | Unset (`None`) | A validated PostgreSQL URL used only by Alembic schema migrations. It should use the schema-owner migration role. |
 
 For example, start the API with a different application name:
 
@@ -214,15 +215,15 @@ The application reads the process environment; it does not automatically load `.
 
 ### PostgreSQL Development
 
-PostgreSQL is required for Waypoint 1.1 migration and integration checks. Follow the [local PostgreSQL setup guide](docs/local-postgresql.md) to choose a native macOS or Docker-based instance, create separate development and test databases, and configure credentials safely.
+PostgreSQL is required for the Phase 1 persistence, migration, and integration checks. Follow the [local PostgreSQL setup guide](docs/local-postgresql.md) to choose a native macOS or Docker-based instance, create separate development and test databases, and configure credentials safely.
 
-With `SPACE_CORP_DATABASE_URL` configured, apply migrations with:
+Configure the migration-owner URL before applying migrations:
 
 ```bash
 alembic upgrade head
 ```
 
-With `SPACE_CORP_TEST_DATABASE_URL` configured to a dedicated `space_corp_test` database, run real PostgreSQL checks with:
+Configure both test URLs to the dedicated `space_corp_test` database before running real PostgreSQL checks:
 
 ```bash
 pytest -m integration

@@ -1,7 +1,8 @@
 from collections.abc import Iterator
 from contextlib import contextmanager
+from uuid import UUID
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine, make_url
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -35,6 +36,16 @@ class Database:
             raise
         finally:
             session.close()
+
+    @contextmanager
+    def workspace_session(self, workspace_id: UUID) -> Iterator[Session]:
+        """Create a transaction scoped to one trusted workspace for RLS."""
+        with self.session() as session:
+            session.execute(
+                text("SELECT set_config('app.workspace_id', :workspace_id, true)"),
+                {"workspace_id": str(workspace_id)},
+            )
+            yield session
 
     def dispose(self) -> None:
         self.engine.dispose()
