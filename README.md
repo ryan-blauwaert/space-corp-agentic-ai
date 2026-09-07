@@ -189,6 +189,29 @@ Run the test suite:
 pytest
 ```
 
+### Application Configuration
+
+Settings are loaded from environment variables when the application starts. All settings have defaults, so no environment variables are required for local startup.
+
+| Environment variable | Default | Accepted values and purpose |
+| --- | --- | --- |
+| `SPACE_CORP_ENVIRONMENT` | `development` | `development`, `test`, or `production`; identifies the application environment. |
+| `SPACE_CORP_APPLICATION_NAME` | `Agentic AI Operations Platform` | A string used as the FastAPI title, visible in the API documentation and OpenAPI schema. |
+| `SPACE_CORP_LOGGING_LEVEL` | `INFO` | `DEBUG`, `INFO`, `WARNING`, `ERROR`, or `CRITICAL`; validated and stored, but not yet applied to logger configuration. |
+| `SPACE_CORP_DATABASE_URL` | Unset (`None`) | An optional string reserved for future database integration. It is not yet validated as a URL or used to establish a connection. |
+
+For example, start the API with a different application name:
+
+```bash
+SPACE_CORP_APPLICATION_NAME="Test Operations API" uvicorn app.main:app --reload
+```
+
+Open [the local API documentation](http://127.0.0.1:8000/docs) to see `Test Operations API` as the title. Stop any existing server using port 8000 before running this example. The override applies only to this command; restart the server after changing its environment variables.
+
+Unsupported environment or logging-level values cause configuration validation to fail at startup. Values must match the accepted spelling and capitalization shown above.
+
+The application reads the process environment; it does not automatically load `.env` files. Keep credentials out of tracked files and supply future database credentials through the environment.
+
 ## Project Status
 
 This project is under active development and is intentionally being built from the foundation upward.
