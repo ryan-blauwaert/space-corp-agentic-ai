@@ -305,6 +305,15 @@ Establishes the pattern used for domain modeling and persistence.
 - database permissions and row-level security enforce workspace isolation using an application role that cannot bypass those policies
 - tests with two workspaces verify isolation and reject cross-workspace access
 
+### Recommended Execution Substeps
+
+1. Define workspace identity and facility ownership, then create the minimal domain and persistence models with their migration.
+2. Implement typed repository operations with explicit workspace scope and tests for normal reads and missing records.
+3. Configure database roles and row-level security, including safe workspace context handling when connections are reused.
+4. Verify isolation using two workspaces and the actual application database role, including cross-workspace reads, writes, and connection reuse.
+
+Keep these changes independently reviewable. All completion criteria still apply before this waypoint is complete; workspace enforcement remains outside Waypoint 1.1's connectivity implementation.
+
 ### Status
 
 - [ ] Complete
@@ -343,6 +352,8 @@ Establishes API → domain/service → repository layering.
 - invalid facility ID returns appropriate response
 - API behavior is covered by automated tests
 - facility API operations use a trusted workspace context and cannot select another workspace through arbitrary client-supplied identifiers
+- response and error schemas, HTTP statuses, pagination limits, and stable OpenAPI operation identifiers are documented and tested
+- API contract changes are reviewed for compatibility with existing consumers
 
 Until reviewer sessions are introduced in Waypoint 2.5, local API development may use a server-configured default workspace. This is not sufficient for public multi-user access.
 
@@ -432,6 +443,32 @@ Creates controlled test and demo data.
 
 ---
 
+## Waypoint 1.6 — Basic Pull Request Checks
+
+### Capability
+
+Pull requests automatically run the existing unit suite and applicable PostgreSQL integration tests.
+
+### Architectural Value
+
+Protects the working backend before AI and public-demo capabilities are added.
+
+### Completion Criteria
+
+- checks run automatically on pull requests
+- integration tests use an isolated test database with the required migrations
+- failed required checks prevent merging
+- local reproduction commands and required configuration are documented
+- external model calls and provider credentials are not required for these checks
+
+This is the explicitly scoped introduction of basic CI. Phase 11 expands the pipeline with broader quality checks, AI evaluation automation, and deployment gates; those capabilities are not required here.
+
+### Status
+
+- [ ] Complete
+
+---
+
 # Phase 2 — Minimum Viable Product
 
 ## Objective
@@ -457,6 +494,7 @@ The backend can make a controlled LLM request.
 - typed request/response wrapper
 - basic retry/error handling
 - model call telemetry
+- a minimal trace contract connecting request identifiers to operations, outcomes, latency, model/prompt versions, and token usage when available
 
 ### Architectural Value
 
@@ -468,6 +506,10 @@ Prevents application code from being tightly coupled to one model implementation
 - provider implementation is behind an interface
 - failures are handled predictably
 - model and prompt identifiers are logged
+- request and operation correlation is demonstrated for both successful and failed model calls
+- telemetry avoids credentials and defines which request/evidence fields may be recorded
+
+Phase 7 extends this foundation across capabilities and provides richer inspection. The initial implementation must be usable without Phase 7 infrastructure.
 
 ### Status
 
@@ -510,6 +552,11 @@ Introduces model-guided reasoning while retaining deterministic execution contro
 - invalid queries fail safely
 - query execution is traced
 - automated tests cover supported and unsafe cases
+- a small versioned evaluation dataset records questions, expected records, and prohibited behavior against the versioned synthetic baseline
+- a repeatable evaluation command reports case-level results and aggregate outcomes, with dataset, model, and prompt versions recorded
+- query operations share the request correlation introduced in Waypoint 2.1
+
+Use deterministic checks for query results and prohibited operations. Phase 8 expands and consolidates this evaluation foundation instead of introducing evaluation for the first time.
 
 ### Status
 
@@ -531,8 +578,13 @@ A user can ask an operational question conversationally instead of using an API 
 
 - answer is based only on returned structured data
 - empty-result behavior is handled correctly
-- model cannot invent records absent from evidence
+- answer record identifiers are deterministically checked against returned evidence; unsupported references are rejected before delivery
+- evaluation measures unsupported factual claims, including plausible claims about valid records, against documented acceptance thresholds
+- unsupported or insufficient evidence produces a defined cautious response
 - request trace links user query, database query, results, and final answer
+- the evaluation baseline from Waypoint 2.2 includes expected answer facts, empty-result cases, and unsupported-claim cases
+
+These checks provide measurable grounding guarantees; they do not claim that a generative model can never invent a fact. Publish known limitations alongside evaluation results.
 
 ### Status
 
@@ -564,6 +616,18 @@ Transforms the backend into a demonstrable product.
 
 Establishes frontend/backend API boundary.
 
+### Frontend Organization and Contract
+
+Prefer a separate frontend application within the existing repository initially, with its own dependencies and build commands. Decide and document repository placement when frontend implementation begins; this roadmap does not require creating or moving a repository now.
+
+If a separate frontend repository is selected:
+
+- keep this product roadmap authoritative and link to it from the frontend repository
+- link both repositories and the hosted demo from their READMEs, with reproducible paired startup instructions
+- track compatible frontend/backend versions and coordinate API changes and releases
+
+For either layout, use the backend OpenAPI schema as the API contract and generate client types from a known backend version. Document error handling, pagination, and contract regeneration. Add the session-access and reset contracts when Waypoint 2.5 introduces them. Repository separation does not require separate browser origins; evaluate a shared origin for the UI and API when deploying.
+
 ### Completion Criteria
 
 - UI launches locally
@@ -571,6 +635,8 @@ Establishes frontend/backend API boundary.
 - answer is displayed
 - failure is shown gracefully
 - no advanced styling required
+- frontend client types match the documented backend contract, and the regeneration command is reproducible
+- the paired frontend and backend pass an end-to-end question/answer and error-handling smoke test
 
 ### Status
 
@@ -633,8 +699,42 @@ Exercises workspace isolation through the UI, API, structured-query execution, c
 - expired workspaces are cleaned up, and expiration and usage limits are communicated in the UI
 - automated tests cover unauthorized access, cross-workspace isolation, editing validation, reset, stale requests, and expiration
 - reset and session behavior are documented
+- documented configuration bounds session lifetime, session creation rate, concurrent requests, database query duration and result size, model calls, and token consumption
+- server-side limits apply across sessions as well as within a workspace; creating another session cannot bypass all resource controls
+- a global model-spending ceiling includes admission checks for in-flight requests and a defined response when budget is unavailable
+- tests exercise limits and concurrent requests using deterministic provider substitutes, with bounded rejection behavior and no paid calls required
 
 Data editing here is ordinary application functionality. Agent-initiated write tools remain in Phase 5. Background jobs and durable workflows extend these guarantees when their own waypoints introduce them.
+
+### Status
+
+- [ ] Complete
+
+---
+
+## Waypoint 2.6 — Reviewer Demo Deployment and Recovery
+
+### Capability
+
+The paired frontend and backend are available through a hosted demo link and can be reproducibly deployed and recovered after a failed release.
+
+### Deliverables
+
+- documented hosting choice and deployment procedure for the frontend, backend, and PostgreSQL
+- environment configuration, secret handling, and versioned baseline provisioning instructions
+- a release record identifying backend, frontend, schema, and baseline versions
+- hosted smoke checks and a recovery procedure
+
+### Completion Criteria
+
+- a reviewer can open the demo without local installation and complete a guided scenario
+- hosted checks verify health, session creation, isolated edits, answer behavior, reset, expiration, and usage limits
+- clean-environment provisioning is reproducible from the documented release inputs
+- a recovery rehearsal verifies the documented response to a failed release, including schema compatibility and restoration or explicit reseeding of disposable demo workspaces
+- recovery documentation states any session/data loss and distinguishes disposable workspace state from retained operational records
+- existing PR checks pass before release, and local commands reproduce the hosted smoke checks
+
+Select hosting when implementing this waypoint. A documented manual deployment is sufficient initially; advanced deployment automation remains in Phase 11. Database recovery must not assume that reverting application code also reverses schema changes.
 
 ### Status
 
@@ -949,7 +1049,7 @@ The system distinguishes informational requests from action requests.
 
 ### Completion Criteria
 
-- request such as “what is wrong?” does not execute tools
+- an informational request such as “what is wrong?” may use read-only tools but cannot invoke write or side-effecting tools without an authorized action request
 - request such as “create a maintenance ticket” selects the action capability
 - ambiguous action requests do not execute automatically
 - routing is evaluated against a gold set
@@ -1053,6 +1153,11 @@ Demonstrates real durable orchestration rather than an in-memory confirmation lo
 - trace links pre-pause and post-resume execution
 - jobs and resumed workflows revalidate workspace activity before side effects; reset cannot redirect old work into a replacement workspace
 - tests cover reset while a workflow is paused or running, including concurrent reset and write attempts
+- external actions with lost acknowledgments have an explicit unknown-outcome state and a documented idempotency or reconciliation strategy
+- tests simulate a successful external effect followed by a lost response and application restart; recovery reconciles the outcome or safely reuses the external idempotency key
+- where the external system cannot support safe retry or reconciliation, recovery pauses for human resolution rather than blindly repeating the effect
+
+Database transactions alone do not guarantee exactly-once external effects. Demonstrate these cases using simulated external services within the reviewer demo.
 
 ### Status
 
@@ -1071,6 +1176,8 @@ Make internal AI behavior inspectable.
 ## Waypoint 7.1 — Standardized Tracing
 
 ### Capability
+
+Extend the request and operation correlation introduced in Waypoints 2.1–2.3 as new capabilities are added. Earlier tracing requirements do not depend on this later waypoint.
 
 Requests generate correlated traces across:
 
@@ -1168,6 +1275,8 @@ Measure system behavior at multiple layers.
 
 Evaluation cases are stored using a standardized schema.
 
+Consolidate and extend the versioned cases and execution reports introduced in Waypoints 2.2–2.3, retaining their baseline, model, and prompt attribution.
+
 ### Possible Fields
 
 - input
@@ -1199,6 +1308,8 @@ Evaluation cases are stored using a standardized schema.
 ### Capability
 
 System behavior is measured mechanically where possible.
+
+Expand the initial repeatable evaluation command into a shared runner for the capabilities now implemented.
 
 ### Metrics
 
@@ -1393,6 +1504,8 @@ Prevent AI behavior regressions from reaching deployment.
 ## Waypoint 11.1 — Automated Test Pipeline
 
 ### Capability
+
+Expand the basic PR checks introduced in Waypoint 1.6. This phase does not defer the earlier requirement for automated regression protection.
 
 Every pull request runs:
 
@@ -1596,14 +1709,14 @@ Demonstrates:
 
 Requires:
 
-- completion through **Waypoint 2.5**
+- completion through **Waypoint 2.6**, including the reviewer workspaces in Waypoint 2.5
 - a hosted deployment reachable through a public demo link, with no local installation required
 - validation of session isolation, reset, expiration, and usage limits in the hosted environment
 - documented deployment configuration and baseline version
 
 Adds private, editable reviewer sessions with guided scenarios and a repeatable reset experience.
 
-The technical MVP remains Waypoint 2.4. Hosting is an explicit requirement of this release milestone and does not depend on the later CI/CD phase. Hosting choices and deployment work should be scoped separately when preparing this release.
+The technical MVP remains Waypoint 2.4. Waypoint 2.6 delivers hosting and recovery for this release, using the basic PR checks from Waypoint 1.6. Advanced CI/CD capabilities in Phase 11 are not a prerequisite.
 
 ---
 
