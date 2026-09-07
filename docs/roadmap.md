@@ -319,7 +319,10 @@ Keep these changes independently reviewable. All completion criteria still apply
 
 ### Status
 
-- [ ] Complete
+- [x] Complete — 2026-09-07
+- Verification: full suite passed with 63 tests; 29 real PostgreSQL integration tests verified migrations, repository behavior, restricted application-role permissions, two-workspace RLS isolation, rejected cross-workspace writes, and transaction-local context reset on a reused pooled connection.
+- Commits: `1a74dec feat: add facility domain model`, `4ba9ed8 feat: add facility repository`, `abc5b88 feat: enforce facility workspace isolation`, and `a52873d feat: harden PostgreSQL role isolation`.
+- Architectural decision: `space_corp` owns schema migrations while `space_corp_app` is an unprivileged application role constrained by Facility row-level security and a transaction-local workspace context.
 
 ---
 
@@ -1820,7 +1823,7 @@ Current phase:
 
 Current recommended waypoint:
 
-**Waypoint 1.2 — First Domain Entity: Facility**
+**Waypoint 1.3 — Facility API**
 
 The project should not begin implementing later phases until the current waypoint is complete.
 
