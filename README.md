@@ -198,7 +198,7 @@ Settings are loaded from environment variables when the application starts. All 
 | `SPACE_CORP_ENVIRONMENT` | `development` | `development`, `test`, or `production`; identifies the application environment. |
 | `SPACE_CORP_APPLICATION_NAME` | `Agentic AI Operations Platform` | A string used as the FastAPI title, visible in the API documentation and OpenAPI schema. |
 | `SPACE_CORP_LOGGING_LEVEL` | `INFO` | `DEBUG`, `INFO`, `WARNING`, `ERROR`, or `CRITICAL`; validated and stored, but not yet applied to logger configuration. |
-| `SPACE_CORP_DATABASE_URL` | Unset (`None`) | An optional validated PostgreSQL URL. Database resources are created only when this setting is configured; migration and local startup commands are added in a later increment of the PostgreSQL waypoint. |
+| `SPACE_CORP_DATABASE_URL` | Unset (`None`) | An optional validated PostgreSQL URL used by database resources and Alembic migrations. |
 
 For example, start the API with a different application name:
 
@@ -211,6 +211,22 @@ Open [the local API documentation](http://127.0.0.1:8000/docs) to see `Test Oper
 Unsupported environment or logging-level values cause configuration validation to fail at startup. Values must match the accepted spelling and capitalization shown above.
 
 The application reads the process environment; it does not automatically load `.env` files. Keep credentials out of tracked files and supply future database credentials through the environment.
+
+### PostgreSQL Development
+
+PostgreSQL is required for Waypoint 1.1 migration and integration checks. Follow the [local PostgreSQL setup guide](docs/local-postgresql.md) to choose a native macOS or Docker-based instance, create separate development and test databases, and configure credentials safely.
+
+With `SPACE_CORP_DATABASE_URL` configured, apply migrations with:
+
+```bash
+alembic upgrade head
+```
+
+With `SPACE_CORP_TEST_DATABASE_URL` configured to a dedicated `space_corp_test` database, run real PostgreSQL checks with:
+
+```bash
+pytest -m integration
+```
 
 ## Project Status
 

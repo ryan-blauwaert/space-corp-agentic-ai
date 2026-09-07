@@ -1,7 +1,12 @@
+import os
+from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
-from sqlalchemy.engine import Engine
+from alembic import command
+from alembic.config import Config
+from sqlalchemy import text
+from sqlalchemy.engine import Engine, make_url
 from sqlalchemy.orm import Session
 
 from app.config import Settings
@@ -11,6 +16,31 @@ from app.database import (
     create_database,
     create_database_engine,
 )
+
+
+TEST_DATABASE_URL_ENVIRONMENT_VARIABLE = "SPACE_CORP_TEST_DATABASE_URL"
+TEST_DATABASE_NAME_PREFIX = "space_corp_test"
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+
+@pytest.fixture
+def integration_database_url(monkeypatch: pytest.MonkeyPatch) -> str:
+    database_url = os.getenv(TEST_DATABASE_URL_ENVIRONMENT_VARIABLE)
+
+    if database_url is None:
+        pytest.skip(
+            f"{TEST_DATABASE_URL_ENVIRONMENT_VARIABLE} is not configured."
+        )
+
+    database_name = make_url(database_url).database
+    if database_name is None or not database_name.startswith(TEST_DATABASE_NAME_PREFIX):
+        pytest.fail(
+            f"{TEST_DATABASE_URL_ENVIRONMENT_VARIABLE} must use a database name "
+            f"starting with {TEST_DATABASE_NAME_PREFIX!r}."
+        )
+
+    monkeypatch.setenv("SPACE_CORP_DATABASE_URL", database_url)
+    return database_url
 
 
 def test_create_database_engine_uses_psycopg_driver() -> None:
@@ -74,3 +104,31 @@ def test_database_session_rolls_back_and_closes_on_failure() -> None:
 def test_create_database_requires_configured_url() -> None:
     with pytest.raises(DatabaseConfigurationError, match="SPACE_CORP_DATABASE_URL"):
         create_database(Settings())
+
+
+@pytest.mark.integration
+def test_postgresql_connection(integration_database_url: str) -> None:
+    engine = create_database_engine(integration_database_url)
+
+    try:
+        with engine.connect() as connection:
+            assert connection.execute(text("SELECT 1")).scalar_one() == 1
+    finally:
+        engine.dispose()
+
+
+@pytest.mark.integration
+def test_initial_migration_applies(integration_database_url: str) -> None:
+    config = Config(str(PROJECT_ROOT / "alembic.ini"))
+    command.upgrade(config, "head")
+    engine = create_database_engine(integration_database_url)
+
+    try:
+        with engine.connect() as connection:
+            revision = connection.execute(
+                text("SELECT version_num FROM alembic_version")
+            ).scalar_one()
+
+        assert revision == "0001_initial"
+    finally:
+        engine.dispose()
