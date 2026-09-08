@@ -15,6 +15,7 @@ We are only setting up the development foundation. Do not implement AI features 
 - Run tests when tests exist.
 - Do not add agents, RAG, MCP, vector databases, authentication, Docker, CI/CD, or extra infrastructure unless explicitly asked.
 - Prefer simple architecture over premature abstraction.
+- Check current official guidance and established industry practice when making architectural or design decisions. Document meaningful deviations when project constraints justify them.
 - Backend will start with Python, FastAPI, and pytest.
 - Keep interfaces typed.
 - Do not introduce dependencies without explaining why.
@@ -27,6 +28,7 @@ We are only setting up the development foundation. Do not implement AI features 
 - Tests for `app/main.py` should initially live in `tests/app/test_main.py`.
 - When `app/main.py` contains enough routes to justify separate test files, route tests may be organized under `tests/app/main/`, such as `tests/app/main/test_health.py` and `tests/app/main/test_<route_name>.py`.
 - Apply the same source-to-test path convention to other modules. For example, tests for `app/config.py` should live in `tests/app/test_config.py`.
+- Route modules follow the same convention. For example, tests for `app/api/routes/facilities.py` should live in `tests/app/api/routes/test_facilities.py`.
 
 ## Test Coverage
 

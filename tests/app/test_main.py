@@ -1,28 +1,15 @@
-import importlib
-
-from fastapi.testclient import TestClient
-from pytest import MonkeyPatch
-
-from app import main
-from app.main import app
-
-client = TestClient(app)
+from app.config import Settings
+from app.main import create_app
 
 
-def test_health_returns_ok() -> None:
-    response = client.get("/health")
+def test_create_app_uses_configured_name() -> None:
+    application = create_app(Settings(application_name="Test Operations API"))
 
-    assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    assert application.title == "Test Operations API"
 
 
-def test_application_uses_configured_name(monkeypatch: MonkeyPatch) -> None:
-    monkeypatch.setenv("SPACE_CORP_APPLICATION_NAME", "Test Operations API")
+def test_create_app_registers_api_routes() -> None:
+    application = create_app()
+    documented_paths = application.openapi()["paths"]
 
-    try:
-        importlib.reload(main)
-
-        assert main.app.title == "Test Operations API"
-    finally:
-        monkeypatch.undo()
-        importlib.reload(main)
+    assert {"/health", "/facilities"}.issubset(documented_paths)
