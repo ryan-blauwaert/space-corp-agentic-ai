@@ -1,7 +1,19 @@
 .venv/
 *.egg-info/
 __pycache__/
+*.py[cod]
+/build/
+/dist/
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.DS_Store
+# Local logs, database exports, and credentials belong here.
+/.local/
 .env
 .env.*
 !.env.example
 .pgpass
+.pg_service.conf

@@ -5,6 +5,8 @@
 -- This script requires the schema to have been migrated first. It rejects an
 -- application role with inherited role memberships or incorrect table ownership.
 
+\set ON_ERROR_STOP on
+
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'space_corp_app') THEN
@@ -26,6 +28,7 @@ GRANT CONNECT ON DATABASE space_corp TO space_corp_app;
 GRANT CONNECT ON DATABASE space_corp_test TO space_corp_app;
 
 \connect space_corp
+BEGIN;
 DO $$
 BEGIN
     IF EXISTS (
@@ -53,16 +56,19 @@ BEGIN
     END IF;
 END
 $$;
+-- Remove grants installed by older versions, including migration-table access.
+REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM space_corp_app;
+REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM space_corp_app;
+ALTER DEFAULT PRIVILEGES FOR ROLE space_corp IN SCHEMA public
+    REVOKE ALL PRIVILEGES ON TABLES FROM space_corp_app;
+ALTER DEFAULT PRIVILEGES FOR ROLE space_corp IN SCHEMA public
+    REVOKE ALL PRIVILEGES ON SEQUENCES FROM space_corp_app;
 GRANT USAGE ON SCHEMA public TO space_corp_app;
-GRANT SELECT, INSERT, UPDATE, DELETE, REFERENCES
-    ON ALL TABLES IN SCHEMA public TO space_corp_app;
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO space_corp_app;
-ALTER DEFAULT PRIVILEGES FOR ROLE space_corp IN SCHEMA public
-    GRANT SELECT, INSERT, UPDATE, DELETE, REFERENCES ON TABLES TO space_corp_app;
-ALTER DEFAULT PRIVILEGES FOR ROLE space_corp IN SCHEMA public
-    GRANT USAGE, SELECT ON SEQUENCES TO space_corp_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.facilities TO space_corp_app;
+COMMIT;
 
 \connect space_corp_test
+BEGIN;
 DO $$
 BEGIN
     IF EXISTS (
@@ -90,11 +96,13 @@ BEGIN
     END IF;
 END
 $$;
+-- Remove grants installed by older versions, including migration-table access.
+REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM space_corp_app;
+REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM space_corp_app;
+ALTER DEFAULT PRIVILEGES FOR ROLE space_corp IN SCHEMA public
+    REVOKE ALL PRIVILEGES ON TABLES FROM space_corp_app;
+ALTER DEFAULT PRIVILEGES FOR ROLE space_corp IN SCHEMA public
+    REVOKE ALL PRIVILEGES ON SEQUENCES FROM space_corp_app;
 GRANT USAGE ON SCHEMA public TO space_corp_app;
-GRANT SELECT, INSERT, UPDATE, DELETE, REFERENCES
-    ON ALL TABLES IN SCHEMA public TO space_corp_app;
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO space_corp_app;
-ALTER DEFAULT PRIVILEGES FOR ROLE space_corp IN SCHEMA public
-    GRANT SELECT, INSERT, UPDATE, DELETE, REFERENCES ON TABLES TO space_corp_app;
-ALTER DEFAULT PRIVILEGES FOR ROLE space_corp IN SCHEMA public
-    GRANT USAGE, SELECT ON SEQUENCES TO space_corp_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.facilities TO space_corp_app;
+COMMIT;

@@ -192,3 +192,30 @@ def test_workspace_delete_is_restricted_when_facilities_exist(
         integration_session.execute(
             delete(WorkspaceRecord).where(WorkspaceRecord.id == workspace.id)
         )
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("field_name", ["code", "name", "location"])
+@pytest.mark.parametrize("value", [" ", "\t\r\n", "\u00a0\u2003", "\x1c\u0085\u3000"])
+def test_database_rejects_whitespace_only_required_text(
+    integration_session: Session, field_name: str, value: str
+) -> None:
+    workspace = WorkspaceRecord()
+    integration_session.add(workspace)
+    integration_session.flush()
+    integration_session.add(make_facility_record(workspace.id, **{field_name: value}))
+    with pytest.raises(IntegrityError):
+        integration_session.flush()
+
+
+@pytest.mark.integration
+def test_database_preserves_nonblank_text_surrounded_by_whitespace(
+    integration_session: Session,
+) -> None:
+    workspace = WorkspaceRecord()
+    integration_session.add(workspace)
+    integration_session.flush()
+    facility = make_facility_record(workspace.id, name=" \tLunar Operations\u00a0")
+    integration_session.add(facility)
+    integration_session.flush()
+    assert facility.name == " \tLunar Operations\u00a0"

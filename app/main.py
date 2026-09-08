@@ -2,7 +2,10 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from sqlalchemy.exc import OperationalError
+from starlette.exceptions import HTTPException
 
+from app.api.errors import database_unavailable, http_problem
 from app.api.routes import facilities, health
 from app.config import Settings
 from app.database import Database, create_database
@@ -38,6 +41,8 @@ def create_app(
     application.state.settings = configured_settings
     application.state.database = database
     application.state.manages_database = False
+    application.add_exception_handler(HTTPException, http_problem)
+    application.add_exception_handler(OperationalError, database_unavailable)
     application.include_router(health.router)
     application.include_router(facilities.router)
 

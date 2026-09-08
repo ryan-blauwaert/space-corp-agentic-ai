@@ -60,10 +60,15 @@ def integration_migration_database_url(monkeypatch: pytest.MonkeyPatch) -> str:
 
 
 @pytest.fixture
-def integration_session(integration_migration_database_url: str) -> Iterator[Session]:
+def migrated_database(integration_migration_database_url: str) -> str:
     config = Config(str(PROJECT_ROOT / "alembic.ini"))
     command.upgrade(config, "head")
-    database = Database(integration_migration_database_url)
+    return integration_migration_database_url
+
+
+@pytest.fixture
+def integration_session(migrated_database: str) -> Iterator[Session]:
+    database = Database(migrated_database)
     session = database.session_factory()
     transaction = session.begin()
 

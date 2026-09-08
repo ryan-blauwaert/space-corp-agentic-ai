@@ -4,7 +4,7 @@ This repository is a portfolio project for building a production-style agentic A
 
 ## Current Phase
 
-We are only setting up the development foundation. Do not implement AI features yet.
+We are in Phase 1 — Structured Operational Backend. Follow the current waypoint and completion status in `docs/roadmap.md`. Do not implement AI features yet.
 
 ## Development Instructions
 
