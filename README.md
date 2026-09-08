@@ -89,7 +89,7 @@ No particular agent framework, workflow framework, vector database, or deploymen
 
 **Phase 1 — Structured Operational Backend**
 
-The current waypoint is **1.3 — Facility API**. The backend includes typed configuration, PostgreSQL migrations, workspace-scoped Facility persistence, and read-only list/detail endpoints. See the [roadmap](docs/roadmap.md) for verification and completion status.
+The latest completed waypoint is **1.3 — Facility API**; the next is **1.4 — Core Operational Schema**. The backend includes typed configuration, PostgreSQL migrations, workspace-scoped Facility persistence, and read-only list/detail endpoints. See the [roadmap](docs/roadmap.md) for verification and completion status.
 
 Advanced AI capabilities are intentionally not being implemented yet.
 

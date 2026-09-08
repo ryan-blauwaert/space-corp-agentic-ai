@@ -365,7 +365,17 @@ Until reviewer sessions are introduced in Waypoint 2.5, local API development ma
 
 ### Status
 
-- [ ] Complete
+- [x] Complete — 2026-09-07
+- Commit: `2a164a0 feat: complete facility API`.
+- Verification: 133 tests passed with no skips against disposable PostgreSQL 17 databases, including four isolated provisioning tests. The Facility API file also passed independently (20 tests). A clean wheel build, installation outside the checkout, health/OpenAPI smoke check, and Git ignore checks passed.
+- Completion-criteria coverage:
+  - `tests/app/api/routes/test_facilities.py` verifies list/detail success, empty results, pagination, invalid IDs/queries, missing records, trusted workspace scope, cross-workspace denial, configuration failures, safe database errors, OpenAPI response formats, and stable operation IDs.
+  - `tests/app/schemas/` verifies typed public responses and pagination/error schemas; `tests/app/api/test_errors.py` checks HTTP headers survive problem conversion.
+  - `tests/app/test_database.py`, `tests/app/facilities/`, and `tests/scripts/test_provision_postgresql_application_role.py` verify transaction cleanup, migration round trips and invalid legacy data, domain/database constraints, real RLS enforcement, and least-privilege provisioning success/failure.
+  - `tests/app/test_main.py` verifies application assembly and owned/injected database lifecycles. `README.md` records the contract compatibility review.
+- Architectural decisions: retain synchronous SQLAlchemy routes and the existing FastAPI 422 format; use RFC 9457 problems for expected HTTP failures; keep workspace selection in server configuration until reviewer sessions; discover only application packages for wheel builds; grant application privileges explicitly per table.
+- Scope: packaging, ignore rules, PostgreSQL safeguards, and documentation repair the existing foundation. No new application dependencies, authentication, AI, Docker configuration, CI, or additional services were introduced.
+- Known limits: database outage responses are tested through injected operational failures rather than a live outage drill; verification used Python 3.14 and PostgreSQL 17, not a full version matrix. One existing Starlette/AnyIO deprecation warning remains. These do not leave an active completion criterion uncovered. Dependency locking, lint/type-check tooling, and later infrastructure remain follow-up work.
 
 ---
 
@@ -1823,7 +1833,7 @@ Current phase:
 
 Current recommended waypoint:
 
-**Waypoint 1.3 — Facility API**
+**Waypoint 1.4 — Core Operational Schema**
 
 The project should not begin implementing later phases until the current waypoint is complete.
 
