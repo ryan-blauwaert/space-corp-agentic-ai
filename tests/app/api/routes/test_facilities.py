@@ -174,7 +174,7 @@ def test_list_facilities_returns_an_empty_page_for_an_empty_workspace(
 
 
 @pytest.mark.integration
-def test_list_facilities_uses_the_server_configured_workspace_only(
+def test_list_facilities_rejects_a_client_supplied_workspace(
     api_workspaces: ApiWorkspaces,
     integration_application_database_url: str,
 ) -> None:
@@ -189,11 +189,7 @@ def test_list_facilities_uses_the_server_configured_workspace_only(
                 f"/facilities?workspace_id={api_workspaces.other_id}"
             )
 
-        assert response.status_code == 200
-        assert [facility["code"] for facility in response.json()["items"]] == [
-            "LUN-OPS-01",
-            "ORB-OPS-01",
-        ]
+        assert response.status_code == 422
     finally:
         database.dispose()
 

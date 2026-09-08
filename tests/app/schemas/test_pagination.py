@@ -1,7 +1,37 @@
 import pytest
 from pydantic import ValidationError
 
-from app.schemas.pagination import PaginationMetadata
+from app.schemas.pagination import PaginationMetadata, PaginationQuery
+
+
+def test_pagination_query_uses_api_defaults() -> None:
+    query = PaginationQuery()
+
+    assert query.model_dump() == {"limit": 50, "offset": 0}
+
+
+@pytest.mark.parametrize(
+    ("field_name", "value"),
+    [
+        ("limit", 0),
+        ("limit", 101),
+        ("offset", -1),
+    ],
+)
+def test_pagination_query_rejects_invalid_bounds(
+    field_name: str,
+    value: int,
+) -> None:
+    values = {"limit": 50, "offset": 0}
+    values[field_name] = value
+
+    with pytest.raises(ValidationError):
+        PaginationQuery(**values)
+
+
+def test_pagination_query_rejects_unknown_parameters() -> None:
+    with pytest.raises(ValidationError):
+        PaginationQuery(workspace_id="11111111-1111-1111-1111-111111111111")
 
 
 def test_pagination_metadata_serializes_collection_state() -> None:
