@@ -119,7 +119,7 @@ def test_create_database_requires_configured_url(
     monkeypatch.delenv("SPACE_CORP_DATABASE_URL", raising=False)
 
     with pytest.raises(DatabaseConfigurationError, match="SPACE_CORP_DATABASE_URL"):
-        create_database(Settings())
+        create_database(Settings(_env_file=None))
 
 
 @pytest.mark.integration

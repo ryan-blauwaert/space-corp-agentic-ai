@@ -1,7 +1,7 @@
 from collections.abc import Iterator
 from dataclasses import dataclass
 from uuid import UUID, uuid4
-from unittest.mock import Mock
+from unittest.mock import MagicMock
 
 import pytest
 from fastapi import FastAPI
@@ -88,28 +88,15 @@ def create_facility_application(
 ) -> tuple[FastAPI, Database]:
     database = Database(database_url)
     application = create_app(
-        Settings(database_url=database_url, default_workspace_id=workspace_id),
+        Settings(
+            _env_file=None,
+            database_url=database_url,
+            default_workspace_id=workspace_id,
+        ),
         database,
     )
 
     return application, database
-
-
-def test_list_facilities_returns_service_unavailable_without_a_database() -> None:
-    application = create_app(Settings(database_url=None, default_workspace_id=uuid4()))
-
-    with TestClient(application) as client:
-        response = client.get("/facilities")
-
-    assert response.status_code == 503
-    assert response.headers["content-type"] == "application/problem+json"
-    assert response.json() == {
-        "type": "about:blank",
-        "title": "Service Unavailable",
-        "status": 503,
-        "detail": "The Facility API database is not configured.",
-        "instance": "/facilities",
-    }
 
 
 @pytest.mark.integration
@@ -256,24 +243,16 @@ def test_get_facility_returns_only_a_record_in_the_configured_workspace(
         database.dispose()
 
 
-@pytest.mark.parametrize("path", ["/facilities", "/facilities/not-a-uuid"])
-def test_facility_routes_require_workspace_configuration(path: str) -> None:
-    database = Mock(spec=Database)
-    application = create_app(Settings(database_url=None, default_workspace_id=None), database)
-    with TestClient(application) as client:
-        response = client.get(path)
-    assert response.status_code == 503
-    assert response.json()["detail"] == "SPACE_CORP_DEFAULT_WORKSPACE_ID must be configured."
-    database.workspace_session.assert_not_called()
-
-
 @pytest.mark.parametrize("path", [
     "/facilities/not-a-uuid", "/facilities?limit=0", "/facilities?limit=101",
     "/facilities?offset=-1", "/facilities?limit=abc", "/facilities?workspace_id=other",
 ])
 def test_invalid_facility_requests_do_not_access_database(path: str) -> None:
-    database = Mock(spec=Database)
-    application = create_app(Settings(database_url=None, default_workspace_id=uuid4()), database)
+    database = MagicMock()
+    application = create_app(
+        Settings(_env_file=None, database_url=None, default_workspace_id=uuid4()),
+        database,
+    )
     with TestClient(application) as client:
         response = client.get(path)
     assert response.status_code == 422
@@ -283,11 +262,14 @@ def test_invalid_facility_requests_do_not_access_database(path: str) -> None:
 
 @pytest.mark.parametrize("path", ["/facilities", f"/facilities/{uuid4()}"])
 def test_database_failure_returns_safe_problem_response(path: str) -> None:
-    database = Mock(spec=Database)
+    database = MagicMock()
     database.workspace_session.side_effect = OperationalError(
         "SELECT private_data", {}, Exception("password=secret")
     )
-    application = create_app(Settings(database_url=None, default_workspace_id=uuid4()), database)
+    application = create_app(
+        Settings(_env_file=None, database_url=None, default_workspace_id=uuid4()),
+        database,
+    )
     with TestClient(application) as client:
         response = client.get(path)
     assert response.status_code == 503
@@ -297,7 +279,7 @@ def test_database_failure_returns_safe_problem_response(path: str) -> None:
 
 
 def test_facility_openapi_contract() -> None:
-    schema = create_app(Settings(database_url=None)).openapi()
+    schema = create_app(Settings(_env_file=None, database_url=None)).openapi()
     for path, operation_id in (
         ("/facilities", "listFacilities"),
         ("/facilities/{facility_id}", "getFacility"),

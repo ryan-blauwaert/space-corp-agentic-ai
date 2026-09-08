@@ -6,7 +6,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="SPACE_CORP_")
+    model_config = SettingsConfigDict(
+        env_prefix="SPACE_CORP_",
+        env_file=".env",
+        env_file_encoding="utf-8",
+    )
 
     environment: Literal["development", "test", "production"] = "development"
     application_name: str = "Agentic AI Operations Platform"

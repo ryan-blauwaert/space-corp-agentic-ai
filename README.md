@@ -182,16 +182,22 @@ pytest
 
 ### Application Configuration
 
-Settings are loaded from environment variables when the application starts. All settings have defaults, so no environment variables are required for local startup.
+Settings are loaded from environment variables and an ignored project-root `.env` file when the application starts. Copy the tracked template before starting the API:
+
+```bash
+cp .env.example .env
+```
+
+The application refuses to start until its database URL and default workspace ID are configured, and it checks database reachability during startup. This prevents a server that cannot serve Facility API requests from accepting traffic.
 
 | Environment variable | Default | Accepted values and purpose |
 | --- | --- | --- |
 | `SPACE_CORP_ENVIRONMENT` | `development` | `development`, `test`, or `production`; identifies the application environment. |
 | `SPACE_CORP_APPLICATION_NAME` | `Agentic AI Operations Platform` | A string used as the FastAPI title, visible in the API documentation and OpenAPI schema. |
 | `SPACE_CORP_LOGGING_LEVEL` | `INFO` | `DEBUG`, `INFO`, `WARNING`, `ERROR`, or `CRITICAL`; validated and stored, but not yet applied to logger configuration. |
-| `SPACE_CORP_DATABASE_URL` | Unset (`None`) | An optional validated PostgreSQL URL used by application database resources. It should use the restricted application role. |
+| `SPACE_CORP_DATABASE_URL` | Unset (`None`) | A validated PostgreSQL URL used by application database resources. It should use the restricted application role and is required at startup. |
 | `SPACE_CORP_MIGRATION_DATABASE_URL` | Unset (`None`) | A validated PostgreSQL URL used only by Alembic schema migrations. It should use the schema-owner migration role. |
-| `SPACE_CORP_DEFAULT_WORKSPACE_ID` | Unset (`None`) | UUID of an existing workspace, selected by the server for local Facility API requests. Required for `/facilities` and `/facilities/{facility_id}`. This is not public multi-user authorization. |
+| `SPACE_CORP_DEFAULT_WORKSPACE_ID` | Unset (`None`) | UUID of an existing workspace, selected by the server for local Facility API requests. Required at startup. This is not public multi-user authorization. |
 
 For example, start the API with a different application name:
 
@@ -203,7 +209,7 @@ Open [the local API documentation](http://127.0.0.1:8000/docs) to see `Test Oper
 
 Unsupported environment or logging-level values cause configuration validation to fail at startup. Values must match the accepted spelling and capitalization shown above.
 
-The application reads the process environment; it does not automatically load `.env` files. Keep credentials out of tracked files and supply future database credentials through the environment.
+The `.env` file is ignored and must never contain committed credentials. The included URLs omit passwords: keep local PostgreSQL passwords in the ignored `~/.pgpass` file or another local credential store. Explicit process environment variables override `.env` values, which keeps deployment configuration separate from repository files.
 
 ### PostgreSQL Development
 
@@ -227,7 +233,7 @@ This project is under active development and is intentionally being built from t
 
 ## Facility API Contract
 
-Configure both `SPACE_CORP_DATABASE_URL` and `SPACE_CORP_DEFAULT_WORKSPACE_ID` before using the Facility API. The workspace must already exist; creating and seeding workspaces is not part of this read-only API. Use the migration-owner connection for manual local data setup. The application role accesses Facility rows only.
+Configure both `SPACE_CORP_DATABASE_URL` and `SPACE_CORP_DEFAULT_WORKSPACE_ID` before starting the Facility API. The workspace must already exist; creating and seeding workspaces is not part of this read-only API. Use the migration-owner connection for manual local data setup. The application role accesses Facility rows only.
 
 | Request | Operation ID | Successful response |
 | --- | --- | --- |
@@ -239,7 +245,7 @@ Facilities expose `id`, `code`, `name`, `facility_type`, `location`, `operationa
 
 - `404`: a valid UUID does not identify a Facility in the configured workspace. Missing and other-workspace records return identical errors.
 - `422`: malformed UUIDs or invalid list query parameters. FastAPI's existing `application/json` validation format is retained: `detail` is an array of validation errors. Unknown list query parameters, including `workspace_id`, are rejected. Query parameters or headers on detail requests cannot change the server-selected workspace.
-- `503`: missing database/workspace configuration or a database operational failure. Database exception details are not returned to clients.
+- `503`: a database operational failure after startup. Missing startup configuration or an unreachable database prevents the application from starting; database exception details are not returned to clients.
 
 The `404` and `503` responses use [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457.html) `application/problem+json`, with `type`, `title`, `status`, `detail`, and `instance` (request path). For example:
 

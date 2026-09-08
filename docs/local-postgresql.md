@@ -61,6 +61,30 @@ localhost:5432:space_corp_test:space_corp_app:<application-role-password>
 chmod 600 ~/.pgpass
 ```
 
+## Local Application Configuration
+
+The database schema does not create example business data, so a newly migrated development database has no workspace ID to configure. First check whether a workspace already exists, using the migration-owner role:
+
+```bash
+psql -X -U space_corp -d space_corp -At \
+  -c 'SELECT id FROM workspaces ORDER BY created_at LIMIT 1'
+```
+
+If that command returns no value, create one local workspace and copy the returned UUID. The application ORM generates workspace UUIDs in Python, while this direct SQL command must supply one explicitly:
+
+```bash
+psql -X -U space_corp -d space_corp -At \
+  -c 'INSERT INTO workspaces (id) VALUES (gen_random_uuid()) RETURNING id'
+```
+
+Copy the repository template and replace its workspace placeholder with that UUID:
+
+```bash
+cp .env.example .env
+```
+
+`.env` is ignored. Its database URLs use the restricted `space_corp_app` login for the running API and the `space_corp` migration-owner login for Alembic; passwords remain in `~/.pgpass`, not in `.env`. The application loads `.env` automatically, validates the database URL and workspace ID, and checks database reachability before it begins serving requests. Process environment variables override `.env` values for deployment or temporary command-level changes.
+
 ## Migration and Test Commands
 
 Apply schema migrations with the migration-owner URL configured:
