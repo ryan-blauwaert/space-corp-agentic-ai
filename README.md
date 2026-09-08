@@ -180,6 +180,8 @@ Run the test suite:
 pytest
 ```
 
+For the complete PostgreSQL-backed suite, copy `.env.test.example` to the ignored `.env.test` file once. The test configuration is loaded automatically, so later `pytest` runs require no terminal exports.
+
 ### Application Configuration
 
 Settings are loaded from environment variables and an ignored project-root `.env` file when the application starts. Copy the tracked template before starting the API:
@@ -224,10 +226,11 @@ python -m scripts.seed_development_data
 
 The seed command uses the configured migration-owner connection to create the local workspace when needed and restore a small deterministic Facility dataset for curl or Postman smoke testing. It is development-only and safe to rerun.
 
-Configure both test URLs to the dedicated `space_corp_test` database before running real PostgreSQL checks:
+Copy the test configuration template once before running real PostgreSQL checks:
 
 ```bash
-pytest -m integration
+cp .env.test.example .env.test
+pytest
 ```
 
 ## Project Status

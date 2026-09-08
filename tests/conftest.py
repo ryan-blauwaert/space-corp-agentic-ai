@@ -9,6 +9,7 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 
 from app.database import Database
+from scripts.test_environment import apply_test_environment
 
 
 TEST_APPLICATION_DATABASE_URL_ENVIRONMENT_VARIABLE = "SPACE_CORP_TEST_DATABASE_URL"
@@ -17,6 +18,7 @@ TEST_MIGRATION_DATABASE_URL_ENVIRONMENT_VARIABLE = (
 )
 TEST_DATABASE_NAME_PREFIX = "space_corp_test"
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+apply_test_environment()
 
 
 @pytest.fixture

@@ -95,11 +95,14 @@ Apply schema migrations with the migration-owner URL configured:
 alembic upgrade head
 ```
 
-Run the integration checks with both test URLs configured. The suite uses the restricted application URL for ordinary data access and the migration-owner URL only for schema setup and cleanup:
+Copy the tracked test template once to the ignored `.env.test` file. Pytest loads it automatically; exported variables retain precedence for CI or temporary overrides. The template includes the optional PostgreSQL binary directory used by the disposable provisioning tests. Replace that path if your installation is not Homebrew PostgreSQL 17, or remove the line to skip only those optional tests.
 
 ```bash
-pytest -m integration
+cp .env.test.example .env.test
+pytest
 ```
+
+The suite uses the restricted application URL for ordinary data access and the migration-owner URL only for schema setup and cleanup. It rejects database names that do not begin with `space_corp_test`.
 
 The initial migration is intentionally empty. It records the migration baseline and creates Alembic's version table; Waypoint 1.2 adds workspace and Facility tables plus Facility RLS.
 
@@ -133,10 +136,10 @@ Do not run `docker compose down -v` unless you intentionally want to delete the 
 
 The integration suite prepares the schema through explicit fixture dependencies, so individual repository and API files can be run independently after initial role provisioning. The destructive migration round-trip test restores pre-existing Facility grants after recreating tables. Use a dedicated test database with no valuable data; do not run parallel suites against the same database.
 
-To include provisioning success, repeatability, legacy-grant removal, and failed-precondition tests, point to installed PostgreSQL server binaries:
+To include provisioning success, repeatability, legacy-grant removal, and failed-precondition tests, set `SPACE_CORP_TEST_POSTGRES_BIN` in `.env.test` to your installed PostgreSQL server-binary directory (for example, `$(pg_config --bindir)`).
 
 ```bash
-SPACE_CORP_TEST_POSTGRES_BIN="$(pg_config --bindir)" pytest -m integration
+pytest
 ```
 
 Those provisioning tests initialize disposable clusters in temporary directories with private Unix sockets and TCP disabled, then stop and remove them. They never provision your existing development server. Without this optional variable, provisioning tests explicitly skip. The ordinary database integration tests still require both documented test URLs.
