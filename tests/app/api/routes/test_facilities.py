@@ -94,7 +94,7 @@ def create_facility_application(
 
 
 def test_list_facilities_returns_service_unavailable_without_a_database() -> None:
-    application = create_app(Settings(default_workspace_id=uuid4()))
+    application = create_app(Settings(database_url=None, default_workspace_id=uuid4()))
 
     with TestClient(application) as client:
         response = client.get("/facilities")
