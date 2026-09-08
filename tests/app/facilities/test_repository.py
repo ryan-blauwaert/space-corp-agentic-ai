@@ -68,6 +68,22 @@ def test_repository_lists_facilities_in_code_order(
 
 
 @pytest.mark.integration
+def test_repository_lists_a_page_and_counts_workspace_facilities(
+    integration_session: Session,
+    workspace_id: UUID,
+) -> None:
+    repository = SqlAlchemyFacilityRepository(integration_session)
+    repository.create(workspace_id, make_new_facility("LUN-OPS-01"))
+    repository.create(workspace_id, make_new_facility("ORB-OPS-01"))
+    repository.create(workspace_id, make_new_facility("MCC-OPS-01"))
+
+    facilities = repository.list_by_workspace(workspace_id, limit=2, offset=1)
+
+    assert [facility.code for facility in facilities] == ["MCC-OPS-01", "ORB-OPS-01"]
+    assert repository.count_by_workspace(workspace_id) == 3
+
+
+@pytest.mark.integration
 def test_repository_excludes_another_workspaces_facility(
     integration_session: Session,
     workspace_id: UUID,

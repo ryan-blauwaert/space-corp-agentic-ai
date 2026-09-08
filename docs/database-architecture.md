@@ -2,7 +2,7 @@
 
 ## Purpose and Scope
 
-This document records the PostgreSQL direction through Waypoint 1.2. Workspace records and Facility row-level security are now implemented; reviewer sessions, editable baseline copies, and reset remain future work.
+This document records the PostgreSQL direction through Waypoint 1.3. Workspace records and Facility row-level security are now implemented; reviewer sessions, editable baseline copies, and reset remain future work.
 
 ## Data Isolation Direction
 
@@ -27,7 +27,7 @@ The local migration role is `space_corp`; the local application role is `space_c
 
 ## Connection and Workspace Context
 
-`Database.workspace_session()` sets a caller-supplied workspace identifier with `set_config('app.workspace_id', ..., true)`. It is a lower-level persistence mechanism, not an authorization decision: the upcoming request/session boundary must resolve and authorize the workspace before calling it. The Facility policy reads that setting with `current_setting`; absent context denies access.
+`Database.workspace_session()` sets a caller-supplied workspace identifier with `set_config('app.workspace_id', ..., true)`. It is a lower-level persistence mechanism, not an authorization decision: the current local API resolves it from server configuration. Future reviewer sessions must authorize it before calling this method. The Facility policy reads that setting with `current_setting`; absent context denies access.
 
 The setting must be transaction-local. A persistent connection-level setting can leak a previous workspace into a reused pooled connection. Connection management must therefore:
 
@@ -44,7 +44,7 @@ The project uses PostgreSQL for local development and a dedicated PostgreSQL dat
 
 Unit tests remain independent of a running database. Integration tests verify real connections, migrations, restricted application-role attributes, RLS policies, and transaction-local workspace context against the dedicated test database.
 
-Docker is not part of this waypoint. Local PostgreSQL startup and migration commands will be documented when connection management and migrations are introduced.
+Docker is not required for this waypoint. Startup, migration, and provisioning commands are in [the local PostgreSQL guide](local-postgresql.md).
 
 ## Deferred Work
 
@@ -55,3 +55,11 @@ The following are intentionally deferred:
 - other domain tables
 
 Deferring these items keeps Waypoint 1.2 focused on the first workspace-scoped domain entity while preserving the requirements for subsequent work.
+
+## Facility API Hardening
+
+Provisioning uses `ON_ERROR_STOP` and a transaction per database, as described in the [psql documentation](https://www.postgresql.org/docs/current/app-psql.html). Failure stops subsequent commands; an earlier database transaction may already have committed. Correct the reported condition and rerun the idempotent script. It removes legacy table/sequence grants and default grants, then grants only Facility `SELECT`, `INSERT`, `UPDATE`, and `DELETE`. Workspace creation and Alembic bookkeeping remain migration-owner operations. Future domain tables require explicit privilege decisions.
+
+Migration `0004_facility_required_text` rejects whitespace-only required Facility text using the same whitespace set as Python's `str.strip()`, including Unicode whitespace. It does not rewrite existing data: invalid rows must be corrected explicitly before the migration can succeed. The migration is transactional and reversible.
+
+The API uses synchronous routes with synchronous SQLAlchemy sessions. Expected HTTP failures use FastAPI exception handlers; validation errors retain FastAPI's existing format. These are supported [FastAPI patterns](https://fastapi.tiangolo.com/tutorial/handling-errors/). No service layer is added because these read operations need no separate business orchestration.

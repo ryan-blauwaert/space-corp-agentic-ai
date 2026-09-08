@@ -428,17 +428,9 @@ The initial codebase may begin as a small modular application. Capabilities shou
 
 ## Current Scope
 
-The current phase is development foundation only.
+The current phase is Phase 1 — Structured Operational Backend. Typed configuration, PostgreSQL persistence, workspace isolation, and the read-only Facility API are implemented. See `docs/roadmap.md` for authoritative completion status and the next waypoint.
 
-Immediate goals are:
-
-1. establish repository conventions
-2. configure coding-agent instructions
-3. create a minimal backend service
-4. establish automated testing
-5. introduce modular service boundaries
-6. introduce structured data incrementally
-7. build the project through small, understandable implementation tasks
+Current priorities are to preserve the tested foundation, keep interfaces explicit, and introduce further structured data only through the roadmap's small, reviewable increments.
 
 The following are explicitly out of scope for the initial foundation phase:
 

@@ -87,18 +87,9 @@ No particular agent framework, workflow framework, vector database, or deploymen
 
 ## Current Status
 
-**Phase 0 — Development Foundation**
+**Phase 1 — Structured Operational Backend**
 
-The project is currently establishing its basic engineering foundation.
-
-Current priorities:
-
-1. establish repository conventions
-2. configure coding-agent instructions
-3. create a minimal backend service
-4. establish automated testing
-5. define modular boundaries
-6. introduce structured data incrementally
+The latest completed waypoint is **1.3 — Facility API**; the next is **1.4 — Core Operational Schema**. The backend includes typed configuration, PostgreSQL migrations, workspace-scoped Facility persistence, and read-only list/detail endpoints. See the [roadmap](docs/roadmap.md) for verification and completion status.
 
 Advanced AI capabilities are intentionally not being implemented yet.
 
@@ -155,7 +146,7 @@ Coding agents should follow the instructions in `AGENTS.md`.
 
 More detailed project requirements and long-term goals are documented in `PROJECT_BRIEF.md`.
 
-Additional architecture and roadmap documentation will be added as the project evolves.
+See the [database architecture](docs/database-architecture.md) and [roadmap](docs/roadmap.md) for current decisions and sequencing.
 
 ## Local Development
 
@@ -189,17 +180,26 @@ Run the test suite:
 pytest
 ```
 
+For the complete PostgreSQL-backed suite, copy `.env.test.example` to the ignored `.env.test` file once. The test configuration is loaded automatically, so later `pytest` runs require no terminal exports.
+
 ### Application Configuration
 
-Settings are loaded from environment variables when the application starts. All settings have defaults, so no environment variables are required for local startup.
+Settings are loaded from environment variables and an ignored project-root `.env` file when the application starts. Copy the tracked template before starting the API:
+
+```bash
+cp .env.example .env
+```
+
+The application refuses to start until its database URL and default workspace ID are configured, and it checks database reachability during startup. This prevents a server that cannot serve Facility API requests from accepting traffic.
 
 | Environment variable | Default | Accepted values and purpose |
 | --- | --- | --- |
 | `SPACE_CORP_ENVIRONMENT` | `development` | `development`, `test`, or `production`; identifies the application environment. |
 | `SPACE_CORP_APPLICATION_NAME` | `Agentic AI Operations Platform` | A string used as the FastAPI title, visible in the API documentation and OpenAPI schema. |
 | `SPACE_CORP_LOGGING_LEVEL` | `INFO` | `DEBUG`, `INFO`, `WARNING`, `ERROR`, or `CRITICAL`; validated and stored, but not yet applied to logger configuration. |
-| `SPACE_CORP_DATABASE_URL` | Unset (`None`) | An optional validated PostgreSQL URL used by application database resources. It should use the restricted application role. |
+| `SPACE_CORP_DATABASE_URL` | Unset (`None`) | A validated PostgreSQL URL used by application database resources. It should use the restricted application role and is required at startup. |
 | `SPACE_CORP_MIGRATION_DATABASE_URL` | Unset (`None`) | A validated PostgreSQL URL used only by Alembic schema migrations. It should use the schema-owner migration role. |
+| `SPACE_CORP_DEFAULT_WORKSPACE_ID` | Unset (`None`) | UUID of an existing workspace, selected by the server for local Facility API requests. Required at startup. This is not public multi-user authorization. |
 
 For example, start the API with a different application name:
 
@@ -211,7 +211,7 @@ Open [the local API documentation](http://127.0.0.1:8000/docs) to see `Test Oper
 
 Unsupported environment or logging-level values cause configuration validation to fail at startup. Values must match the accepted spelling and capitalization shown above.
 
-The application reads the process environment; it does not automatically load `.env` files. Keep credentials out of tracked files and supply future database credentials through the environment.
+The `.env` file is ignored and must never contain committed credentials. The included URLs omit passwords: keep local PostgreSQL passwords in the ignored `~/.pgpass` file or another local credential store. Explicit process environment variables override `.env` values, which keeps deployment configuration separate from repository files.
 
 ### PostgreSQL Development
 
@@ -221,14 +221,54 @@ Configure the migration-owner URL before applying migrations:
 
 ```bash
 alembic upgrade head
+python -m scripts.seed_development_data
 ```
 
-Configure both test URLs to the dedicated `space_corp_test` database before running real PostgreSQL checks:
+The seed command uses the configured migration-owner connection to create the local workspace when needed and restore a small deterministic Facility dataset for curl or Postman smoke testing. It is development-only and safe to rerun.
+
+Copy the test configuration template once before running real PostgreSQL checks:
 
 ```bash
-pytest -m integration
+cp .env.test.example .env.test
+pytest
 ```
 
 ## Project Status
 
 This project is under active development and is intentionally being built from the foundation upward.
+
+## Facility API Contract
+
+Configure both `SPACE_CORP_DATABASE_URL` and `SPACE_CORP_DEFAULT_WORKSPACE_ID` before starting the Facility API. Run `python -m scripts.seed_development_data` after migrations to create the configured local workspace and restore the Facility smoke dataset. The API remains read-only; the development seed uses the migration-owner connection, while the running application uses the restricted application role.
+
+| Request | Operation ID | Successful response |
+| --- | --- | --- |
+| `GET /health` | `getHealth` | `200`, `{ "status": "ok" }`; liveness only, without a database check. |
+| `GET /facilities?limit=50&offset=0` | `listFacilities` | `200`, `{ "items": [...], "pagination": { "limit": 50, "offset": 0, "total": 0 } }`. |
+| `GET /facilities/{facility_id}` | `getFacility` | `200`, one Facility object. |
+
+Facilities expose `id`, `code`, `name`, `facility_type`, `location`, `operational_status`, `created_at`, and `updated_at`. Workspace ownership remains internal. List results are ordered by code; `limit` defaults to 50 and accepts 1–100, while `offset` defaults to 0 and must be nonnegative. Empty workspaces and offsets past the final record return an empty page. Page contents and total are separate reads under PostgreSQL's default isolation, so concurrent writes can change the total between reads.
+
+- `404`: a valid UUID does not identify a Facility in the configured workspace. Missing and other-workspace records return identical errors.
+- `422`: malformed UUIDs or invalid list query parameters. FastAPI's existing `application/json` validation format is retained: `detail` is an array of validation errors. Unknown list query parameters, including `workspace_id`, are rejected. Query parameters or headers on detail requests cannot change the server-selected workspace.
+- `503`: a database operational failure after startup. Missing startup configuration or an unreachable database prevents the application from starting; database exception details are not returned to clients.
+
+The `404` and `503` responses use [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457.html) `application/problem+json`, with `type`, `title`, `status`, `detail`, and `instance` (request path). For example:
+
+```json
+{"type":"about:blank","title":"Not Found","status":404,"detail":"The requested Facility is not available.","instance":"/facilities/11111111-1111-1111-1111-111111111111"}
+```
+
+The generated `/openapi.json` documents response schemas, statuses, pagination, and stable operation IDs. Compatibility review for Waypoint 1.3: health and list success payloads remain unchanged; the detail route is additive. Existing consumers of the earlier 503 error must accept the new media type and additional problem fields; the string `detail` is preserved. No frontend consumer exists in this repository yet.
+
+## Packaging and Local Artifacts
+
+Setuptools explicitly discovers `app` and its subpackages, following its [package-discovery guidance](https://setuptools.pypa.io/en/stable/userguide/package_discovery.html). Migrations and provisioning are run from the source checkout; the application wheel does not bundle them.
+
+```bash
+python -m pip wheel --no-deps --wheel-dir dist .
+```
+
+`build/`, `dist/`, bytecode, pytest caches, coverage outputs, and macOS metadata are generated artifacts and are ignored. Keep local logs, database exports, and other private scratch files under the ignored `.local/` directory. `.env.example` may be tracked with placeholders only. Ignore rules do not remove already-tracked files or replace credential review.
+
+Dependency locking, lint/type-check tooling, and CI remain separate follow-up work. No application dependencies were added for the Facility API fixes.

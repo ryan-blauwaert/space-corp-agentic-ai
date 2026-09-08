@@ -360,12 +360,24 @@ Establishes API → domain/service → repository layering.
 - facility API operations use a trusted workspace context and cannot select another workspace through arbitrary client-supplied identifiers
 - response and error schemas, HTTP statuses, pagination limits, and stable OpenAPI operation identifiers are documented and tested
 - API contract changes are reviewed for compatibility with existing consumers
+- repeatable local smoke data makes successful list and detail responses manually verifiable outside the automated test suite
 
 Until reviewer sessions are introduced in Waypoint 2.5, local API development may use a server-configured default workspace. This is not sufficient for public multi-user access.
 
 ### Status
 
-- [ ] Complete
+- [x] Complete — 2026-09-07
+- Commits: `2a164a0 feat: complete facility API`, `f27bd80 feat: add local API smoke data`, `a31c747 test: stabilize pytest imports`, and `51884e6 test: load local integration settings`.
+- Verification: 144 tests passed with no skips against PostgreSQL 17, including disposable provisioning tests. The live local list and detail endpoints returned the repeatable smoke dataset through the restricted application role. A clean wheel build, installation outside the checkout, health/OpenAPI smoke check, and Git ignore checks passed.
+- Completion-criteria coverage:
+  - `tests/app/api/routes/test_facilities.py` verifies list/detail success, empty results, pagination, invalid IDs/queries, missing records, trusted workspace scope, cross-workspace denial, configuration failures, safe database errors, OpenAPI response formats, and stable operation IDs.
+  - `tests/app/schemas/` verifies typed public responses and pagination/error schemas; `tests/app/api/test_errors.py` checks HTTP headers survive problem conversion.
+  - `tests/app/test_database.py`, `tests/app/facilities/`, and `tests/scripts/test_provision_postgresql_application_role.py` verify transaction cleanup, migration round trips and invalid legacy data, domain/database constraints, real RLS enforcement, and least-privilege provisioning success/failure.
+  - `tests/app/test_main.py` verifies application assembly and owned/injected database lifecycles. `tests/scripts/test_seed_development_data.py` verifies guarded, idempotent local smoke seeding; `tests/scripts/test_test_environment.py` verifies automatic local integration-test configuration. `README.md` records the contract compatibility review and manual smoke workflow.
+- Architectural decisions: retain synchronous SQLAlchemy routes and the existing FastAPI 422 format; use RFC 9457 problems for expected HTTP failures; keep workspace selection in server configuration until reviewer sessions; discover only application packages for wheel builds; grant application privileges explicitly per table.
+- Scope: packaging, ignore rules, PostgreSQL safeguards, and documentation repair the existing foundation. No new application dependencies, authentication, AI, Docker configuration, CI, or additional services were introduced.
+- Known limits: database outage responses are tested through injected operational failures rather than a live outage drill; verification used Python 3.14 and PostgreSQL 17, not a full version matrix. One existing Starlette/AnyIO deprecation warning remains. These do not leave an active completion criterion uncovered. Dependency locking, lint/type-check tooling, and later infrastructure remain follow-up work.
+- Post-completion enhancement: a guarded, repeatable development seed creates the configured workspace and enough deterministic Facility data for local endpoint smoke testing. This remains intentionally smaller than the complete synthetic dataset in Waypoint 1.5.
 
 ---
 
@@ -431,6 +443,8 @@ Exact volume is less important than consistency.
 ### Architectural Value
 
 Creates controlled test and demo data.
+
+Small endpoint-specific developer smoke fixtures may be introduced before this waypoint. This waypoint remains responsible for the complete, internally consistent, versioned dataset spanning the core operational schema.
 
 ### Completion Criteria
 
@@ -1823,7 +1837,7 @@ Current phase:
 
 Current recommended waypoint:
 
-**Waypoint 1.3 — Facility API**
+**Waypoint 1.4 — Core Operational Schema**
 
 The project should not begin implementing later phases until the current waypoint is complete.
 
@@ -1873,6 +1887,7 @@ When working from this roadmap, coding agents should:
 8. avoid speculative infrastructure intended only for future phases
 9. preserve backward compatibility with already-completed capabilities where practical
 10. leave the repository in a runnable and testable state
+11. when adding an endpoint backed by persisted data, provide enough repeatable local smoke data and documentation to exercise its primary successful response outside the automated test suite
 
 ---
 
@@ -1888,4 +1903,5 @@ Unless a waypoint explicitly states otherwise, completion requires:
 - no unrelated future capabilities were introduced
 - code is committed
 - completion criteria can be demonstrated
+- new persisted-data endpoints can be exercised manually against documented, repeatable local smoke data
 - the next waypoint can begin without unfinished hidden dependencies

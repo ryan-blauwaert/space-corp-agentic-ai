@@ -1,7 +1,7 @@
 from typing import Protocol
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.facilities.domain import Facility, FacilityOperationalStatus, FacilityType, NewFacility
@@ -17,8 +17,17 @@ class FacilityRepository(Protocol):
     def get_by_id(self, workspace_id: UUID, facility_id: UUID) -> Facility | None:
         """Return a Facility only when it belongs to the supplied workspace."""
 
-    def list_by_workspace(self, workspace_id: UUID) -> list[Facility]:
-        """Return all Facilities owned by the supplied workspace."""
+    def list_by_workspace(
+        self,
+        workspace_id: UUID,
+        *,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[Facility]:
+        """Return a page of Facilities owned by the supplied workspace."""
+
+    def count_by_workspace(self, workspace_id: UUID) -> int:
+        """Return the number of Facilities owned by the supplied workspace."""
 
 
 class SqlAlchemyFacilityRepository:
@@ -51,14 +60,27 @@ class SqlAlchemyFacilityRepository:
 
         return None if record is None else _to_domain(record)
 
-    def list_by_workspace(self, workspace_id: UUID) -> list[Facility]:
+    def list_by_workspace(
+        self,
+        workspace_id: UUID,
+        *,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[Facility]:
         statement = (
             select(FacilityRecord)
             .where(FacilityRecord.workspace_id == workspace_id)
             .order_by(FacilityRecord.code)
+            .limit(limit)
+            .offset(offset)
         )
 
         return [_to_domain(record) for record in self._session.scalars(statement)]
+
+    def count_by_workspace(self, workspace_id: UUID) -> int:
+        statement = select(func.count()).where(FacilityRecord.workspace_id == workspace_id)
+
+        return self._session.scalar(statement) or 0
 
 
 def _to_domain(record: FacilityRecord) -> Facility:

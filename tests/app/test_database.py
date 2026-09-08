@@ -119,7 +119,7 @@ def test_create_database_requires_configured_url(
     monkeypatch.delenv("SPACE_CORP_DATABASE_URL", raising=False)
 
     with pytest.raises(DatabaseConfigurationError, match="SPACE_CORP_DATABASE_URL"):
-        create_database(Settings())
+        create_database(Settings(_env_file=None))
 
 
 @pytest.mark.integration
@@ -146,7 +146,7 @@ def test_migrations_apply(integration_migration_database_url: str) -> None:
                 text("SELECT version_num FROM alembic_version")
             ).scalar_one()
 
-        assert revision == "0003_facility_workspace_rls"
+        assert revision == "0004_facility_required_text"
     finally:
         engine.dispose()
 
@@ -168,6 +168,15 @@ def test_workspace_and_facility_migration_downgrades_and_reapplies(
     config = Config(str(PROJECT_ROOT / "alembic.ini"))
     command.upgrade(config, "head")
 
+    # Dropping tables also drops their explicit grants. Preserve them for cleanup.
+    grant_engine = create_database_engine(integration_migration_database_url)
+    with grant_engine.connect() as connection:
+        privileges = connection.execute(text(
+            "SELECT privilege_type FROM information_schema.role_table_grants "
+            "WHERE table_schema = 'public' AND table_name = 'facilities' "
+            "AND grantee = 'space_corp_app'"
+        )).scalars().all()
+
     try:
         command.downgrade(config, "0001_initial")
         engine = create_database_engine(integration_migration_database_url)
@@ -186,7 +195,14 @@ def test_workspace_and_facility_migration_downgrades_and_reapplies(
         finally:
             engine.dispose()
     finally:
-        command.upgrade(config, "head")
+        try:
+            command.upgrade(config, "head")
+            with grant_engine.begin() as connection:
+                for privilege in privileges:
+                    assert privilege in {"SELECT", "INSERT", "UPDATE", "DELETE", "REFERENCES", "TRIGGER", "TRUNCATE"}
+                    connection.execute(text(f"GRANT {privilege} ON facilities TO space_corp_app"))
+        finally:
+            grant_engine.dispose()
 
 
 @pytest.mark.integration
@@ -244,35 +260,35 @@ def test_application_role_enforces_workspace_rls_and_resets_pooled_context(
                 )
             ).one()
 
+            table_owners = dict(
+                session.execute(
+                    text(
+                        "SELECT relation.relname, owner.rolname "
+                        "FROM pg_class AS relation "
+                        "JOIN pg_namespace AS schema "
+                        "ON schema.oid = relation.relnamespace "
+                        "JOIN pg_roles AS owner ON owner.oid = relation.relowner "
+                        "WHERE schema.nspname = 'public' "
+                        "AND relation.relname IN ('workspaces', 'facilities')"
+                    )
+                ).all()
+            )
+            role_memberships = session.execute(
+                text(
+                    "SELECT granted_role.rolname "
+                    "FROM pg_auth_members AS membership "
+                    "JOIN pg_roles AS member ON member.oid = membership.member "
+                    "JOIN pg_roles AS granted_role ON granted_role.oid = membership.roleid "
+                    "WHERE member.rolname = 'space_corp_app'"
+                )
+            ).scalars().all()
+
         assert (bypass_rls, is_superuser, can_create_role, can_create_database) == (
             False,
             False,
             False,
             False,
         )
-        table_owners = dict(
-            session.execute(
-                text(
-                    "SELECT relation.relname, owner.rolname "
-                    "FROM pg_class AS relation "
-                    "JOIN pg_namespace AS schema "
-                    "ON schema.oid = relation.relnamespace "
-                    "JOIN pg_roles AS owner ON owner.oid = relation.relowner "
-                    "WHERE schema.nspname = 'public' "
-                    "AND relation.relname IN ('workspaces', 'facilities')"
-                )
-            ).all()
-        )
-        role_memberships = session.execute(
-            text(
-                "SELECT granted_role.rolname "
-                "FROM pg_auth_members AS membership "
-                "JOIN pg_roles AS member ON member.oid = membership.member "
-                "JOIN pg_roles AS granted_role ON granted_role.oid = membership.roleid "
-                "WHERE member.rolname = 'space_corp_app'"
-            )
-        ).scalars().all()
-
         assert table_owners == {
             "facilities": "space_corp",
             "workspaces": "space_corp",
@@ -344,3 +360,41 @@ def test_application_role_enforces_workspace_rls_and_resets_pooled_context(
             )
         application_database.dispose()
         migration_database.dispose()
+
+
+@pytest.mark.integration
+def test_required_text_migration_rejects_existing_invalid_data_without_rewriting_it(
+    integration_migration_database_url: str,
+) -> None:
+    from sqlalchemy.exc import IntegrityError
+
+    config = Config(str(PROJECT_ROOT / "alembic.ini"))
+    command.upgrade(config, "head")
+    database = Database(integration_migration_database_url)
+    workspace_id = uuid4()
+    facility_id = uuid4()
+    try:
+        command.downgrade(config, "0003_facility_workspace_rls")
+        with database.session() as session:
+            session.add(WorkspaceRecord(id=workspace_id))
+            session.flush()
+            session.add(FacilityRecord(
+                id=facility_id, workspace_id=workspace_id, code=" ", name="Legacy",
+                facility_type="orbital_station", location="Orbit",
+                operational_status="operational",
+            ))
+        with pytest.raises(IntegrityError):
+            command.upgrade(config, "head")
+        with database.session() as session:
+            assert session.get(FacilityRecord, facility_id).code == " "
+            assert session.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "0003_facility_workspace_rls"
+            session.get(FacilityRecord, facility_id).code = "LEGACY-01"
+        command.upgrade(config, "head")
+        with database.session() as session:
+            assert session.get(FacilityRecord, facility_id).code == "LEGACY-01"
+    finally:
+        with database.session() as session:
+            session.execute(delete(FacilityRecord).where(FacilityRecord.id == facility_id))
+            session.execute(delete(WorkspaceRecord).where(WorkspaceRecord.id == workspace_id))
+        database.dispose()
+        command.upgrade(config, "head")
