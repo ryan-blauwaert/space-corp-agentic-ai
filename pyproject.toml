@@ -25,6 +25,7 @@ dev = [
 
 [tool.pytest.ini_options]
 addopts = ["--import-mode=importlib"]
+pythonpath = ["."]
 markers = [
     "integration: requires isolated PostgreSQL URLs or opt-in disposable server binaries",
 ]
