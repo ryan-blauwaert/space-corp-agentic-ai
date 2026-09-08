@@ -63,24 +63,26 @@ chmod 600 ~/.pgpass
 
 ## Local Application Configuration
 
-The database schema does not create example business data, so a newly migrated development database has no workspace ID to configure. First check whether a workspace already exists, using the migration-owner role:
-
-```bash
-psql -X -U space_corp -d space_corp -At \
-  -c 'SELECT id FROM workspaces ORDER BY created_at LIMIT 1'
-```
-
-If that command returns no value, create one local workspace and copy the returned UUID. The application ORM generates workspace UUIDs in Python, while this direct SQL command must supply one explicitly:
-
-```bash
-psql -X -U space_corp -d space_corp -At \
-  -c 'INSERT INTO workspaces (id) VALUES (gen_random_uuid()) RETURNING id'
-```
-
-Copy the repository template and replace its workspace placeholder with that UUID:
+Copy the repository template to the ignored local configuration file:
 
 ```bash
 cp .env.example .env
+```
+
+The migration-owner connection is the URL whose PostgreSQL login owns the schema—in this setup, `space_corp`. It is separate from the restricted `space_corp_app` URL used by the running API. Administrative development tasks need the owner connection because `space_corp_app` intentionally cannot create or inspect workspace records and is constrained by row-level security. The seed command verifies table ownership rather than trusting the username written in the URL.
+
+After applying migrations, populate the configured workspace with the repeatable Facility smoke dataset:
+
+```bash
+python -m scripts.seed_development_data
+```
+
+The command reads `SPACE_CORP_MIGRATION_DATABASE_URL` and `SPACE_CORP_DEFAULT_WORKSPACE_ID` from `.env`. It creates the workspace when necessary and creates or restores three deterministic Facility records. Re-running it is safe and restores their canonical smoke values without adding duplicates. It refuses non-development environments and databases whose names begin with `space_corp_test`.
+
+Verify the running API against the seeded data:
+
+```bash
+curl http://127.0.0.1:8000/facilities
 ```
 
 `.env` is ignored. Its database URLs use the restricted `space_corp_app` login for the running API and the `space_corp` migration-owner login for Alembic; passwords remain in `~/.pgpass`, not in `.env`. The application loads `.env` automatically, validates the database URL and workspace ID, and checks database reachability before it begins serving requests. Process environment variables override `.env` values for deployment or temporary command-level changes.

@@ -360,6 +360,7 @@ Establishes API → domain/service → repository layering.
 - facility API operations use a trusted workspace context and cannot select another workspace through arbitrary client-supplied identifiers
 - response and error schemas, HTTP statuses, pagination limits, and stable OpenAPI operation identifiers are documented and tested
 - API contract changes are reviewed for compatibility with existing consumers
+- repeatable local smoke data makes successful list and detail responses manually verifiable outside the automated test suite
 
 Until reviewer sessions are introduced in Waypoint 2.5, local API development may use a server-configured default workspace. This is not sufficient for public multi-user access.
 
@@ -376,6 +377,7 @@ Until reviewer sessions are introduced in Waypoint 2.5, local API development ma
 - Architectural decisions: retain synchronous SQLAlchemy routes and the existing FastAPI 422 format; use RFC 9457 problems for expected HTTP failures; keep workspace selection in server configuration until reviewer sessions; discover only application packages for wheel builds; grant application privileges explicitly per table.
 - Scope: packaging, ignore rules, PostgreSQL safeguards, and documentation repair the existing foundation. No new application dependencies, authentication, AI, Docker configuration, CI, or additional services were introduced.
 - Known limits: database outage responses are tested through injected operational failures rather than a live outage drill; verification used Python 3.14 and PostgreSQL 17, not a full version matrix. One existing Starlette/AnyIO deprecation warning remains. These do not leave an active completion criterion uncovered. Dependency locking, lint/type-check tooling, and later infrastructure remain follow-up work.
+- Post-completion enhancement: a guarded, repeatable development seed creates the configured workspace and enough deterministic Facility data for local endpoint smoke testing. This remains intentionally smaller than the complete synthetic dataset in Waypoint 1.5.
 
 ---
 
@@ -441,6 +443,8 @@ Exact volume is less important than consistency.
 ### Architectural Value
 
 Creates controlled test and demo data.
+
+Small endpoint-specific developer smoke fixtures may be introduced before this waypoint. This waypoint remains responsible for the complete, internally consistent, versioned dataset spanning the core operational schema.
 
 ### Completion Criteria
 
@@ -1883,6 +1887,7 @@ When working from this roadmap, coding agents should:
 8. avoid speculative infrastructure intended only for future phases
 9. preserve backward compatibility with already-completed capabilities where practical
 10. leave the repository in a runnable and testable state
+11. when adding an endpoint backed by persisted data, provide enough repeatable local smoke data and documentation to exercise its primary successful response outside the automated test suite
 
 ---
 
@@ -1898,4 +1903,5 @@ Unless a waypoint explicitly states otherwise, completion requires:
 - no unrelated future capabilities were introduced
 - code is committed
 - completion criteria can be demonstrated
+- new persisted-data endpoints can be exercised manually against documented, repeatable local smoke data
 - the next waypoint can begin without unfinished hidden dependencies

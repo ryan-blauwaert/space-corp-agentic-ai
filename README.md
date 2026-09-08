@@ -219,7 +219,10 @@ Configure the migration-owner URL before applying migrations:
 
 ```bash
 alembic upgrade head
+python -m scripts.seed_development_data
 ```
+
+The seed command uses the configured migration-owner connection to create the local workspace when needed and restore a small deterministic Facility dataset for curl or Postman smoke testing. It is development-only and safe to rerun.
 
 Configure both test URLs to the dedicated `space_corp_test` database before running real PostgreSQL checks:
 
@@ -233,7 +236,7 @@ This project is under active development and is intentionally being built from t
 
 ## Facility API Contract
 
-Configure both `SPACE_CORP_DATABASE_URL` and `SPACE_CORP_DEFAULT_WORKSPACE_ID` before starting the Facility API. The workspace must already exist; creating and seeding workspaces is not part of this read-only API. Use the migration-owner connection for manual local data setup. The application role accesses Facility rows only.
+Configure both `SPACE_CORP_DATABASE_URL` and `SPACE_CORP_DEFAULT_WORKSPACE_ID` before starting the Facility API. Run `python -m scripts.seed_development_data` after migrations to create the configured local workspace and restore the Facility smoke dataset. The API remains read-only; the development seed uses the migration-owner connection, while the running application uses the restricted application role.
 
 | Request | Operation ID | Successful response |
 | --- | --- | --- |
