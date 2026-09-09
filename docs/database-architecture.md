@@ -2,7 +2,11 @@
 
 ## Purpose and Scope
 
-This document records the PostgreSQL direction through Waypoint 1.3. Workspace records and Facility row-level security are now implemented; reviewer sessions, editable baseline copies, and reset remain future work.
+This document records the PostgreSQL direction through Waypoint 1.3 and the
+isolation architecture that Waypoint 1.4 must extend. Workspace records and
+Facility row-level security are now implemented; reviewer sessions, editable
+baseline copies, and reset remain future work. The planned core relational
+model is defined in the [operational data model](operational-data-model.md).
 
 ## Data Isolation Direction
 
@@ -52,7 +56,8 @@ The following are intentionally deferred:
 
 - browser sessions, editable reviewer data, reset, and expiration
 - baseline seeding
-- other domain tables
+- implementation of the core operational tables defined in the
+  [operational data model](operational-data-model.md)
 
 Deferring these items keeps Waypoint 1.2 focused on the first workspace-scoped domain entity while preserving the requirements for subsequent work.
 
