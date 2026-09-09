@@ -392,6 +392,7 @@ The database represents enough of the fictional organization to support meaningf
 Recommended minimum:
 
 - Facility
+- CatalogRelease
 - EquipmentModel
 - EquipmentUnit
 - Component
@@ -410,7 +411,7 @@ change:
 
 1. document the first canonical operational questions, entity relationships,
    lifecycle states, and data-ownership model
-2. add EquipmentModel and EquipmentUnit
+2. add CatalogRelease, EquipmentModel, and EquipmentUnit
 3. add Component and InventoryItem
 4. add Incident and WorkOrder
 5. verify the complete model against the canonical questions
@@ -422,8 +423,9 @@ introduces.
 
 ### Completion Criteria
 
-- at least three canonical operational questions are documented and drive the
-  relationships, constraints, and planned query paths
+- the five canonical questions Q1–Q5 in `docs/operational-data-model.md` define
+  scoped inputs, exact predicates, evidence, empty/unknown results, and fixed
+  time semantics, and drive relationships, constraints, and query paths
 - entity relationships, lifecycle states, and an ownership matrix are documented
 - the ownership matrix distinguishes workspace-owned records from intentionally
   shared immutable reference data and identifies the migration owner and
@@ -431,6 +433,20 @@ introduces.
 - migrations create the schema
 - foreign-key constraints enforce valid relationships
 - check constraints or typed enumerations enforce documented lifecycle values
+- `catalog_releases` supplies a stable relational identity; model/component
+  revisions reference it and composite foreign keys reject mixed-release compatibility
+- incident fault classification and occurrence time support recurrence queries;
+  work-order due times and terminal timestamps follow the documented semantics
+- WorkOrder accepts an optional originating Incident and optional target Unit,
+  including both or neither; incident-affected and work-target units may differ
+  within one Facility, and evidence preserves those distinct meanings
+- composite foreign keys enforce common workspace and Facility for each reference
+- column-level UPDATE grants and repository allowlists protect identity and
+  relationship fields from creation; approved updates succeed and direct
+  restricted-role changes to fixed fields fail
+- application DELETE/TRUNCATE privileges are absent on operational tables;
+  legacy broad grants are removed, and controlled migration-owner repair remains
+  possible within relational constraints
 - indexes support the documented query paths
 - basic repository tests exist for each major entity
 - schema supports the first planned demo questions
@@ -444,6 +460,10 @@ introduces.
 ### Status
 
 - [ ] Complete
+- Design refinement: Q1–Q5, catalog/baseline/workspace boundaries, identity rules,
+  catalog release identity, incident/target semantics, restricted-role permissions,
+  and the implementation coverage plan are documented.
+  Schema and repository implementation remain outstanding.
 
 ---
 
@@ -477,10 +497,20 @@ Small endpoint-specific developer smoke fixtures may be introduced before this w
 
 - seed process is repeatable
 - all foreign keys are valid
-- seeded identifiers are deterministic where practical
+- seeded operational UUIDs are deterministic per workspace and baseline entity;
+  two copies reuse human codes but have disjoint operational IDs and correctly
+  remapped foreign keys
 - seed validation checks pass
 - dataset can be recreated from scratch
+- each frozen baseline manifest pins a `catalog_releases` row; workspaces
+  retain baseline identity and a catalog-release foreign key, and their
+  queries/references cannot mix catalog releases
+- publication rejects changes to existing released catalog content; new releases
+  do not change existing workspace results
 - the canonical synthetic baseline has an explicit version and remains unchanged by reviewer edits
+- Q1–Q5 baseline scenarios include fixed evaluation times, expected evidence IDs,
+  and the positive, empty, unknown, boundary, and isolation cases in the model's
+  verification plan
 - the seed process can populate a specified workspace with internally consistent records and deterministic identifiers within that workspace
 - seeding one workspace does not modify another; tests cover repeatability, isolation, and baseline-version tracking
 - after one-time local PostgreSQL role provisioning, a documented project command

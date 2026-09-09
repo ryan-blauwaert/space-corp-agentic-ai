@@ -10,7 +10,7 @@ model is defined in the [operational data model](operational-data-model.md).
 
 ## Data Isolation Direction
 
-Mutable operational records will use shared PostgreSQL tables and carry a workspace identifier. A workspace is the ownership boundary for a reviewer or other authorized application context. The canonical synthetic baseline remains versioned and is never modified by workspace edits.
+Mutable operational records will use shared PostgreSQL tables and carry a workspace identifier. A workspace is the ownership boundary for a reviewer or other authorized application context. The planned canonical synthetic baseline is versioned and never modified by workspace edits. It is distinct from the shared equipment catalog and from each workspace copy.
 
 Isolation will be enforced in layers:
 
@@ -20,6 +20,34 @@ Isolation will be enforced in layers:
 
 Foreign keys and uniqueness constraints introduced with domain entities must include workspace scope where required. This prevents cross-workspace relationships and allows the same baseline identifiers to be used in separate workspaces.
 
+## Shared Reference Data and Reproducible Copies
+
+The [operational model](operational-data-model.md) defines three boundaries:
+a shared versioned catalog of equipment/part definitions, a frozen baseline of
+initial operational values that references one catalog release, and a separate
+editable operational copy per workspace. A workspace can contain many facilities.
+Reviewer edits to inventory, asset condition, or maintenance records affect only
+that workspace, while published catalog facts stay fixed.
+
+Read-only application grants do not make administrator edits impossible.
+Published catalog content must also be protected by trusted publication checks:
+changes create new releases rather than rewriting old definitions or compatibility
+pairs. Waypoint 1.4 adds `catalog_releases` (`id`, unique `code`, `created_at`)
+and required `catalog_release_id` references from model/component revisions.
+Composite foreign keys enforce same-release compatibility; Waypoint 1.5 implements manifests, publication checks,
+and baseline/catalog foreign-key pins to those release records for workspaces. Future queries use those pins so a new
+release cannot silently change an existing workspace's answers.
+
+Operational rows retain globally unique UUIDs, but their human codes may repeat
+between workspace copies. Waypoint 1.5 derives seeded UUIDs from the workspace
+and stable baseline entity identity and remaps relationships consistently.
+The existing fixed-ID Facility seed is a limited smoke helper, not the general
+cloning implementation. Shared catalog revision IDs are reused across copies.
+
+Authorization, repository scoping, and [PostgreSQL row security](https://www.postgresql.org/docs/current/ddl-rowsecurity.html)
+protect operational access; composite foreign keys protect relationship integrity.
+Shared catalog readability never permits cross-workspace operational aggregation.
+
 ## Database Roles
 
 The migration role and the application role have different responsibilities:
@@ -28,6 +56,33 @@ The migration role and the application role have different responsibilities:
 - The application role receives only the privileges required for application reads and writes. It must not have `BYPASSRLS` and must not own workspace-scoped tables.
 
 The local migration role is `space_corp`; the local application role is `space_corp_app`. The latter is explicitly `NOBYPASSRLS`, owns neither `workspaces` nor `facilities`, has no role memberships, and has no superuser, database-creation, or role-creation capability. RLS behavior is verified using that application role, including cross-workspace reads, writes, unscoped access, and connection reuse.
+
+### Planned Operational Write Permissions (Waypoint 1.4)
+
+Operational tables allow scoped reads/inserts and column-level updates only for
+the allowlist in the [operational model](operational-data-model.md). Identity,
+workspace, Facility assignment, model revision, and relationship keys are fixed
+for the application role from creation. Remove broad UPDATE grants before
+installing these column grants, because privileges are additive. Repositories
+and future editing APIs follow the same allowlist; direct restricted-role SQL
+must also be tested. [PostgreSQL GRANT](https://www.postgresql.org/docs/current/sql-grant.html)
+supports this enforcement without an immutability trigger.
+
+The application role receives no DELETE or TRUNCATE on operational tables,
+including Facilities, preventing delete/reinsert as a way to change fixed fields.
+Controlled repair and dependency-ordered deletion are migration-owner or future
+trusted cleanup responsibilities, with restrictive foreign keys still preserving
+relationships. This is a guarantee against ordinary application writes, not
+against an administrator able to change schema or grants. The current broad
+Facility grants described below must be tightened during 1.4 implementation;
+this documentation does not change live permissions.
+
+WorkOrder references have independent meanings: `originating_incident_id`
+records the reason for work, and `target_equipment_unit_id` records its target.
+Both are optional and may coexist, with the work target differing from the
+incident's affected unit. Composite foreign keys require the same workspace and
+Facility; no same-unit equality rule or equality trigger is required. Read
+contracts keep these identities distinct, including null targets.
 
 ## Connection and Workspace Context
 
@@ -55,11 +110,14 @@ Docker is not required for this waypoint. Startup, migration, and provisioning c
 The following are intentionally deferred:
 
 - browser sessions, editable reviewer data, reset, and expiration
-- baseline seeding
+- the full versioned baseline, catalog publication checks, and workspace pinning
+  (the small Facility development smoke seed already exists)
 - implementation of the core operational tables defined in the
   [operational data model](operational-data-model.md)
 
-Deferring these items keeps Waypoint 1.2 focused on the first workspace-scoped domain entity while preserving the requirements for subsequent work.
+Core operational schema implementation belongs to Waypoint 1.4, full baseline
+creation to Waypoint 1.5, and reviewer session/reset behavior to Waypoint 2.5.
+The design contract is documented now without introducing those later services.
 
 ## Facility API Hardening
 
