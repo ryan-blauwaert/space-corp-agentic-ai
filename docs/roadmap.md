@@ -459,11 +459,13 @@ introduces.
 
 ### Status
 
-- [ ] Complete
+- [~] In Progress
 - Design refinement: Q1–Q5, catalog/baseline/workspace boundaries, identity rules,
   catalog release identity, incident/target semantics, restricted-role permissions,
   and the implementation coverage plan are documented.
-  Schema and repository implementation remain outstanding.
+- CatalogRelease, EquipmentModel, and EquipmentUnit persistence are implemented;
+  Component, InventoryItem, Incident, and WorkOrder implementation remains
+  outstanding.
 
 ---
 

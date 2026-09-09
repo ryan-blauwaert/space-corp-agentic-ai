@@ -29,7 +29,7 @@ createdb --owner=space_corp space_corp
 createdb --owner=space_corp space_corp_test
 ```
 
-Apply migrations as the schema owner, then provision the restricted application login. The provisioning script creates `space_corp_app` with `NOBYPASSRLS`, grants Facility data privileges for both local databases, and removes legacy broad/default grants. It does not grant access to `workspaces`, `alembic_version`, or future tables. It rejects a pre-existing application role with role memberships or Facility/workspace tables not owned by `space_corp`; resolve those conditions before rerunning it.
+Apply migrations as the schema owner, then provision the restricted application login. The provisioning script creates `space_corp_app` with `NOBYPASSRLS`, grants read-only access to catalog releases and equipment models, and grants scoped Facility/EquipmentUnit reads, inserts, and approved column-level updates for both local databases. It removes legacy broad/default grants and does not grant access to `workspaces` or `alembic_version`. It rejects a pre-existing application role with role memberships or required application tables not owned by `space_corp`; resolve those conditions before rerunning it.
 
 ```bash
 export SPACE_CORP_MIGRATION_DATABASE_URL="postgresql+psycopg://space_corp@localhost:5432/space_corp"
@@ -71,13 +71,21 @@ cp .env.example .env
 
 The migration-owner connection is the URL whose PostgreSQL login owns the schema—in this setup, `space_corp`. It is separate from the restricted `space_corp_app` URL used by the running API. Administrative development tasks need the owner connection because `space_corp_app` intentionally cannot create or inspect workspace records and is constrained by row-level security. The seed command verifies table ownership rather than trusting the username written in the URL.
 
-After applying migrations, populate the configured workspace with the repeatable Facility smoke dataset:
+After applying migrations and provisioning the application role, populate the
+configured workspace with the repeatable catalog, Facility, and equipment-unit
+smoke dataset:
 
 ```bash
 python -m scripts.seed_development_data
 ```
 
-The command reads `SPACE_CORP_MIGRATION_DATABASE_URL` and `SPACE_CORP_DEFAULT_WORKSPACE_ID` from `.env`. It creates the workspace when necessary and creates or restores three deterministic Facility records. Re-running it is safe and restores their canonical smoke values without adding duplicates. It refuses non-development environments and databases whose names begin with `space_corp_test`.
+The command reads `SPACE_CORP_MIGRATION_DATABASE_URL` and
+`SPACE_CORP_DEFAULT_WORKSPACE_ID` from `.env`. It creates the workspace when
+necessary and creates or restores one catalog release, two equipment models,
+three deterministic Facilities, and two deployed equipment units. Re-running it
+is safe and restores their canonical smoke values without adding duplicates. It
+refuses non-development environments and databases whose names begin with
+`space_corp_test`.
 
 Verify the running API against the seeded data:
 
@@ -134,7 +142,7 @@ Do not run `docker compose down -v` unless you intentionally want to delete the 
 
 ## Additional Verification
 
-The integration suite prepares the schema through explicit fixture dependencies, so individual repository and API files can be run independently after initial role provisioning. The destructive migration round-trip test restores pre-existing Facility grants after recreating tables. Use a dedicated test database with no valuable data; do not run parallel suites against the same database.
+The integration suite prepares the schema through explicit fixture dependencies, so individual repository and API files can be run independently after initial role provisioning. The catalog/equipment migration round-trip test removes and reapplies only that migration slice, preserving existing Facility grants. Use a dedicated test database with no valuable data; do not run parallel suites against the same database.
 
 To include provisioning success, repeatability, legacy-grant removal, and failed-precondition tests, set `SPACE_CORP_TEST_POSTGRES_BIN` in `.env.test` to your installed PostgreSQL server-binary directory (for example, `$(pg_config --bindir)`).
 

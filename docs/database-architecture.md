@@ -2,11 +2,12 @@
 
 ## Purpose and Scope
 
-This document records the PostgreSQL direction through Waypoint 1.3 and the
-isolation architecture that Waypoint 1.4 must extend. Workspace records and
-Facility row-level security are now implemented; reviewer sessions, editable
-baseline copies, and reset remain future work. The planned core relational
-model is defined in the [operational data model](operational-data-model.md).
+This document records the PostgreSQL direction through the first Waypoint 1.4
+slice. Workspace records, Facility persistence, catalog releases, equipment
+models, workspace-scoped equipment units, and their row-level security are now
+implemented. Reviewer sessions, editable baseline copies, and reset remain
+future work. The complete planned relational model is defined in the
+[operational data model](operational-data-model.md).
 
 ## Data Isolation Direction
 
@@ -16,7 +17,9 @@ Isolation will be enforced in layers:
 
 1. A future application authorization or reviewer-session boundary derives the permitted workspace from trusted server-side context rather than an arbitrary client-supplied identifier.
 2. Repository operations require an explicit workspace scope so ownership is visible at the persistence boundary.
-3. PostgreSQL row-level security (RLS) provides database enforcement for `facilities`, including direct queries that bypass repository filtering.
+3. PostgreSQL row-level security (RLS) provides database enforcement for
+   `facilities` and `equipment_units`, including direct queries that bypass
+   repository filtering.
 
 Foreign keys and uniqueness constraints introduced with domain entities must include workspace scope where required. This prevents cross-workspace relationships and allows the same baseline identifiers to be used in separate workspaces.
 
@@ -32,11 +35,13 @@ that workspace, while published catalog facts stay fixed.
 Read-only application grants do not make administrator edits impossible.
 Published catalog content must also be protected by trusted publication checks:
 changes create new releases rather than rewriting old definitions or compatibility
-pairs. Waypoint 1.4 adds `catalog_releases` (`id`, unique `code`, `created_at`)
-and required `catalog_release_id` references from model/component revisions.
-Composite foreign keys enforce same-release compatibility; Waypoint 1.5 implements manifests, publication checks,
-and baseline/catalog foreign-key pins to those release records for workspaces. Future queries use those pins so a new
-release cannot silently change an existing workspace's answers.
+pairs. This slice adds `catalog_releases` (`id`, unique `code`, `created_at`) and
+the required `catalog_release_id` reference from equipment-model revisions.
+The Component/compatibility slice will add its matching same-release composite
+foreign keys. Waypoint 1.5 implements manifests, publication checks, and
+baseline/catalog foreign-key pins to those release records for workspaces. Future
+queries use those pins so a new release cannot silently change an existing
+workspace's answers.
 
 Operational rows retain globally unique UUIDs, but their human codes may repeat
 between workspace copies. Waypoint 1.5 derives seeded UUIDs from the workspace
@@ -55,7 +60,13 @@ The migration role and the application role have different responsibilities:
 - The migration role owns schema changes and may create or alter tables, policies, and roles as required by migrations.
 - The application role receives only the privileges required for application reads and writes. It must not have `BYPASSRLS` and must not own workspace-scoped tables.
 
-The local migration role is `space_corp`; the local application role is `space_corp_app`. The latter is explicitly `NOBYPASSRLS`, owns neither `workspaces` nor `facilities`, has no role memberships, and has no superuser, database-creation, or role-creation capability. RLS behavior is verified using that application role, including cross-workspace reads, writes, unscoped access, and connection reuse.
+The local migration role is `space_corp`; the local application role is
+`space_corp_app`. The latter is explicitly `NOBYPASSRLS`, owns none of
+`workspaces`, `facilities`, `catalog_releases`, `equipment_models`, or
+`equipment_units`, has no role memberships, and has no superuser,
+database-creation, or role-creation capability. RLS behavior is verified using
+that application role, including cross-workspace reads, writes, unscoped access,
+approved-column updates, and connection reuse.
 
 ### Planned Operational Write Permissions (Waypoint 1.4)
 
@@ -73,9 +84,9 @@ including Facilities, preventing delete/reinsert as a way to change fixed fields
 Controlled repair and dependency-ordered deletion are migration-owner or future
 trusted cleanup responsibilities, with restrictive foreign keys still preserving
 relationships. This is a guarantee against ordinary application writes, not
-against an administrator able to change schema or grants. The current broad
-Facility grants described below must be tightened during 1.4 implementation;
-this documentation does not change live permissions.
+against an administrator able to change schema or grants. This slice's
+provisioning script applies the Facility and EquipmentUnit grants; later
+operational tables must extend the same policy deliberately.
 
 WorkOrder references have independent meanings: `originating_incident_id`
 records the reason for work, and `target_equipment_unit_id` records its target.
@@ -112,16 +123,16 @@ The following are intentionally deferred:
 - browser sessions, editable reviewer data, reset, and expiration
 - the full versioned baseline, catalog publication checks, and workspace pinning
   (the small Facility development smoke seed already exists)
-- implementation of the core operational tables defined in the
-  [operational data model](operational-data-model.md)
+- Components, inventory, incidents, work orders, and compatibility associations
+  defined in the [operational data model](operational-data-model.md)
 
 Core operational schema implementation belongs to Waypoint 1.4, full baseline
 creation to Waypoint 1.5, and reviewer session/reset behavior to Waypoint 2.5.
 The design contract is documented now without introducing those later services.
 
-## Facility API Hardening
+## Application Role Hardening
 
-Provisioning uses `ON_ERROR_STOP` and a transaction per database, as described in the [psql documentation](https://www.postgresql.org/docs/current/app-psql.html). Failure stops subsequent commands; an earlier database transaction may already have committed. Correct the reported condition and rerun the idempotent script. It removes legacy table/sequence grants and default grants, then grants only Facility `SELECT`, `INSERT`, `UPDATE`, and `DELETE`. Workspace creation and Alembic bookkeeping remain migration-owner operations. Future domain tables require explicit privilege decisions.
+Provisioning uses `ON_ERROR_STOP` and a transaction per database, as described in the [psql documentation](https://www.postgresql.org/docs/current/app-psql.html). Failure stops subsequent commands; an earlier database transaction may already have committed. Correct the reported condition and rerun the idempotent script. It removes legacy table/sequence grants and default grants, then grants `SELECT`/`INSERT` plus approved column-level `UPDATE` permissions for Facilities and EquipmentUnits. Catalog releases and equipment models are read-only to the application role; workspace creation and Alembic bookkeeping remain migration-owner operations. Future domain tables require explicit privilege decisions.
 
 Migration `0004_facility_required_text` rejects whitespace-only required Facility text using the same whitespace set as Python's `str.strip()`, including Unicode whitespace. It does not rewrite existing data: invalid rows must be corrected explicitly before the migration can succeed. The migration is transactional and reversible.
 

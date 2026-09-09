@@ -2,6 +2,11 @@ from alembic import context
 
 from app.config import Settings
 from app.database import DatabaseConfigurationError, create_database_engine
+from app.equipment.models import (  # noqa: F401
+    CatalogReleaseRecord,
+    EquipmentModelRecord,
+    EquipmentUnitRecord,
+)
 from app.facilities.models import FacilityRecord  # noqa: F401
 from app.persistence.base import Base
 from app.workspaces.models import WorkspaceRecord  # noqa: F401

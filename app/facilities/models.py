@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from sqlalchemy import (
+    and_,
     CheckConstraint,
     DateTime,
     ForeignKey,
@@ -13,7 +14,7 @@ from sqlalchemy import (
     Uuid,
     func,
 )
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, foreign, mapped_column, relationship
 
 from app.facilities.domain import (
     FACILITY_CODE_MAX_LENGTH,
@@ -23,6 +24,7 @@ from app.facilities.domain import (
 from app.persistence.base import Base
 
 if TYPE_CHECKING:
+    from app.equipment.models import EquipmentUnitRecord
     from app.workspaces.models import WorkspaceRecord
 
 
@@ -62,6 +64,7 @@ class FacilityRecord(Base):
             name="ck_facilities_operational_status",
         ),
         UniqueConstraint("workspace_id", "code", name="uq_facilities_workspace_code"),
+        UniqueConstraint("workspace_id", "id", name="uq_facilities_workspace_id"),
     )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
@@ -89,3 +92,11 @@ class FacilityRecord(Base):
         onupdate=func.now(),
     )
     workspace: Mapped[WorkspaceRecord] = relationship(back_populates="facilities")
+    equipment_units: Mapped[list[EquipmentUnitRecord]] = relationship(
+        back_populates="facility",
+        primaryjoin=(
+            "and_(FacilityRecord.workspace_id == EquipmentUnitRecord.workspace_id, "
+            "FacilityRecord.id == foreign(EquipmentUnitRecord.facility_id))"
+        ),
+        foreign_keys="[EquipmentUnitRecord.facility_id]",
+    )

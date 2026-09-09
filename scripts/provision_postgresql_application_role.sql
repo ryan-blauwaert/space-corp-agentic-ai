@@ -47,12 +47,18 @@ BEGIN
         JOIN pg_namespace AS schema ON schema.oid = relation.relnamespace
         JOIN pg_roles AS owner ON owner.oid = relation.relowner
         WHERE schema.nspname = 'public'
-          AND relation.relname IN ('workspaces', 'facilities')
+          AND relation.relname IN (
+              'workspaces',
+              'facilities',
+              'catalog_releases',
+              'equipment_models',
+              'equipment_units'
+          )
           AND relation.relkind = 'r'
           AND owner.rolname <> 'space_corp'
     ) THEN
         RAISE EXCEPTION
-            'workspaces and facilities must be owned by the space_corp migration role';
+            'workspace, Facility, and equipment tables must be owned by the space_corp migration role';
     END IF;
 END
 $$;
@@ -64,7 +70,14 @@ ALTER DEFAULT PRIVILEGES FOR ROLE space_corp IN SCHEMA public
 ALTER DEFAULT PRIVILEGES FOR ROLE space_corp IN SCHEMA public
     REVOKE ALL PRIVILEGES ON SEQUENCES FROM space_corp_app;
 GRANT USAGE ON SCHEMA public TO space_corp_app;
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.facilities TO space_corp_app;
+GRANT SELECT, INSERT ON TABLE public.facilities TO space_corp_app;
+GRANT UPDATE (name, location, operational_status, updated_at)
+    ON TABLE public.facilities TO space_corp_app;
+GRANT SELECT ON TABLE public.catalog_releases, public.equipment_models
+    TO space_corp_app;
+GRANT SELECT, INSERT ON TABLE public.equipment_units TO space_corp_app;
+GRANT UPDATE (operational_status, updated_at)
+    ON TABLE public.equipment_units TO space_corp_app;
 COMMIT;
 
 \connect space_corp_test
@@ -87,12 +100,18 @@ BEGIN
         JOIN pg_namespace AS schema ON schema.oid = relation.relnamespace
         JOIN pg_roles AS owner ON owner.oid = relation.relowner
         WHERE schema.nspname = 'public'
-          AND relation.relname IN ('workspaces', 'facilities')
+          AND relation.relname IN (
+              'workspaces',
+              'facilities',
+              'catalog_releases',
+              'equipment_models',
+              'equipment_units'
+          )
           AND relation.relkind = 'r'
           AND owner.rolname <> 'space_corp'
     ) THEN
         RAISE EXCEPTION
-            'workspaces and facilities must be owned by the space_corp migration role';
+            'workspace, Facility, and equipment tables must be owned by the space_corp migration role';
     END IF;
 END
 $$;
@@ -104,5 +123,12 @@ ALTER DEFAULT PRIVILEGES FOR ROLE space_corp IN SCHEMA public
 ALTER DEFAULT PRIVILEGES FOR ROLE space_corp IN SCHEMA public
     REVOKE ALL PRIVILEGES ON SEQUENCES FROM space_corp_app;
 GRANT USAGE ON SCHEMA public TO space_corp_app;
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.facilities TO space_corp_app;
+GRANT SELECT, INSERT ON TABLE public.facilities TO space_corp_app;
+GRANT UPDATE (name, location, operational_status, updated_at)
+    ON TABLE public.facilities TO space_corp_app;
+GRANT SELECT ON TABLE public.catalog_releases, public.equipment_models
+    TO space_corp_app;
+GRANT SELECT, INSERT ON TABLE public.equipment_units TO space_corp_app;
+GRANT UPDATE (operational_status, updated_at)
+    ON TABLE public.equipment_units TO space_corp_app;
 COMMIT;

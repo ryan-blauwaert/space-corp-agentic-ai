@@ -6,8 +6,16 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings
 from app.database import Database
+from app.equipment.models import (
+    CatalogReleaseRecord,
+    EquipmentModelRecord,
+    EquipmentUnitRecord,
+)
 from app.facilities.models import FacilityRecord
 from scripts.seed_development_data import (
+    CATALOG_RELEASE_SMOKE_DATA,
+    EQUIPMENT_MODEL_SMOKE_DATA,
+    EQUIPMENT_UNIT_SMOKE_DATA,
     FACILITY_SMOKE_DATA,
     SeedConfigurationError,
     require_migration_owner,
@@ -62,8 +70,17 @@ def test_seed_is_repeatable_and_scoped_to_the_selected_workspace(
     second_result = seed_smoke_data(integration_session, workspace_id)
 
     assert first_result.workspace_created is True
+    assert first_result.catalog_releases_created == len(CATALOG_RELEASE_SMOKE_DATA)
+    assert first_result.equipment_models_created == len(EQUIPMENT_MODEL_SMOKE_DATA)
+    assert first_result.equipment_units_created == len(EQUIPMENT_UNIT_SMOKE_DATA)
     assert first_result.facilities_created == len(FACILITY_SMOKE_DATA)
     assert second_result.workspace_created is False
+    assert second_result.catalog_releases_created == 0
+    assert second_result.catalog_releases_refreshed == len(CATALOG_RELEASE_SMOKE_DATA)
+    assert second_result.equipment_models_created == 0
+    assert second_result.equipment_models_refreshed == len(EQUIPMENT_MODEL_SMOKE_DATA)
+    assert second_result.equipment_units_created == 0
+    assert second_result.equipment_units_refreshed == len(EQUIPMENT_UNIT_SMOKE_DATA)
     assert second_result.facilities_created == 0
     assert second_result.facilities_refreshed == len(FACILITY_SMOKE_DATA)
     assert integration_session.scalar(
@@ -71,6 +88,18 @@ def test_seed_is_repeatable_and_scoped_to_the_selected_workspace(
     ) == len(FACILITY_SMOKE_DATA)
     assert integration_session.scalar(
         select(func.count()).where(FacilityRecord.workspace_id == other_workspace_id)
+    ) == 0
+    assert integration_session.scalar(select(func.count()).select_from(CatalogReleaseRecord)) == len(
+        CATALOG_RELEASE_SMOKE_DATA
+    )
+    assert integration_session.scalar(select(func.count()).select_from(EquipmentModelRecord)) == len(
+        EQUIPMENT_MODEL_SMOKE_DATA
+    )
+    assert integration_session.scalar(
+        select(func.count()).where(EquipmentUnitRecord.workspace_id == workspace_id)
+    ) == len(EQUIPMENT_UNIT_SMOKE_DATA)
+    assert integration_session.scalar(
+        select(func.count()).where(EquipmentUnitRecord.workspace_id == other_workspace_id)
     ) == 0
 
 
