@@ -403,16 +403,43 @@ Recommended minimum:
 
 Creates the minimum relational world required for later structured reasoning.
 
+### Recommended Execution Units
+
+Implement this waypoint as small vertical slices rather than a single schema-only
+change:
+
+1. document the first canonical operational questions, entity relationships,
+   lifecycle states, and data-ownership model
+2. add EquipmentModel and EquipmentUnit
+3. add Component and InventoryItem
+4. add Incident and WorkOrder
+5. verify the complete model against the canonical questions
+
+Each entity slice includes its migration, typed domain and persistence models,
+repository coverage, workspace-isolation checks, required role grants and RLS
+policies, and enough deterministic smoke data to exercise the capabilities it
+introduces.
+
 ### Completion Criteria
 
-- entity relationships are documented
+- at least three canonical operational questions are documented and drive the
+  relationships, constraints, and planned query paths
+- entity relationships, lifecycle states, and an ownership matrix are documented
+- the ownership matrix distinguishes workspace-owned records from intentionally
+  shared immutable reference data and identifies the migration owner and
+  restricted application-role access for each table
 - migrations create the schema
 - foreign-key constraints enforce valid relationships
+- check constraints or typed enumerations enforce documented lifecycle values
+- indexes support the documented query paths
 - basic repository tests exist for each major entity
 - schema supports the first planned demo questions
 - mutable operational records carry workspace ownership; intentionally shared immutable reference data is documented
 - foreign keys and uniqueness constraints include workspace scope where needed to prevent cross-workspace relationships and allow repeated baseline identifiers
 - tests verify isolation across related entities and reject cross-workspace references
+- migrations, application-role provisioning, and tests verify least-privilege
+  grants and RLS policies for each workspace-owned table; shared reference data
+  is read-only to the restricted application role
 
 ### Status
 
@@ -456,6 +483,12 @@ Small endpoint-specific developer smoke fixtures may be introduced before this w
 - the canonical synthetic baseline has an explicit version and remains unchanged by reviewer edits
 - the seed process can populate a specified workspace with internally consistent records and deterministic identifiers within that workspace
 - seeding one workspace does not modify another; tests cover repeatability, isolation, and baseline-version tracking
+- after one-time local PostgreSQL role provisioning, a documented project command
+  applies migrations and creates or refreshes a specified development workspace
+  from the canonical baseline
+- the bootstrap documentation distinguishes privileged one-time role provisioning
+  from repeatable migration and development-seeding commands, and includes
+  successful endpoint smoke-test examples
 
 ### Status
 
@@ -463,11 +496,39 @@ Small endpoint-specific developer smoke fixtures may be introduced before this w
 
 ---
 
-## Waypoint 1.6 — Basic Pull Request Checks
+## Waypoint 1.6 — Core Operational Read API
 
 ### Capability
 
-Pull requests automatically run the existing unit suite and applicable PostgreSQL integration tests.
+The core operational dataset is available through typed, read-only HTTP APIs
+that support the later frontend and structured-query workflows.
+
+### Completion Criteria
+
+- list and detail endpoints expose the operational records required by the
+  canonical questions
+- endpoint scope follows the ownership model and cannot expose another
+  workspace's mutable records
+- pagination, relevant filters, stable response schemas, and standard problem
+  responses are documented in OpenAPI
+- automated tests cover successful responses, empty results, validation errors,
+  unavailable database behavior, and cross-workspace isolation
+- repeatable local smoke data and documented requests make every new endpoint's
+  primary successful response manually verifiable
+- no write endpoints are introduced; reviewer editing remains Waypoint 2.5 work
+
+### Status
+
+- [ ] Complete
+
+---
+
+## Waypoint 1.7 — Basic Pull Request Checks
+
+### Capability
+
+Pull requests automatically run the existing unit suite, applicable PostgreSQL
+integration tests, and baseline static quality checks.
 
 ### Architectural Value
 
@@ -480,8 +541,14 @@ Protects the working backend before AI and public-demo capabilities are added.
 - failed required checks prevent merging
 - local reproduction commands and required configuration are documented
 - external model calls and provider credentials are not required for these checks
+- formatting and lint checks run automatically
+- static type checks run automatically for the typed backend interfaces
+- migrations are exercised by the automated checks
+- dependency installation is reproducible from documented project inputs
 
-This is the explicitly scoped introduction of basic CI. Phase 11 expands the pipeline with broader quality checks, AI evaluation automation, and deployment gates; those capabilities are not required here.
+This is the explicitly scoped introduction of basic CI. Phase 11 expands the
+pipeline with AI evaluation automation and deployment gates; those capabilities
+are not required here.
 
 ### Status
 
@@ -699,9 +766,13 @@ The MVP must demonstrate:
 7. automated tests
 8. basic tracing/logging
 
-At this point the project should already be demoable.
+At this point the project reaches a **technical MVP**: it is suitable for a
+local or private demonstration of the complete read-only query journey.
 
-Everything after this section is an enhancement.
+The reviewer-ready portfolio release is completed at Waypoint 2.6, after private
+workspaces, controlled editing, reset, resource limits, and hosted recovery have
+been demonstrated. Those capabilities are part of the intended portfolio
+experience, not optional replacements for the technical MVP.
 
 ---
 
@@ -727,6 +798,13 @@ Reviewers can explore the system independently and repeat demonstrations without
 ### Architectural Value
 
 Exercises workspace isolation through the UI, API, structured-query execution, conversations, and generated results. A workspace identifier alone does not authorize access; the server derives access from the validated session.
+
+### Recommended Execution Units
+
+1. private session creation and baseline workspace provisioning
+2. selected-record browsing and validated editing
+3. workspace reset, stale-request protection, expiration, and cleanup
+4. cross-session resource limits and global model-spending controls
 
 ### Completion Criteria
 
@@ -1545,7 +1623,7 @@ Prevent AI behavior regressions from reaching deployment.
 
 ### Capability
 
-Expand the basic PR checks introduced in Waypoint 1.6. This phase does not defer the earlier requirement for automated regression protection.
+Expand the basic PR checks introduced in Waypoint 1.7. This phase does not defer the earlier requirement for automated regression protection.
 
 Every pull request runs:
 
@@ -1756,7 +1834,9 @@ Requires:
 
 Adds private, editable reviewer sessions with guided scenarios and a repeatable reset experience.
 
-The technical MVP remains Waypoint 2.4. Waypoint 2.6 delivers hosting and recovery for this release, using the basic PR checks from Waypoint 1.6. Advanced CI/CD capabilities in Phase 11 are not a prerequisite.
+The technical MVP remains Waypoint 2.4. Waypoint 2.6 delivers the reviewer-ready
+hosted release and recovery capabilities, using the basic PR checks from
+Waypoint 1.7. Advanced CI/CD capabilities in Phase 11 are not a prerequisite.
 
 ---
 
