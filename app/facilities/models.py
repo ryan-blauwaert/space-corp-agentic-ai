@@ -24,11 +24,8 @@ from app.facilities.domain import (
 from app.persistence.base import Base
 
 if TYPE_CHECKING:
-    from app.equipment.models import (
-        EquipmentUnitRecord,
-        IncidentRecord,
-        InventoryItemRecord,
-    )
+    from app.equipment.models import EquipmentUnitRecord, InventoryItemRecord
+    from app.operations.models import IncidentRecord
     from app.workspaces.models import WorkspaceRecord
 
 

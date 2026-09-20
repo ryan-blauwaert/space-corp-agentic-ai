@@ -264,6 +264,24 @@ The `404` and `503` responses use [RFC 9457](https://www.rfc-editor.org/rfc/rfc9
 
 The generated `/openapi.json` documents response schemas, statuses, pagination, and stable operation IDs. Compatibility review for Waypoint 1.3: health and list success payloads remain unchanged; the detail route is additive. Existing consumers of the earlier 503 error must accept the new media type and additional problem fields; the string `detail` is preserved. No frontend consumer exists in this repository yet.
 
+## Domain Module Boundaries
+
+`app/equipment/` owns catalog releases, equipment models, components, deployed
+units, and inventory. `app/operations/` owns incident domain records, severity
+and status enums, validation, ORM records, and repository interfaces and
+implementations. Incident tests follow the same boundary under
+`tests/app/operations/`. Import incident types from `app.operations.domain`,
+`app.operations.models`, or `app.operations.repository`.
+
+Incidents still reference Facilities, Workspaces, and optional EquipmentUnits.
+These relationships use SQLAlchemy's shared registry and
+[late-evaluated relationship references](https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html#late-evaluation-of-relationship-arguments),
+with cross-module type imports under `TYPE_CHECKING` to avoid circular imports.
+`app/persistence/models.py` registers all records for application startup;
+Alembic and the development seed also load the operations model. This is a
+Waypoint 1.4 code organization change: table names, constraints, permissions,
+and migration history are unchanged, so no database migration is needed.
+
 ## Packaging and Local Artifacts
 
 Setuptools explicitly discovers `app` and its subpackages, following its [package-discovery guidance](https://setuptools.pypa.io/en/stable/userguide/package_discovery.html). Migrations and provisioning are run from the source checkout; the application wheel does not bundle them.

@@ -12,8 +12,8 @@ from app.equipment.models import (
     EquipmentModelRecord,
     EquipmentUnitRecord,
     InventoryItemRecord,
-    IncidentRecord,
 )
+from app.operations.models import IncidentRecord
 from app.facilities.models import FacilityRecord
 from scripts.seed_development_data import (
     CATALOG_RELEASE_SMOKE_DATA,
