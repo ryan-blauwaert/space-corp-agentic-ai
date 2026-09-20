@@ -1,3 +1,4 @@
+from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 import pytest
@@ -6,16 +7,20 @@ from sqlalchemy.orm import Session
 
 from app.equipment.domain import (
     EquipmentOperationalStatus,
+    IncidentSeverity,
+    IncidentStatus,
     NewCatalogRelease,
     NewComponent,
     NewEquipmentModel,
     NewEquipmentUnit,
     NewInventoryItem,
+    NewIncident,
 )
 from app.equipment.repository import (
     SqlAlchemyCatalogRepository,
     SqlAlchemyEquipmentUnitRepository,
     SqlAlchemyInventoryItemRepository,
+    SqlAlchemyIncidentRepository,
 )
 from app.equipment.models import EquipmentModelRecord
 from app.facilities.domain import FacilityOperationalStatus, FacilityType, NewFacility
@@ -92,6 +97,18 @@ def make_new_inventory_item(
         component_id=component_id,
         quantity_on_hand=quantity_on_hand,
         reorder_point=reorder_point,
+    )
+
+
+def make_new_incident(facility_id: UUID, equipment_unit_id: UUID | None) -> NewIncident:
+    return NewIncident(
+        facility_id=facility_id,
+        equipment_unit_id=equipment_unit_id,
+        reference_code="INC-ECS-001",
+        severity=IncidentSeverity.HIGH,
+        status=IncidentStatus.OPEN,
+        occurred_at=datetime.now(UTC) - timedelta(hours=1),
+        fault_code="AIRFLOW_LOW",
     )
 
 
@@ -333,3 +350,33 @@ def test_inventory_repository_validates_stock_updates(
             quantity_on_hand=-1,
             reorder_point=2,
         )
+
+
+@pytest.mark.integration
+def test_incident_repository_creates_lists_and_resolves_an_incident(
+    integration_session: Session, workspace_id: UUID
+) -> None:
+    facility = SqlAlchemyFacilityRepository(integration_session).create(
+        workspace_id, make_new_facility()
+    )
+    model = create_model(integration_session)
+    unit = SqlAlchemyEquipmentUnitRepository(integration_session).create(
+        workspace_id, make_new_equipment_unit(facility.id, model.id)
+    )
+    repository = SqlAlchemyIncidentRepository(integration_session)
+    created = repository.create(workspace_id, make_new_incident(facility.id, unit.id))
+
+    resolved_at = datetime.now(UTC)
+    updated = repository.update_lifecycle(
+        workspace_id, created.id, severity=IncidentSeverity.CRITICAL,
+        status=IncidentStatus.RESOLVED, resolved_at=resolved_at,
+    )
+
+    assert updated is not None
+    assert updated.status is IncidentStatus.RESOLVED
+    assert updated.severity is IncidentSeverity.CRITICAL
+    assert updated.resolved_at == resolved_at
+    assert updated.reference_code == "INC-ECS-001"
+    assert repository.get_by_id(workspace_id, created.id) == updated
+    assert repository.list_by_facility(workspace_id, facility.id) == [updated]
+    assert repository.count_by_facility(workspace_id, facility.id) == 1

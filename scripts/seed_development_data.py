@@ -1,6 +1,7 @@
 """Populate one local development workspace with repeatable smoke-test data."""
 
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import select, text
@@ -9,13 +10,14 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings
 from app.database import Database
-from app.equipment.domain import EquipmentOperationalStatus
+from app.equipment.domain import EquipmentOperationalStatus, IncidentSeverity, IncidentStatus
 from app.equipment.models import (
     CatalogReleaseRecord,
     ComponentRecord,
     EquipmentModelRecord,
     EquipmentUnitRecord,
     InventoryItemRecord,
+    IncidentRecord,
     equipment_model_components,
 )
 from app.facilities.domain import FacilityOperationalStatus, FacilityType
@@ -85,6 +87,19 @@ class InventoryItemSeed:
 
 
 @dataclass(frozen=True, slots=True)
+class IncidentSeed:
+    id: UUID
+    facility_id: UUID
+    equipment_unit_id: UUID | None
+    reference_code: str
+    severity: IncidentSeverity
+    status: IncidentStatus
+    occurred_at: datetime
+    fault_code: str | None
+    resolved_at: datetime | None
+
+
+@dataclass(frozen=True, slots=True)
 class SeedResult:
     workspace_id: UUID
     workspace_created: bool
@@ -100,6 +115,8 @@ class SeedResult:
     equipment_units_refreshed: int
     inventory_items_created: int
     inventory_items_refreshed: int
+    incidents_created: int
+    incidents_refreshed: int
     facilities_created: int
     facilities_refreshed: int
 
@@ -233,6 +250,42 @@ INVENTORY_ITEM_SMOKE_DATA = (
     ),
 )
 
+INCIDENT_SMOKE_DATA = (
+    IncidentSeed(
+        id=UUID("25000000-0000-4000-8000-000000000001"),
+        facility_id=FACILITY_SMOKE_DATA[0].id,
+        equipment_unit_id=EQUIPMENT_UNIT_SMOKE_DATA[0].id,
+        reference_code="INC-ECS-001",
+        severity=IncidentSeverity.HIGH,
+        status=IncidentStatus.OPEN,
+        occurred_at=datetime(2026, 1, 15, 12, 0, tzinfo=UTC),
+        fault_code="AIRFLOW_LOW",
+        resolved_at=None,
+    ),
+    IncidentSeed(
+        id=UUID("25000000-0000-4000-8000-000000000002"),
+        facility_id=FACILITY_SMOKE_DATA[0].id,
+        equipment_unit_id=EQUIPMENT_UNIT_SMOKE_DATA[0].id,
+        reference_code="INC-ECS-002",
+        severity=IncidentSeverity.MEDIUM,
+        status=IncidentStatus.RESOLVED,
+        occurred_at=datetime(2025, 12, 1, 8, 0, tzinfo=UTC),
+        fault_code="AIRFLOW_LOW",
+        resolved_at=datetime(2025, 12, 1, 10, 0, tzinfo=UTC),
+    ),
+    IncidentSeed(
+        id=UUID("25000000-0000-4000-8000-000000000003"),
+        facility_id=FACILITY_SMOKE_DATA[0].id,
+        equipment_unit_id=None,
+        reference_code="INC-LUN-001",
+        severity=IncidentSeverity.LOW,
+        status=IncidentStatus.INVESTIGATING,
+        occurred_at=datetime(2026, 1, 16, 9, 0, tzinfo=UTC),
+        fault_code=None,
+        resolved_at=None,
+    ),
+)
+
 
 def require_migration_owner(session: Session) -> str:
     """Require the connected role to own all tables modified by this seed."""
@@ -252,7 +305,8 @@ def require_migration_owner(session: Session) -> str:
                   'components',
                   'equipment_model_components',
                   'equipment_units',
-                  'inventory_items'
+                  'inventory_items',
+                  'incidents'
               )
               AND relation.relkind = 'r'
             """
@@ -269,6 +323,7 @@ def require_migration_owner(session: Session) -> str:
         "equipment_model_components",
         "equipment_units",
         "inventory_items",
+        "incidents",
     }
     if set(table_owners) != expected_tables:
         raise SeedConfigurationError(
@@ -287,7 +342,7 @@ def require_migration_owner(session: Session) -> str:
 
 
 def seed_smoke_data(session: Session, workspace_id: UUID) -> SeedResult:
-    """Create or restore the small catalog, Facility, unit, and inventory dataset."""
+    """Create or restore the small catalog, Facility, unit, inventory, and incident dataset."""
     workspace = session.get(WorkspaceRecord, workspace_id)
     workspace_created = workspace is None
     if workspace is None:
@@ -496,6 +551,38 @@ def seed_smoke_data(session: Session, workspace_id: UUID) -> SeedResult:
         record.reorder_point = seed.reorder_point
 
     session.flush()
+    incidents_created = 0
+    incidents_refreshed = 0
+    for seed in INCIDENT_SMOKE_DATA:
+        record = session.scalar(
+            select(IncidentRecord).where(
+                IncidentRecord.workspace_id == workspace_id,
+                IncidentRecord.reference_code == seed.reference_code,
+            )
+        )
+        if record is None:
+            record = session.get(IncidentRecord, seed.id)
+            if record is not None and record.workspace_id != workspace_id:
+                raise SeedConfigurationError(
+                    f"Smoke-data incident ID {seed.id} belongs to another workspace."
+                )
+        if record is None:
+            record = IncidentRecord(id=seed.id, workspace_id=workspace_id)
+            session.add(record)
+            incidents_created += 1
+        else:
+            incidents_refreshed += 1
+
+        record.facility_id = seed.facility_id
+        record.equipment_unit_id = seed.equipment_unit_id
+        record.reference_code = seed.reference_code
+        record.severity = seed.severity.value
+        record.status = seed.status.value
+        record.occurred_at = seed.occurred_at
+        record.fault_code = seed.fault_code
+        record.resolved_at = seed.resolved_at
+
+    session.flush()
     return SeedResult(
         workspace_id=workspace_id,
         workspace_created=workspace_created,
@@ -511,6 +598,8 @@ def seed_smoke_data(session: Session, workspace_id: UUID) -> SeedResult:
         equipment_units_refreshed=equipment_units_refreshed,
         inventory_items_created=inventory_items_created,
         inventory_items_refreshed=inventory_items_refreshed,
+        incidents_created=incidents_created,
+        incidents_refreshed=incidents_refreshed,
         facilities_created=facilities_created,
         facilities_refreshed=facilities_refreshed,
     )
@@ -563,6 +652,8 @@ def main() -> None:
         f"{result.equipment_units_refreshed} refreshed; "
         f"{result.inventory_items_created} inventory items created and "
         f"{result.inventory_items_refreshed} refreshed; "
+        f"{result.incidents_created} incidents created and "
+        f"{result.incidents_refreshed} refreshed; "
         f"{result.facilities_created} Facilities created and "
         f"{result.facilities_refreshed} refreshed."
     )

@@ -152,6 +152,30 @@ def test_provisioning_removes_legacy_grants_and_is_repeatable(
         "SELECT has_table_privilege("
         "'space_corp_app', 'inventory_items', 'DELETE,TRUNCATE')",
     ) == "f"
+    for privilege in ("SELECT", "INSERT"):
+        assert sql(
+            provisioning_cluster,
+            "SELECT has_table_privilege("
+            f"'space_corp_app', 'incidents', '{privilege}')",
+        ) == "t"
+    for column in ("severity", "status", "resolved_at", "updated_at"):
+        assert sql(
+            provisioning_cluster,
+            "SELECT has_column_privilege("
+            "'space_corp_app', 'incidents', "
+            f"'{column}', 'UPDATE')",
+        ) == "t"
+    for column in ("workspace_id", "facility_id", "equipment_unit_id", "reference_code", "fault_code"):
+        assert sql(
+            provisioning_cluster,
+            "SELECT has_column_privilege("
+            "'space_corp_app', 'incidents', "
+            f"'{column}', 'UPDATE')",
+        ) == "f"
+    assert sql(
+        provisioning_cluster,
+        "SELECT has_table_privilege('space_corp_app', 'incidents', 'DELETE,TRUNCATE')",
+    ) == "f"
     for table in (
         "catalog_releases",
         "equipment_models",
@@ -329,7 +353,7 @@ def test_provisioning_stops_before_grants_on_failed_preconditions(
     elif unsafe_state == "ownership":
         sql(provisioning_cluster, "ALTER TABLE facilities OWNER TO CURRENT_USER")
     else:
-        sql(provisioning_cluster, "DROP TABLE equipment_units")
+        sql(provisioning_cluster, "DROP TABLE incidents")
     result = provision(provisioning_cluster)
     assert result.returncode == 3
     assert "ERROR" in result.stderr

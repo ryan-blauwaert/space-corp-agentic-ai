@@ -5,7 +5,7 @@
 This document records the PostgreSQL direction through the current Waypoint 1.4
 slice. Workspace records, Facility persistence, catalog releases, equipment
 models, components, their same-release compatibility associations,
-workspace-scoped equipment units and inventory, and their row-level security
+workspace-scoped equipment units, inventory, and incidents, and their row-level security
 are now implemented. Reviewer sessions, editable baseline copies, and reset remain
 future work. The complete planned relational model is defined in the
 [operational data model](operational-data-model.md).
@@ -19,7 +19,7 @@ Isolation will be enforced in layers:
 1. A future application authorization or reviewer-session boundary derives the permitted workspace from trusted server-side context rather than an arbitrary client-supplied identifier.
 2. Repository operations require an explicit workspace scope so ownership is visible at the persistence boundary.
 3. PostgreSQL row-level security (RLS) provides database enforcement for
-   `facilities`, `equipment_units`, and `inventory_items`, including direct queries that bypass
+   `facilities`, `equipment_units`, `inventory_items`, and `incidents`, including direct queries that bypass
    repository filtering.
 
 Foreign keys and uniqueness constraints introduced with domain entities must include workspace scope where required. This prevents cross-workspace relationships and allows the same baseline identifiers to be used in separate workspaces.
@@ -64,8 +64,8 @@ The migration role and the application role have different responsibilities:
 The local migration role is `space_corp`; the local application role is
 `space_corp_app`. The latter is explicitly `NOBYPASSRLS`, owns none of
 `workspaces`, `facilities`, `catalog_releases`, `equipment_models`,
-`components`, `equipment_model_components`, `equipment_units`, or
-`inventory_items`, has no role memberships, and has no superuser,
+`components`, `equipment_model_components`, `equipment_units`, `inventory_items`, or
+`incidents`, has no role memberships, and has no superuser,
 database-creation, or role-creation capability. RLS behavior is verified using
 that application role, including cross-workspace reads, writes, unscoped access,
 approved-column updates, and connection reuse.
@@ -87,7 +87,7 @@ Controlled repair and dependency-ordered deletion are migration-owner or future
 trusted cleanup responsibilities, with restrictive foreign keys still preserving
 relationships. This is a guarantee against ordinary application writes, not
 against an administrator able to change schema or grants. This slice's
-provisioning script applies the Facility, EquipmentUnit, and InventoryItem
+provisioning script applies the Facility, EquipmentUnit, InventoryItem, and Incident
 grants; later operational tables must extend the same policy deliberately.
 
 WorkOrder references have independent meanings: `originating_incident_id`

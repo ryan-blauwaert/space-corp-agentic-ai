@@ -55,7 +55,8 @@ BEGIN
               'components',
               'equipment_model_components',
               'equipment_units',
-              'inventory_items'
+              'inventory_items',
+              'incidents'
           )
           AND relation.relkind = 'r'
           AND owner.rolname <> 'space_corp'
@@ -85,6 +86,9 @@ GRANT UPDATE (operational_status, updated_at)
 GRANT SELECT, INSERT ON TABLE public.inventory_items TO space_corp_app;
 GRANT UPDATE (quantity_on_hand, reorder_point, updated_at)
     ON TABLE public.inventory_items TO space_corp_app;
+GRANT SELECT, INSERT ON TABLE public.incidents TO space_corp_app;
+GRANT UPDATE (severity, status, resolved_at, updated_at)
+    ON TABLE public.incidents TO space_corp_app;
 COMMIT;
 
 \connect space_corp_test
@@ -115,7 +119,8 @@ BEGIN
               'components',
               'equipment_model_components',
               'equipment_units',
-              'inventory_items'
+              'inventory_items',
+              'incidents'
           )
           AND relation.relkind = 'r'
           AND owner.rolname <> 'space_corp'
@@ -145,4 +150,7 @@ GRANT UPDATE (operational_status, updated_at)
 GRANT SELECT, INSERT ON TABLE public.inventory_items TO space_corp_app;
 GRANT UPDATE (quantity_on_hand, reorder_point, updated_at)
     ON TABLE public.inventory_items TO space_corp_app;
+GRANT SELECT, INSERT ON TABLE public.incidents TO space_corp_app;
+GRANT UPDATE (severity, status, resolved_at, updated_at)
+    ON TABLE public.incidents TO space_corp_app;
 COMMIT;
