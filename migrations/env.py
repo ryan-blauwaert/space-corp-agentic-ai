@@ -8,8 +8,8 @@ from app.equipment.models import (  # noqa: F401
     EquipmentModelRecord,
     EquipmentUnitRecord,
     InventoryItemRecord,
-    IncidentRecord,
 )
+from app.operations.models import IncidentRecord  # noqa: F401
 from app.facilities.models import FacilityRecord  # noqa: F401
 from app.persistence.base import Base
 from app.workspaces.models import WorkspaceRecord  # noqa: F401

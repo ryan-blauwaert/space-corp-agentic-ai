@@ -466,7 +466,9 @@ introduces.
 - CatalogRelease, EquipmentModel, Component, EquipmentUnit, InventoryItem, and Incident
   persistence are implemented. Component/model compatibility is constrained to
   one catalog release; inventory and incidents are isolated by workspace and
-  Facility. WorkOrder implementation remains outstanding.
+  Facility. Incident domain records, ORM mappings, repositories, and matching
+  tests live in `app/operations/` and `tests/app/operations/`; catalog, units, and
+  inventory remain in equipment. WorkOrder implementation remains outstanding.
 
 ---
 

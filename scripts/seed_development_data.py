@@ -10,16 +10,17 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings
 from app.database import Database
-from app.equipment.domain import EquipmentOperationalStatus, IncidentSeverity, IncidentStatus
+from app.equipment.domain import EquipmentOperationalStatus
+from app.operations.domain import IncidentSeverity, IncidentStatus
 from app.equipment.models import (
     CatalogReleaseRecord,
     ComponentRecord,
     EquipmentModelRecord,
     EquipmentUnitRecord,
     InventoryItemRecord,
-    IncidentRecord,
     equipment_model_components,
 )
+from app.operations.models import IncidentRecord
 from app.facilities.domain import FacilityOperationalStatus, FacilityType
 from app.facilities.models import FacilityRecord
 from app.workspaces.models import WorkspaceRecord
