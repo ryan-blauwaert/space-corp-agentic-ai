@@ -10,10 +10,12 @@ from app.equipment.domain import (
     NewComponent,
     NewEquipmentModel,
     NewEquipmentUnit,
+    NewInventoryItem,
 )
 from app.equipment.repository import (
     SqlAlchemyCatalogRepository,
     SqlAlchemyEquipmentUnitRepository,
+    SqlAlchemyInventoryItemRepository,
 )
 from app.equipment.models import EquipmentModelRecord
 from app.facilities.domain import FacilityOperationalStatus, FacilityType, NewFacility
@@ -69,6 +71,27 @@ def make_new_equipment_unit(
         equipment_model_id=equipment_model_id,
         asset_tag=asset_tag,
         operational_status=EquipmentOperationalStatus.DEGRADED,
+    )
+
+
+def create_component_for_inventory(integration_session: Session) -> UUID:
+    catalog = SqlAlchemyCatalogRepository(integration_session)
+    release = catalog.create_release(NewCatalogRelease(code="catalog-1"))
+    return create_component(integration_session, release.id).id
+
+
+def make_new_inventory_item(
+    facility_id: UUID,
+    component_id: UUID,
+    *,
+    quantity_on_hand: int = 0,
+    reorder_point: int = 2,
+) -> NewInventoryItem:
+    return NewInventoryItem(
+        facility_id=facility_id,
+        component_id=component_id,
+        quantity_on_hand=quantity_on_hand,
+        reorder_point=reorder_point,
     )
 
 
@@ -229,4 +252,84 @@ def test_equipment_unit_repository_propagates_scoped_facility_constraint(
     with pytest.raises(IntegrityError):
         SqlAlchemyEquipmentUnitRepository(integration_session).create(
             workspace_id, make_new_equipment_unit(other_facility.id, model.id)
+        )
+
+
+@pytest.mark.integration
+def test_inventory_repository_creates_lists_and_updates_stock(
+    integration_session: Session, workspace_id: UUID
+) -> None:
+    facility = SqlAlchemyFacilityRepository(integration_session).create(
+        workspace_id, make_new_facility()
+    )
+    component_id = create_component_for_inventory(integration_session)
+    repository = SqlAlchemyInventoryItemRepository(integration_session)
+
+    created = repository.create(
+        workspace_id,
+        make_new_inventory_item(facility.id, component_id),
+    )
+    updated = repository.update_stock_levels(
+        workspace_id,
+        created.id,
+        quantity_on_hand=4,
+        reorder_point=5,
+    )
+
+    assert updated is not None
+    assert updated.quantity_on_hand == 4
+    assert updated.reorder_point == 5
+    assert updated.component_id == component_id
+    assert repository.get_by_id(workspace_id, created.id) == updated
+    assert repository.list_by_facility(workspace_id, facility.id) == [updated]
+    assert repository.count_by_facility(workspace_id, facility.id) == 1
+
+
+@pytest.mark.integration
+def test_inventory_repository_excludes_another_workspace(
+    integration_session: Session, workspace_id: UUID
+) -> None:
+    other_workspace_id = uuid4()
+    integration_session.add(WorkspaceRecord(id=other_workspace_id))
+    integration_session.flush()
+    facility = SqlAlchemyFacilityRepository(integration_session).create(
+        other_workspace_id, make_new_facility("ORB-OPS-01")
+    )
+    component_id = create_component_for_inventory(integration_session)
+    repository = SqlAlchemyInventoryItemRepository(integration_session)
+    other_item = repository.create(
+        other_workspace_id,
+        make_new_inventory_item(facility.id, component_id),
+    )
+
+    assert repository.get_by_id(workspace_id, other_item.id) is None
+    assert repository.list_by_facility(workspace_id, facility.id) == []
+    assert repository.update_stock_levels(
+        workspace_id,
+        other_item.id,
+        quantity_on_hand=4,
+        reorder_point=5,
+    ) is None
+
+
+@pytest.mark.integration
+def test_inventory_repository_validates_stock_updates(
+    integration_session: Session, workspace_id: UUID
+) -> None:
+    facility = SqlAlchemyFacilityRepository(integration_session).create(
+        workspace_id, make_new_facility()
+    )
+    component_id = create_component_for_inventory(integration_session)
+    repository = SqlAlchemyInventoryItemRepository(integration_session)
+    created = repository.create(
+        workspace_id,
+        make_new_inventory_item(facility.id, component_id),
+    )
+
+    with pytest.raises(ValueError, match="Quantity on hand must not be negative"):
+        repository.update_stock_levels(
+            workspace_id,
+            created.id,
+            quantity_on_hand=-1,
+            reorder_point=2,
         )

@@ -24,7 +24,7 @@ from app.facilities.domain import (
 from app.persistence.base import Base
 
 if TYPE_CHECKING:
-    from app.equipment.models import EquipmentUnitRecord
+    from app.equipment.models import EquipmentUnitRecord, InventoryItemRecord
     from app.workspaces.models import WorkspaceRecord
 
 
@@ -99,4 +99,12 @@ class FacilityRecord(Base):
             "FacilityRecord.id == foreign(EquipmentUnitRecord.facility_id))"
         ),
         foreign_keys="[EquipmentUnitRecord.facility_id]",
+    )
+    inventory_items: Mapped[list[InventoryItemRecord]] = relationship(
+        back_populates="facility",
+        primaryjoin=(
+            "and_(FacilityRecord.workspace_id == InventoryItemRecord.workspace_id, "
+            "FacilityRecord.id == foreign(InventoryItemRecord.facility_id))"
+        ),
+        foreign_keys="[InventoryItemRecord.facility_id]",
     )

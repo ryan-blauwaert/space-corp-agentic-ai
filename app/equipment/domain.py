@@ -114,6 +114,38 @@ class Component:
 
 
 @dataclass(frozen=True, slots=True)
+class NewInventoryItem:
+    """Validated local component stock data before persistence identifiers exist."""
+
+    facility_id: UUID
+    component_id: UUID
+    quantity_on_hand: int
+    reorder_point: int
+
+    def __post_init__(self) -> None:
+        _validate_nonnegative_whole_number("Quantity on hand", self.quantity_on_hand)
+        _validate_nonnegative_whole_number("Reorder point", self.reorder_point)
+
+
+@dataclass(frozen=True, slots=True)
+class InventoryItem:
+    """A workspace-owned quantity of one component at one Facility."""
+
+    id: UUID
+    workspace_id: UUID
+    facility_id: UUID
+    component_id: UUID
+    quantity_on_hand: int
+    reorder_point: int
+    created_at: datetime
+    updated_at: datetime
+
+    def __post_init__(self) -> None:
+        _validate_nonnegative_whole_number("Quantity on hand", self.quantity_on_hand)
+        _validate_nonnegative_whole_number("Reorder point", self.reorder_point)
+
+
+@dataclass(frozen=True, slots=True)
 class NewEquipmentUnit:
     """Validated deployed-unit data before persistence identifiers exist."""
 
@@ -166,3 +198,10 @@ def _validate_required_text(field_name: str, value: str, maximum_length: int) ->
         raise ValueError(f"{field_name} must not be blank.")
     if len(value) > maximum_length:
         raise ValueError(f"{field_name} must be at most {maximum_length} characters.")
+
+
+def _validate_nonnegative_whole_number(field_name: str, value: int) -> None:
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise ValueError(f"{field_name} must be a whole number.")
+    if value < 0:
+        raise ValueError(f"{field_name} must not be negative.")

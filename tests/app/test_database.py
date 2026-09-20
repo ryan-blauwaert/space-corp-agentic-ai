@@ -146,7 +146,7 @@ def test_migrations_apply(integration_migration_database_url: str) -> None:
                 text("SELECT version_num FROM alembic_version")
             ).scalar_one()
 
-        assert revision == "0006_components_compatibility"
+        assert revision == "0007_inventory_items"
     finally:
         engine.dispose()
 
@@ -189,6 +189,29 @@ def test_component_catalog_migration_downgrades_and_reapplies(
 
 
 @pytest.mark.integration
+def test_inventory_migration_downgrades_and_reapplies(
+    integration_migration_database_url: str,
+) -> None:
+    config = Config(str(PROJECT_ROOT / "alembic.ini"))
+    command.upgrade(config, "head")
+    try:
+        command.downgrade(config, "0006_components_compatibility")
+        engine = create_database_engine(integration_migration_database_url)
+
+        try:
+            with engine.connect() as connection:
+                inventory_table = connection.execute(
+                    text("SELECT to_regclass('public.inventory_items')")
+                ).scalar_one()
+
+            assert inventory_table is None
+        finally:
+            engine.dispose()
+    finally:
+        command.upgrade(config, "head")
+
+
+@pytest.mark.integration
 def test_workspace_catalog_and_equipment_tables_exist(
     integration_migration_database_url: str,
 ) -> None:
@@ -206,7 +229,8 @@ def test_workspace_catalog_and_equipment_tables_exist(
                         "AND table_name IN ("
                         "'workspaces', 'facilities', 'catalog_releases', "
                         "'equipment_models', 'components', "
-                        "'equipment_model_components', 'equipment_units'"
+                        "'equipment_model_components', 'equipment_units', "
+                        "'inventory_items'"
                         ")"
                     )
                 ).scalars()
@@ -220,6 +244,7 @@ def test_workspace_catalog_and_equipment_tables_exist(
             "equipment_model_components",
             "equipment_models",
             "equipment_units",
+            "inventory_items",
         }
     finally:
         engine.dispose()
@@ -267,7 +292,8 @@ def test_application_role_enforces_workspace_rls_and_resets_pooled_context(
                         "AND relation.relname IN ("
                         "'workspaces', 'facilities', 'catalog_releases', "
                         "'equipment_models', 'components', "
-                        "'equipment_model_components', 'equipment_units'"
+                        "'equipment_model_components', 'equipment_units', "
+                        "'inventory_items'"
                         ")"
                     )
                 ).all()
@@ -295,6 +321,7 @@ def test_application_role_enforces_workspace_rls_and_resets_pooled_context(
             "equipment_models": "space_corp",
             "equipment_units": "space_corp",
             "facilities": "space_corp",
+            "inventory_items": "space_corp",
             "workspaces": "space_corp",
         }
         assert role_memberships == []

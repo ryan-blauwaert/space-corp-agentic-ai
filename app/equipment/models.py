@@ -14,6 +14,7 @@ from sqlalchemy import (
     ForeignKey,
     ForeignKeyConstraint,
     Index,
+    Integer,
     PrimaryKeyConstraint,
     String,
     Table,
@@ -183,6 +184,66 @@ class ComponentRecord(Base):
         secondary=equipment_model_components,
         back_populates="components",
     )
+    inventory_items: Mapped[list[InventoryItemRecord]] = relationship(
+        back_populates="component"
+    )
+
+
+class InventoryItemRecord(Base):
+    """Persistence record for workspace-owned component inventory at a Facility."""
+
+    __tablename__ = "inventory_items"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["workspace_id", "facility_id"],
+            ["facilities.workspace_id", "facilities.id"],
+            ondelete="RESTRICT",
+        ),
+        CheckConstraint(
+            "quantity_on_hand >= 0",
+            name="ck_inventory_items_quantity_on_hand_nonnegative",
+        ),
+        CheckConstraint(
+            "reorder_point >= 0",
+            name="ck_inventory_items_reorder_point_nonnegative",
+        ),
+        UniqueConstraint(
+            "workspace_id",
+            "facility_id",
+            "component_id",
+            name="uq_inventory_items_workspace_facility_component",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
+    workspace_id: Mapped[UUID] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="RESTRICT"), nullable=False
+    )
+    facility_id: Mapped[UUID] = mapped_column(Uuid, nullable=False)
+    component_id: Mapped[UUID] = mapped_column(
+        ForeignKey("components.id", ondelete="RESTRICT"), nullable=False
+    )
+    quantity_on_hand: Mapped[int] = mapped_column(Integer, nullable=False)
+    reorder_point: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+    workspace: Mapped[WorkspaceRecord] = relationship(back_populates="inventory_items")
+    facility: Mapped[FacilityRecord] = relationship(
+        back_populates="inventory_items",
+        primaryjoin=(
+            "and_(InventoryItemRecord.workspace_id == FacilityRecord.workspace_id, "
+            "foreign(InventoryItemRecord.facility_id) == FacilityRecord.id)"
+        ),
+        foreign_keys="[InventoryItemRecord.facility_id]",
+    )
+    component: Mapped[ComponentRecord] = relationship(back_populates="inventory_items")
 
 
 class EquipmentUnitRecord(Base):

@@ -7,6 +7,7 @@ from app.equipment.models import (  # noqa: F401
     ComponentRecord,
     EquipmentModelRecord,
     EquipmentUnitRecord,
+    InventoryItemRecord,
 )
 from app.facilities.models import FacilityRecord  # noqa: F401
 from app.persistence.base import Base

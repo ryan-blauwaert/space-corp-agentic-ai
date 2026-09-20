@@ -5,8 +5,8 @@
 This document records the PostgreSQL direction through the current Waypoint 1.4
 slice. Workspace records, Facility persistence, catalog releases, equipment
 models, components, their same-release compatibility associations,
-workspace-scoped equipment units, and their row-level security are now
-implemented. Reviewer sessions, editable baseline copies, and reset remain
+workspace-scoped equipment units and inventory, and their row-level security
+are now implemented. Reviewer sessions, editable baseline copies, and reset remain
 future work. The complete planned relational model is defined in the
 [operational data model](operational-data-model.md).
 
@@ -19,7 +19,7 @@ Isolation will be enforced in layers:
 1. A future application authorization or reviewer-session boundary derives the permitted workspace from trusted server-side context rather than an arbitrary client-supplied identifier.
 2. Repository operations require an explicit workspace scope so ownership is visible at the persistence boundary.
 3. PostgreSQL row-level security (RLS) provides database enforcement for
-   `facilities` and `equipment_units`, including direct queries that bypass
+   `facilities`, `equipment_units`, and `inventory_items`, including direct queries that bypass
    repository filtering.
 
 Foreign keys and uniqueness constraints introduced with domain entities must include workspace scope where required. This prevents cross-workspace relationships and allows the same baseline identifiers to be used in separate workspaces.
@@ -36,10 +36,10 @@ that workspace, while published catalog facts stay fixed.
 Read-only application grants do not make administrator edits impossible.
 Published catalog content must also be protected by trusted publication checks:
 changes create new releases rather than rewriting old definitions or compatibility
-pairs. This slice adds `catalog_releases` (`id`, unique `code`, `created_at`) and
-the required `catalog_release_id` reference from equipment-model revisions.
-The Component/compatibility slice will add its matching same-release composite
-foreign keys. Waypoint 1.5 implements manifests, publication checks, and
+pairs. This slice adds `catalog_releases` (`id`, unique `code`, `created_at`),
+the required `catalog_release_id` reference from equipment-model and Component
+revisions, and same-release composite foreign keys for compatibility links.
+Waypoint 1.5 implements manifests, publication checks, and
 baseline/catalog foreign-key pins to those release records for workspaces. Future
 queries use those pins so a new release cannot silently change an existing
 workspace's answers.
@@ -63,8 +63,9 @@ The migration role and the application role have different responsibilities:
 
 The local migration role is `space_corp`; the local application role is
 `space_corp_app`. The latter is explicitly `NOBYPASSRLS`, owns none of
-`workspaces`, `facilities`, `catalog_releases`, `equipment_models`, or
-`equipment_units`, has no role memberships, and has no superuser,
+`workspaces`, `facilities`, `catalog_releases`, `equipment_models`,
+`components`, `equipment_model_components`, `equipment_units`, or
+`inventory_items`, has no role memberships, and has no superuser,
 database-creation, or role-creation capability. RLS behavior is verified using
 that application role, including cross-workspace reads, writes, unscoped access,
 approved-column updates, and connection reuse.
@@ -86,8 +87,8 @@ Controlled repair and dependency-ordered deletion are migration-owner or future
 trusted cleanup responsibilities, with restrictive foreign keys still preserving
 relationships. This is a guarantee against ordinary application writes, not
 against an administrator able to change schema or grants. This slice's
-provisioning script applies the Facility and EquipmentUnit grants; later
-operational tables must extend the same policy deliberately.
+provisioning script applies the Facility, EquipmentUnit, and InventoryItem
+grants; later operational tables must extend the same policy deliberately.
 
 WorkOrder references have independent meanings: `originating_incident_id`
 records the reason for work, and `target_equipment_unit_id` records its target.
@@ -124,8 +125,8 @@ The following are intentionally deferred:
 - browser sessions, editable reviewer data, reset, and expiration
 - the full versioned baseline, catalog publication checks, and workspace pinning
   (the small Facility development smoke seed already exists)
-- Components, inventory, incidents, work orders, and compatibility associations
-  defined in the [operational data model](operational-data-model.md)
+- incidents and work orders defined in the
+  [operational data model](operational-data-model.md)
 
 Core operational schema implementation belongs to Waypoint 1.4, full baseline
 creation to Waypoint 1.5, and reviewer session/reset behavior to Waypoint 2.5.
@@ -133,7 +134,7 @@ The design contract is documented now without introducing those later services.
 
 ## Application Role Hardening
 
-Provisioning uses `ON_ERROR_STOP` and a transaction per database, as described in the [psql documentation](https://www.postgresql.org/docs/current/app-psql.html). Failure stops subsequent commands; an earlier database transaction may already have committed. Correct the reported condition and rerun the idempotent script. It removes legacy table/sequence grants and default grants, then grants `SELECT`/`INSERT` plus approved column-level `UPDATE` permissions for Facilities and EquipmentUnits. Catalog releases, equipment models, components, and their compatibility associations are read-only to the application role; workspace creation and Alembic bookkeeping remain migration-owner operations. Future domain tables require explicit privilege decisions.
+Provisioning uses `ON_ERROR_STOP` and a transaction per database, as described in the [psql documentation](https://www.postgresql.org/docs/current/app-psql.html). Failure stops subsequent commands; an earlier database transaction may already have committed. Correct the reported condition and rerun the idempotent script. It removes legacy table/sequence grants and default grants, then grants `SELECT`/`INSERT` plus approved column-level `UPDATE` permissions for Facilities, EquipmentUnits, and InventoryItems. Catalog releases, equipment models, components, and their compatibility associations are read-only to the application role; workspace creation and Alembic bookkeeping remain migration-owner operations. Future domain tables require explicit privilege decisions.
 
 Migration `0004_facility_required_text` rejects whitespace-only required Facility text using the same whitespace set as Python's `str.strip()`, including Unicode whitespace. It does not rewrite existing data: invalid rows must be corrected explicitly before the migration can succeed. The migration is transactional and reversible.
 

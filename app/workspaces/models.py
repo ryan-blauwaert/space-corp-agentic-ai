@@ -10,7 +10,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.persistence.base import Base
 
 if TYPE_CHECKING:
-    from app.equipment.models import EquipmentUnitRecord
+    from app.equipment.models import EquipmentUnitRecord, InventoryItemRecord
     from app.facilities.models import FacilityRecord
 
 
@@ -29,5 +29,8 @@ class WorkspaceRecord(Base):
         back_populates="workspace"
     )
     equipment_units: Mapped[list[EquipmentUnitRecord]] = relationship(
+        back_populates="workspace"
+    )
+    inventory_items: Mapped[list[InventoryItemRecord]] = relationship(
         back_populates="workspace"
     )

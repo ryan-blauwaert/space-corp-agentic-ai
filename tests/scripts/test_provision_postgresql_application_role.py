@@ -127,6 +127,31 @@ def test_provisioning_removes_legacy_grants_and_is_repeatable(
         provisioning_cluster,
         "SELECT has_table_privilege('space_corp_app', 'facilities', 'DELETE,TRUNCATE')",
     ) == "f"
+    for privilege in ("SELECT", "INSERT"):
+        assert sql(
+            provisioning_cluster,
+            "SELECT has_table_privilege("
+            f"'space_corp_app', 'inventory_items', '{privilege}')",
+        ) == "t"
+    for column in ("quantity_on_hand", "reorder_point", "updated_at"):
+        assert sql(
+            provisioning_cluster,
+            "SELECT has_column_privilege("
+            "'space_corp_app', 'inventory_items', "
+            f"'{column}', 'UPDATE')",
+        ) == "t"
+    for column in ("workspace_id", "facility_id", "component_id", "id"):
+        assert sql(
+            provisioning_cluster,
+            "SELECT has_column_privilege("
+            "'space_corp_app', 'inventory_items', "
+            f"'{column}', 'UPDATE')",
+        ) == "f"
+    assert sql(
+        provisioning_cluster,
+        "SELECT has_table_privilege("
+        "'space_corp_app', 'inventory_items', 'DELETE,TRUNCATE')",
+    ) == "f"
     for table in (
         "catalog_releases",
         "equipment_models",
@@ -172,7 +197,7 @@ def test_provisioning_removes_legacy_grants_and_is_repeatable(
     assert sql(provisioning_cluster, "SELECT has_table_privilege('space_corp_app', 'future_table', 'SELECT,INSERT,UPDATE,DELETE')") == "f"
 
 
-def test_restricted_role_enforces_unit_rls_and_column_update_allowlist(
+def test_restricted_role_enforces_unit_and_inventory_rls_and_update_allowlists(
     provisioning_cluster: tuple[Path, dict[str, str]],
 ) -> None:
     first_workspace = "10000000-0000-4000-8000-000000000010"
@@ -182,6 +207,8 @@ def test_restricted_role_enforces_unit_rls_and_column_update_allowlist(
     catalog_release = "20000000-0000-4000-8000-000000000010"
     equipment_model = "21000000-0000-4000-8000-000000000010"
     equipment_unit = "22000000-0000-4000-8000-000000000010"
+    component = "23000000-0000-4000-8000-000000000010"
+    inventory_item = "24000000-0000-4000-8000-000000000010"
 
     sql(
         provisioning_cluster,
@@ -191,6 +218,8 @@ def test_restricted_role_enforces_unit_rls_and_column_update_allowlist(
         f"VALUES ('{catalog_release}', 'catalog-1'); "
         "INSERT INTO equipment_models (id, catalog_release_id, code, name) "
         f"VALUES ('{equipment_model}', '{catalog_release}', 'ECS-4', 'Environmental Control System 4'); "
+        "INSERT INTO components (id, catalog_release_id, code, name) "
+        f"VALUES ('{component}', '{catalog_release}', 'FLT-F12', 'Air Filter F-12'); "
         "INSERT INTO facilities "
         "(id, workspace_id, code, name, facility_type, location, operational_status) "
         f"VALUES ('{first_facility}', '{first_workspace}', 'LUN-OPS-01', 'Lunar Operations One', "
@@ -210,9 +239,18 @@ def test_restricted_role_enforces_unit_rls_and_column_update_allowlist(
         f"'{equipment_model}', 'ECS-14', 'degraded'); "
         "UPDATE equipment_units SET operational_status = 'offline' "
         f"WHERE id = '{equipment_unit}'; "
-        f"SELECT operational_status FROM equipment_units WHERE id = '{equipment_unit}'; COMMIT",
+        "INSERT INTO inventory_items "
+        "(id, workspace_id, facility_id, component_id, quantity_on_hand, reorder_point) "
+        f"VALUES ('{inventory_item}', '{first_workspace}', '{first_facility}', "
+        f"'{component}', 0, 2); "
+        "UPDATE inventory_items SET quantity_on_hand = 4, reorder_point = 5 "
+        f"WHERE id = '{inventory_item}'; "
+        f"SELECT operational_status FROM equipment_units WHERE id = '{equipment_unit}'; "
+        f"SELECT quantity_on_hand, reorder_point FROM inventory_items WHERE id = '{inventory_item}'; "
+        "COMMIT",
     )
     assert "offline" in scoped_result.splitlines()
+    assert "4|5" in scoped_result.splitlines()
     assert (
         sql(
             provisioning_cluster,
@@ -223,12 +261,18 @@ def test_restricted_role_enforces_unit_rls_and_column_update_allowlist(
     assert (
         sql(
             provisioning_cluster,
-            "SET ROLE space_corp_app; BEGIN; "
-            f"SET LOCAL app.workspace_id = '{second_workspace}'; "
-            f"SELECT count(*) FROM equipment_units WHERE id = '{equipment_unit}'; COMMIT",
-        ).splitlines()[-2]
+            "SET ROLE space_corp_app; SELECT count(*) FROM inventory_items",
+        ).splitlines()[-1]
         == "0"
     )
+    other_workspace_counts = sql(
+        provisioning_cluster,
+        "SET ROLE space_corp_app; BEGIN; "
+        f"SET LOCAL app.workspace_id = '{second_workspace}'; "
+        f"SELECT count(*) FROM equipment_units WHERE id = '{equipment_unit}'; "
+        f"SELECT count(*) FROM inventory_items WHERE id = '{inventory_item}'; COMMIT",
+    )
+    assert other_workspace_counts.splitlines()[-3:-1] == ["0", "0"]
     assert (
         sql_result(
             provisioning_cluster,
@@ -236,6 +280,28 @@ def test_restricted_role_enforces_unit_rls_and_column_update_allowlist(
             f"SET LOCAL app.workspace_id = '{first_workspace}'; "
             "UPDATE equipment_units SET asset_tag = 'ECS-15' "
             f"WHERE id = '{equipment_unit}'; COMMIT",
+        ).returncode
+        != 0
+    )
+    assert (
+        sql_result(
+            provisioning_cluster,
+            "SET ROLE space_corp_app; BEGIN; "
+            f"SET LOCAL app.workspace_id = '{first_workspace}'; "
+            "UPDATE inventory_items "
+            f"SET component_id = '{component}' WHERE id = '{inventory_item}'; COMMIT",
+        ).returncode
+        != 0
+    )
+    assert (
+        sql_result(
+            provisioning_cluster,
+            "SET ROLE space_corp_app; BEGIN; "
+            f"SET LOCAL app.workspace_id = '{first_workspace}'; "
+            "INSERT INTO inventory_items "
+            "(id, workspace_id, facility_id, component_id, quantity_on_hand, reorder_point) "
+            f"VALUES ('24000000-0000-4000-8000-000000000020', '{second_workspace}', "
+            f"'{second_facility}', '{component}', 1, 1); COMMIT",
         ).returncode
         != 0
     )

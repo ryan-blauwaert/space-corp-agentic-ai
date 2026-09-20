@@ -12,8 +12,11 @@ from app.database import Database
 from app.equipment.domain import EquipmentOperationalStatus
 from app.equipment.models import (
     CatalogReleaseRecord,
+    ComponentRecord,
     EquipmentModelRecord,
     EquipmentUnitRecord,
+    InventoryItemRecord,
+    equipment_model_components,
 )
 from app.facilities.domain import FacilityOperationalStatus, FacilityType
 from app.facilities.models import FacilityRecord
@@ -49,12 +52,36 @@ class EquipmentModelSeed:
 
 
 @dataclass(frozen=True, slots=True)
+class ComponentSeed:
+    id: UUID
+    catalog_release_id: UUID
+    code: str
+    name: str
+
+
+@dataclass(frozen=True, slots=True)
+class EquipmentModelComponentSeed:
+    catalog_release_id: UUID
+    equipment_model_id: UUID
+    component_id: UUID
+
+
+@dataclass(frozen=True, slots=True)
 class EquipmentUnitSeed:
     id: UUID
     facility_id: UUID
     equipment_model_id: UUID
     asset_tag: str
     operational_status: EquipmentOperationalStatus
+
+
+@dataclass(frozen=True, slots=True)
+class InventoryItemSeed:
+    id: UUID
+    facility_id: UUID
+    component_id: UUID
+    quantity_on_hand: int
+    reorder_point: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,8 +92,14 @@ class SeedResult:
     catalog_releases_refreshed: int
     equipment_models_created: int
     equipment_models_refreshed: int
+    components_created: int
+    components_refreshed: int
+    model_component_links_created: int
+    model_component_links_refreshed: int
     equipment_units_created: int
     equipment_units_refreshed: int
+    inventory_items_created: int
+    inventory_items_refreshed: int
     facilities_created: int
     facilities_refreshed: int
 
@@ -120,6 +153,45 @@ EQUIPMENT_MODEL_SMOKE_DATA = (
     ),
 )
 
+COMPONENT_SMOKE_DATA = (
+    ComponentSeed(
+        id=UUID("23000000-0000-4000-8000-000000000001"),
+        catalog_release_id=CATALOG_RELEASE_SMOKE_DATA[0].id,
+        code="FLT-F12",
+        name="Air Filter F-12",
+    ),
+    ComponentSeed(
+        id=UUID("23000000-0000-4000-8000-000000000002"),
+        catalog_release_id=CATALOG_RELEASE_SMOKE_DATA[0].id,
+        code="SEN-THM-2",
+        name="Thermal Sensor 2",
+    ),
+    ComponentSeed(
+        id=UUID("23000000-0000-4000-8000-000000000003"),
+        catalog_release_id=CATALOG_RELEASE_SMOKE_DATA[0].id,
+        code="PWR-FUS-5",
+        name="Power Fuse 5",
+    ),
+)
+
+EQUIPMENT_MODEL_COMPONENT_SMOKE_DATA = (
+    EquipmentModelComponentSeed(
+        catalog_release_id=CATALOG_RELEASE_SMOKE_DATA[0].id,
+        equipment_model_id=EQUIPMENT_MODEL_SMOKE_DATA[0].id,
+        component_id=COMPONENT_SMOKE_DATA[0].id,
+    ),
+    EquipmentModelComponentSeed(
+        catalog_release_id=CATALOG_RELEASE_SMOKE_DATA[0].id,
+        equipment_model_id=EQUIPMENT_MODEL_SMOKE_DATA[0].id,
+        component_id=COMPONENT_SMOKE_DATA[1].id,
+    ),
+    EquipmentModelComponentSeed(
+        catalog_release_id=CATALOG_RELEASE_SMOKE_DATA[0].id,
+        equipment_model_id=EQUIPMENT_MODEL_SMOKE_DATA[1].id,
+        component_id=COMPONENT_SMOKE_DATA[2].id,
+    ),
+)
+
 EQUIPMENT_UNIT_SMOKE_DATA = (
     EquipmentUnitSeed(
         id=UUID("22000000-0000-4000-8000-000000000001"),
@@ -134,6 +206,30 @@ EQUIPMENT_UNIT_SMOKE_DATA = (
         equipment_model_id=EQUIPMENT_MODEL_SMOKE_DATA[1].id,
         asset_tag="PWR-02",
         operational_status=EquipmentOperationalStatus.OPERATIONAL,
+    ),
+)
+
+INVENTORY_ITEM_SMOKE_DATA = (
+    InventoryItemSeed(
+        id=UUID("24000000-0000-4000-8000-000000000001"),
+        facility_id=FACILITY_SMOKE_DATA[0].id,
+        component_id=COMPONENT_SMOKE_DATA[0].id,
+        quantity_on_hand=0,
+        reorder_point=2,
+    ),
+    InventoryItemSeed(
+        id=UUID("24000000-0000-4000-8000-000000000002"),
+        facility_id=FACILITY_SMOKE_DATA[1].id,
+        component_id=COMPONENT_SMOKE_DATA[2].id,
+        quantity_on_hand=2,
+        reorder_point=3,
+    ),
+    InventoryItemSeed(
+        id=UUID("24000000-0000-4000-8000-000000000003"),
+        facility_id=FACILITY_SMOKE_DATA[2].id,
+        component_id=COMPONENT_SMOKE_DATA[1].id,
+        quantity_on_hand=5,
+        reorder_point=5,
     ),
 )
 
@@ -153,7 +249,10 @@ def require_migration_owner(session: Session) -> str:
                   'facilities',
                   'catalog_releases',
                   'equipment_models',
-                  'equipment_units'
+                  'components',
+                  'equipment_model_components',
+                  'equipment_units',
+                  'inventory_items'
               )
               AND relation.relkind = 'r'
             """
@@ -166,7 +265,10 @@ def require_migration_owner(session: Session) -> str:
         "facilities",
         "catalog_releases",
         "equipment_models",
+        "components",
+        "equipment_model_components",
         "equipment_units",
+        "inventory_items",
     }
     if set(table_owners) != expected_tables:
         raise SeedConfigurationError(
@@ -185,7 +287,7 @@ def require_migration_owner(session: Session) -> str:
 
 
 def seed_smoke_data(session: Session, workspace_id: UUID) -> SeedResult:
-    """Create or restore the small catalog, Facility, and unit smoke dataset."""
+    """Create or restore the small catalog, Facility, unit, and inventory dataset."""
     workspace = session.get(WorkspaceRecord, workspace_id)
     workspace_created = workspace is None
     if workspace is None:
@@ -279,6 +381,64 @@ def seed_smoke_data(session: Session, workspace_id: UUID) -> SeedResult:
 
     session.flush()
 
+    components_created = 0
+    components_refreshed = 0
+    for seed in COMPONENT_SMOKE_DATA:
+        record = session.scalar(
+            select(ComponentRecord).where(
+                ComponentRecord.catalog_release_id == seed.catalog_release_id,
+                ComponentRecord.code == seed.code,
+            )
+        )
+        if record is None:
+            record = session.get(ComponentRecord, seed.id)
+            if record is not None:
+                raise SeedConfigurationError(
+                    f"Smoke-data component ID {seed.id} has an unexpected code."
+                )
+        if record is None:
+            record = ComponentRecord(id=seed.id)
+            session.add(record)
+            components_created += 1
+        elif record.id != seed.id:
+            raise SeedConfigurationError(
+                f"Smoke-data component code {seed.code!r} has an unexpected ID."
+            )
+        else:
+            components_refreshed += 1
+
+        record.catalog_release_id = seed.catalog_release_id
+        record.code = seed.code
+        record.name = seed.name
+
+    session.flush()
+
+    model_component_links_created = 0
+    model_component_links_refreshed = 0
+    for seed in EQUIPMENT_MODEL_COMPONENT_SMOKE_DATA:
+        exists = session.execute(
+            select(equipment_model_components.c.equipment_model_id).where(
+                equipment_model_components.c.catalog_release_id
+                == seed.catalog_release_id,
+                equipment_model_components.c.equipment_model_id
+                == seed.equipment_model_id,
+                equipment_model_components.c.component_id == seed.component_id,
+            )
+        ).first()
+        if exists is None:
+            session.execute(
+                equipment_model_components.insert().values(
+                    catalog_release_id=seed.catalog_release_id,
+                    equipment_model_id=seed.equipment_model_id,
+                    component_id=seed.component_id,
+                )
+            )
+            model_component_links_created += 1
+        else:
+            model_component_links_refreshed += 1
+
+    session.flush()
+
     equipment_units_created = 0
     equipment_units_refreshed = 0
     for seed in EQUIPMENT_UNIT_SMOKE_DATA:
@@ -307,6 +467,35 @@ def seed_smoke_data(session: Session, workspace_id: UUID) -> SeedResult:
         record.operational_status = seed.operational_status.value
 
     session.flush()
+    inventory_items_created = 0
+    inventory_items_refreshed = 0
+    for seed in INVENTORY_ITEM_SMOKE_DATA:
+        record = session.scalar(
+            select(InventoryItemRecord).where(
+                InventoryItemRecord.workspace_id == workspace_id,
+                InventoryItemRecord.facility_id == seed.facility_id,
+                InventoryItemRecord.component_id == seed.component_id,
+            )
+        )
+        if record is None:
+            record = session.get(InventoryItemRecord, seed.id)
+            if record is not None and record.workspace_id != workspace_id:
+                raise SeedConfigurationError(
+                    f"Smoke-data inventory ID {seed.id} belongs to another workspace."
+                )
+        if record is None:
+            record = InventoryItemRecord(id=seed.id, workspace_id=workspace_id)
+            session.add(record)
+            inventory_items_created += 1
+        else:
+            inventory_items_refreshed += 1
+
+        record.facility_id = seed.facility_id
+        record.component_id = seed.component_id
+        record.quantity_on_hand = seed.quantity_on_hand
+        record.reorder_point = seed.reorder_point
+
+    session.flush()
     return SeedResult(
         workspace_id=workspace_id,
         workspace_created=workspace_created,
@@ -314,8 +503,14 @@ def seed_smoke_data(session: Session, workspace_id: UUID) -> SeedResult:
         catalog_releases_refreshed=catalog_releases_refreshed,
         equipment_models_created=equipment_models_created,
         equipment_models_refreshed=equipment_models_refreshed,
+        components_created=components_created,
+        components_refreshed=components_refreshed,
+        model_component_links_created=model_component_links_created,
+        model_component_links_refreshed=model_component_links_refreshed,
         equipment_units_created=equipment_units_created,
         equipment_units_refreshed=equipment_units_refreshed,
+        inventory_items_created=inventory_items_created,
+        inventory_items_refreshed=inventory_items_refreshed,
         facilities_created=facilities_created,
         facilities_refreshed=facilities_refreshed,
     )
@@ -360,8 +555,14 @@ def main() -> None:
         f"{result.catalog_releases_refreshed} refreshed; "
         f"{result.equipment_models_created} equipment models created and "
         f"{result.equipment_models_refreshed} refreshed; "
+        f"{result.components_created} components created and "
+        f"{result.components_refreshed} refreshed; "
+        f"{result.model_component_links_created} model-component links created and "
+        f"{result.model_component_links_refreshed} refreshed; "
         f"{result.equipment_units_created} equipment units created and "
         f"{result.equipment_units_refreshed} refreshed; "
+        f"{result.inventory_items_created} inventory items created and "
+        f"{result.inventory_items_refreshed} refreshed; "
         f"{result.facilities_created} Facilities created and "
         f"{result.facilities_refreshed} refreshed."
     )

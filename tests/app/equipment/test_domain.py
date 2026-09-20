@@ -15,10 +15,12 @@ from app.equipment.domain import (
     EquipmentModel,
     EquipmentOperationalStatus,
     EquipmentUnit,
+    InventoryItem,
     NewCatalogRelease,
     NewComponent,
     NewEquipmentModel,
     NewEquipmentUnit,
+    NewInventoryItem,
 )
 
 
@@ -122,6 +124,42 @@ def test_equipment_unit_accepts_valid_data() -> None:
     )
 
     assert unit.operational_status is EquipmentOperationalStatus.DEGRADED
+
+
+def test_inventory_item_accepts_valid_data() -> None:
+    item = InventoryItem(
+        id=uuid4(),
+        workspace_id=uuid4(),
+        facility_id=uuid4(),
+        component_id=uuid4(),
+        quantity_on_hand=0,
+        reorder_point=2,
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
+    )
+
+    assert item.quantity_on_hand == 0
+
+
+@pytest.mark.parametrize(
+    ("quantity_on_hand", "reorder_point", "message"),
+    [
+        (-1, 0, "Quantity on hand must not be negative"),
+        (0, -1, "Reorder point must not be negative"),
+        (True, 0, "Quantity on hand must be a whole number"),
+        (0, 1.5, "Reorder point must be a whole number"),
+    ],
+)
+def test_new_inventory_item_rejects_invalid_stock_levels(
+    quantity_on_hand: object, reorder_point: object, message: str
+) -> None:
+    with pytest.raises(ValueError, match=message):
+        NewInventoryItem(
+            facility_id=uuid4(),
+            component_id=uuid4(),
+            quantity_on_hand=quantity_on_hand,  # type: ignore[arg-type]
+            reorder_point=reorder_point,  # type: ignore[arg-type]
+        )
 
 
 @pytest.mark.parametrize(

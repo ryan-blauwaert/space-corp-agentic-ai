@@ -29,7 +29,7 @@ createdb --owner=space_corp space_corp
 createdb --owner=space_corp space_corp_test
 ```
 
-Apply migrations as the schema owner, then provision the restricted application login. The provisioning script creates `space_corp_app` with `NOBYPASSRLS`, grants read-only access to catalog releases, equipment models, components, and model-component compatibility associations, and grants scoped Facility/EquipmentUnit reads, inserts, and approved column-level updates for both local databases. It removes legacy broad/default grants and does not grant access to `workspaces` or `alembic_version`. It rejects a pre-existing application role with role memberships or required application tables not owned by `space_corp`; resolve those conditions before rerunning it.
+Apply migrations as the schema owner, then provision the restricted application login. The provisioning script creates `space_corp_app` with `NOBYPASSRLS`, grants read-only access to catalog releases, equipment models, components, and model-component compatibility associations, and grants scoped Facility, EquipmentUnit, and InventoryItem reads, inserts, and approved column-level updates for both local databases. It removes legacy broad/default grants and does not grant access to `workspaces` or `alembic_version`. It rejects a pre-existing application role with role memberships or required application tables not owned by `space_corp`; resolve those conditions before rerunning it.
 
 ```bash
 export SPACE_CORP_MIGRATION_DATABASE_URL="postgresql+psycopg://space_corp@localhost:5432/space_corp"
@@ -72,8 +72,8 @@ cp .env.example .env
 The migration-owner connection is the URL whose PostgreSQL login owns the schema—in this setup, `space_corp`. It is separate from the restricted `space_corp_app` URL used by the running API. Administrative development tasks need the owner connection because `space_corp_app` intentionally cannot create or inspect workspace records and is constrained by row-level security. The seed command verifies table ownership rather than trusting the username written in the URL.
 
 After applying migrations and provisioning the application role, populate the
-configured workspace with the repeatable catalog, Facility, and equipment-unit
-smoke dataset:
+configured workspace with the repeatable catalog, Facility, equipment-unit, and
+inventory smoke dataset:
 
 ```bash
 python -m scripts.seed_development_data
@@ -82,9 +82,13 @@ python -m scripts.seed_development_data
 The command reads `SPACE_CORP_MIGRATION_DATABASE_URL` and
 `SPACE_CORP_DEFAULT_WORKSPACE_ID` from `.env`. It creates the workspace when
 necessary and creates or restores one catalog release, two equipment models,
-three deterministic Facilities, and two deployed equipment units. Re-running it
-is safe and restores their canonical smoke values without adding duplicates. It
-refuses non-development environments and databases whose names begin with
+three component types, three model-component compatibility links, three
+deterministic Facilities, two deployed equipment units, and three inventory
+records. The inventory examples include a known stockout, below-reorder stock,
+and a quantity equal to its reorder point; a compatible component is
+intentionally absent from Lunar Operations One. Re-running it is safe and
+restores canonical smoke values without adding duplicates. It refuses
+non-development environments and databases whose names begin with
 `space_corp_test`.
 
 Verify the running API against the seeded data:

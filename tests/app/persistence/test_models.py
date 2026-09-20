@@ -12,13 +12,14 @@ def test_application_import_registers_related_orm_models() -> None:
             "from sqlalchemy.orm import configure_mappers; "
             "from app.main import app; "
             "configure_mappers(); "
-            "from app.equipment.models import CatalogReleaseRecord, ComponentRecord, EquipmentModelRecord, EquipmentUnitRecord; "
+            "from app.equipment.models import CatalogReleaseRecord, ComponentRecord, EquipmentModelRecord, EquipmentUnitRecord, InventoryItemRecord; "
             "from app.facilities.models import FacilityRecord; "
             "from app.workspaces.models import WorkspaceRecord; "
             "assert FacilityRecord.workspace.property.mapper.class_ is WorkspaceRecord; "
             "assert CatalogReleaseRecord.equipment_models.property.mapper.class_ is EquipmentModelRecord; "
             "assert CatalogReleaseRecord.components.property.mapper.class_ is ComponentRecord; "
             "assert EquipmentModelRecord.components.property.mapper.class_ is ComponentRecord; "
+            "assert ComponentRecord.inventory_items.property.mapper.class_ is InventoryItemRecord; "
             "assert EquipmentUnitRecord.facility.property.mapper.class_ is FacilityRecord",
         ],
         check=False,

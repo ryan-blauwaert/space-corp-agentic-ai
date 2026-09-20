@@ -12,16 +12,20 @@ from app.equipment.domain import (
     EquipmentModel,
     EquipmentOperationalStatus,
     EquipmentUnit,
+    InventoryItem,
     NewCatalogRelease,
     NewComponent,
     NewEquipmentModel,
     NewEquipmentUnit,
+    NewInventoryItem,
+    _validate_nonnegative_whole_number,
 )
 from app.equipment.models import (
     CatalogReleaseRecord,
     ComponentRecord,
     EquipmentModelRecord,
     EquipmentUnitRecord,
+    InventoryItemRecord,
     equipment_model_components,
 )
 
@@ -84,6 +88,41 @@ class EquipmentUnitRepository(Protocol):
         operational_status: EquipmentOperationalStatus,
     ) -> EquipmentUnit | None:
         """Update only the current operational status of a workspace-owned unit."""
+
+
+class InventoryItemRepository(Protocol):
+    """Persistence operations for workspace-owned Facility component stock."""
+
+    def create(self, workspace_id: UUID, inventory_item: NewInventoryItem) -> InventoryItem:
+        """Create inventory owned by the supplied workspace."""
+
+    def get_by_id(
+        self, workspace_id: UUID, inventory_item_id: UUID
+    ) -> InventoryItem | None:
+        """Return inventory only when it belongs to the supplied workspace."""
+
+    def list_by_facility(
+        self,
+        workspace_id: UUID,
+        facility_id: UUID,
+        *,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[InventoryItem]:
+        """Return one page of the workspace's inventory at a Facility."""
+
+    def count_by_facility(self, workspace_id: UUID, facility_id: UUID) -> int:
+        """Return the number of inventory records at a workspace Facility."""
+
+    def update_stock_levels(
+        self,
+        workspace_id: UUID,
+        inventory_item_id: UUID,
+        *,
+        quantity_on_hand: int,
+        reorder_point: int,
+    ) -> InventoryItem | None:
+        """Update only the mutable stock values of workspace-owned inventory."""
 
 
 class SqlAlchemyCatalogRepository:
@@ -223,6 +262,94 @@ class SqlAlchemyEquipmentUnitRepository:
         return _equipment_unit_to_domain(record)
 
 
+class SqlAlchemyInventoryItemRepository:
+    """SQLAlchemy implementation of workspace-scoped inventory persistence."""
+
+    def __init__(self, session: Session) -> None:
+        self._session = session
+
+    def create(
+        self, workspace_id: UUID, inventory_item: NewInventoryItem
+    ) -> InventoryItem:
+        record = InventoryItemRecord(
+            workspace_id=workspace_id,
+            facility_id=inventory_item.facility_id,
+            component_id=inventory_item.component_id,
+            quantity_on_hand=inventory_item.quantity_on_hand,
+            reorder_point=inventory_item.reorder_point,
+        )
+        self._session.add(record)
+        self._session.flush()
+        self._session.refresh(record)
+        return _inventory_item_to_domain(record)
+
+    def get_by_id(
+        self, workspace_id: UUID, inventory_item_id: UUID
+    ) -> InventoryItem | None:
+        record = self._session.scalar(
+            select(InventoryItemRecord).where(
+                InventoryItemRecord.workspace_id == workspace_id,
+                InventoryItemRecord.id == inventory_item_id,
+            )
+        )
+        return None if record is None else _inventory_item_to_domain(record)
+
+    def list_by_facility(
+        self,
+        workspace_id: UUID,
+        facility_id: UUID,
+        *,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[InventoryItem]:
+        statement = (
+            select(InventoryItemRecord)
+            .where(
+                InventoryItemRecord.workspace_id == workspace_id,
+                InventoryItemRecord.facility_id == facility_id,
+            )
+            .order_by(InventoryItemRecord.component_id)
+            .limit(limit)
+            .offset(offset)
+        )
+        return [
+            _inventory_item_to_domain(record)
+            for record in self._session.scalars(statement)
+        ]
+
+    def count_by_facility(self, workspace_id: UUID, facility_id: UUID) -> int:
+        statement = select(func.count()).where(
+            InventoryItemRecord.workspace_id == workspace_id,
+            InventoryItemRecord.facility_id == facility_id,
+        )
+        return self._session.scalar(statement) or 0
+
+    def update_stock_levels(
+        self,
+        workspace_id: UUID,
+        inventory_item_id: UUID,
+        *,
+        quantity_on_hand: int,
+        reorder_point: int,
+    ) -> InventoryItem | None:
+        _validate_nonnegative_whole_number("Quantity on hand", quantity_on_hand)
+        _validate_nonnegative_whole_number("Reorder point", reorder_point)
+        record = self._session.scalar(
+            select(InventoryItemRecord).where(
+                InventoryItemRecord.workspace_id == workspace_id,
+                InventoryItemRecord.id == inventory_item_id,
+            )
+        )
+        if record is None:
+            return None
+
+        record.quantity_on_hand = quantity_on_hand
+        record.reorder_point = reorder_point
+        self._session.flush()
+        self._session.refresh(record)
+        return _inventory_item_to_domain(record)
+
+
 def _catalog_release_to_domain(record: CatalogReleaseRecord) -> CatalogRelease:
     return CatalogRelease(id=record.id, code=record.code, created_at=record.created_at)
 
@@ -244,6 +371,19 @@ def _component_to_domain(record: ComponentRecord) -> Component:
         code=record.code,
         name=record.name,
         created_at=record.created_at,
+    )
+
+
+def _inventory_item_to_domain(record: InventoryItemRecord) -> InventoryItem:
+    return InventoryItem(
+        id=record.id,
+        workspace_id=record.workspace_id,
+        facility_id=record.facility_id,
+        component_id=record.component_id,
+        quantity_on_hand=record.quantity_on_hand,
+        reorder_point=record.reorder_point,
+        created_at=record.created_at,
+        updated_at=record.updated_at,
     )
 
 

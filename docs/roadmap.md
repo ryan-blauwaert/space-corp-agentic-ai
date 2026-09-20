@@ -463,10 +463,10 @@ introduces.
 - Design refinement: Q1–Q5, catalog/baseline/workspace boundaries, identity rules,
   catalog release identity, incident/target semantics, restricted-role permissions,
   and the implementation coverage plan are documented.
-- CatalogRelease, EquipmentModel, Component, and EquipmentUnit persistence are
-  implemented. Component/model compatibility is constrained to one catalog
-  release. InventoryItem, Incident, and WorkOrder implementation remains
-  outstanding.
+- CatalogRelease, EquipmentModel, Component, EquipmentUnit, and InventoryItem
+  persistence are implemented. Component/model compatibility is constrained to
+  one catalog release, and inventory is isolated by workspace and Facility.
+  Incident and WorkOrder implementation remains outstanding.
 
 ---
 

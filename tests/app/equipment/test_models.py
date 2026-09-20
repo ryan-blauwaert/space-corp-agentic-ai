@@ -11,6 +11,7 @@ from app.equipment.models import (
     ComponentRecord,
     EquipmentModelRecord,
     EquipmentUnitRecord,
+    InventoryItemRecord,
     equipment_model_components,
 )
 from app.facilities.models import FacilityRecord
@@ -77,6 +78,23 @@ def make_equipment_unit(
     return EquipmentUnitRecord(**values)
 
 
+def make_inventory_item(
+    workspace_id: UUID,
+    facility_id: UUID,
+    component_id: UUID,
+    **overrides: object,
+) -> InventoryItemRecord:
+    values = {
+        "workspace_id": workspace_id,
+        "facility_id": facility_id,
+        "component_id": component_id,
+        "quantity_on_hand": 3,
+        "reorder_point": 2,
+    }
+    values.update(overrides)
+    return InventoryItemRecord(**values)
+
+
 def test_equipment_model_uses_release_scoped_uniqueness() -> None:
     constraints = [
         constraint
@@ -140,14 +158,36 @@ def test_equipment_unit_uses_workspace_scoped_facility_relationship() -> None:
     )
 
 
+def test_inventory_item_uses_workspace_scoped_facility_relationship() -> None:
+    item_table = InventoryItemRecord.__table__
+
+    assert item_table.c.workspace_id.nullable is False
+    assert item_table.c.facility_id.nullable is False
+    assert item_table.c.component_id.nullable is False
+    assert any(
+        {column.name for column in constraint.columns}
+        == {"workspace_id", "facility_id"}
+        for constraint in item_table.foreign_key_constraints
+    )
+    assert any(
+        tuple(constraint.columns.keys())
+        == ("workspace_id", "facility_id", "component_id")
+        for constraint in item_table.constraints
+        if isinstance(constraint, UniqueConstraint)
+    )
+
+
 def test_catalog_and_workspace_relationships_are_registered() -> None:
     assert CatalogReleaseRecord.__mapper__.relationships["equipment_models"].mapper.class_ is EquipmentModelRecord
     assert CatalogReleaseRecord.__mapper__.relationships["components"].mapper.class_ is ComponentRecord
     assert EquipmentModelRecord.__mapper__.relationships["components"].mapper.class_ is ComponentRecord
     assert ComponentRecord.__mapper__.relationships["equipment_models"].mapper.class_ is EquipmentModelRecord
+    assert ComponentRecord.__mapper__.relationships["inventory_items"].mapper.class_ is InventoryItemRecord
     assert EquipmentModelRecord.__mapper__.relationships["equipment_units"].mapper.class_ is EquipmentUnitRecord
     assert FacilityRecord.__mapper__.relationships["equipment_units"].mapper.class_ is EquipmentUnitRecord
+    assert FacilityRecord.__mapper__.relationships["inventory_items"].mapper.class_ is InventoryItemRecord
     assert WorkspaceRecord.__mapper__.relationships["equipment_units"].mapper.class_ is EquipmentUnitRecord
+    assert WorkspaceRecord.__mapper__.relationships["inventory_items"].mapper.class_ is InventoryItemRecord
 
 
 @pytest.mark.integration
@@ -167,7 +207,8 @@ def test_catalog_and_equipment_records_generate_ids_and_timestamps(
     integration_session.add(facility)
     integration_session.flush()
     unit = make_equipment_unit(workspace.id, facility.id, model.id)
-    integration_session.add(unit)
+    item = make_inventory_item(workspace.id, facility.id, component.id)
+    integration_session.add_all([unit, item])
     integration_session.flush()
     integration_session.refresh(unit)
 
@@ -180,6 +221,9 @@ def test_catalog_and_equipment_records_generate_ids_and_timestamps(
     assert isinstance(unit.id, UUID)
     assert isinstance(unit.created_at, datetime)
     assert isinstance(unit.updated_at, datetime)
+    assert isinstance(item.id, UUID)
+    assert isinstance(item.created_at, datetime)
+    assert isinstance(item.updated_at, datetime)
 
 
 @pytest.mark.integration
@@ -191,6 +235,8 @@ def test_catalog_and_equipment_records_generate_ids_and_timestamps(
         (make_equipment_model, "name", ""),
         (make_component, "code", " "),
         (make_component, "name", ""),
+        (make_inventory_item, "quantity_on_hand", -1),
+        (make_inventory_item, "reorder_point", -1),
         (make_equipment_unit, "asset_tag", "\u00a0\u2003"),
         (make_equipment_unit, "operational_status", "unsupported"),
     ],
@@ -220,6 +266,13 @@ def test_database_rejects_invalid_equipment_values(
         record = make_equipment_model(release.id, **{field_name: invalid_value})
     elif record_factory is make_component:
         record = make_component(release.id, **{field_name: invalid_value})
+    elif record_factory is make_inventory_item:
+        component = make_component(release.id)
+        integration_session.add(component)
+        integration_session.flush()
+        record = make_inventory_item(
+            workspace.id, facility.id, component.id, **{field_name: invalid_value}
+        )
     else:
         record = make_equipment_unit(
             workspace.id, facility.id, model.id, **{field_name: invalid_value}
@@ -314,6 +367,56 @@ def test_model_component_compatibility_rejects_duplicate_pairs(
     integration_session.flush()
     with pytest.raises(IntegrityError):
         integration_session.execute(equipment_model_components.insert().values(**values))
+
+
+@pytest.mark.integration
+def test_inventory_item_rejects_facility_from_another_workspace(
+    integration_session: Session,
+) -> None:
+    release = make_catalog_release()
+    first_workspace = WorkspaceRecord()
+    second_workspace = WorkspaceRecord()
+    integration_session.add_all([release, first_workspace, second_workspace])
+    integration_session.flush()
+    component = make_component(release.id)
+    facility = make_facility(second_workspace.id)
+    integration_session.add_all([component, facility])
+    integration_session.flush()
+    integration_session.add(
+        make_inventory_item(first_workspace.id, facility.id, component.id)
+    )
+
+    with pytest.raises(IntegrityError):
+        integration_session.flush()
+
+
+@pytest.mark.integration
+def test_inventory_item_is_unique_per_workspace_facility_and_component(
+    integration_session: Session,
+) -> None:
+    release = make_catalog_release()
+    first_workspace = WorkspaceRecord()
+    second_workspace = WorkspaceRecord()
+    integration_session.add_all([release, first_workspace, second_workspace])
+    integration_session.flush()
+    component = make_component(release.id)
+    first_facility = make_facility(first_workspace.id)
+    second_facility = make_facility(second_workspace.id)
+    integration_session.add_all([component, first_facility, second_facility])
+    integration_session.flush()
+    integration_session.add_all(
+        [
+            make_inventory_item(first_workspace.id, first_facility.id, component.id),
+            make_inventory_item(second_workspace.id, second_facility.id, component.id),
+        ]
+    )
+    integration_session.flush()
+    integration_session.add(
+        make_inventory_item(first_workspace.id, first_facility.id, component.id)
+    )
+
+    with pytest.raises(IntegrityError):
+        integration_session.flush()
 
 
 @pytest.mark.integration

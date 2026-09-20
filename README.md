@@ -242,7 +242,7 @@ This project is under active development and is intentionally being built from t
 
 ## Facility API Contract
 
-Configure both `SPACE_CORP_DATABASE_URL` and `SPACE_CORP_DEFAULT_WORKSPACE_ID` before starting the Facility API. Run `python -m scripts.seed_development_data` after migrations and application-role provisioning to create the configured local workspace and restore the catalog, Facility, and equipment-unit smoke dataset. The API remains read-only; the development seed uses the migration-owner connection, while the running application uses the restricted application role.
+Configure both `SPACE_CORP_DATABASE_URL` and `SPACE_CORP_DEFAULT_WORKSPACE_ID` before starting the Facility API. Run `python -m scripts.seed_development_data` after migrations and application-role provisioning to create the configured local workspace and restore the catalog, Facility, equipment-unit, and inventory smoke dataset. The API remains read-only; the development seed uses the migration-owner connection, while the running application uses the restricted application role.
 
 | Request | Operation ID | Successful response |
 | --- | --- | --- |
