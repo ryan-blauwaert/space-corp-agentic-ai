@@ -25,7 +25,7 @@ from app.persistence.base import Base
 
 if TYPE_CHECKING:
     from app.equipment.models import EquipmentUnitRecord, InventoryItemRecord
-    from app.operations.models import IncidentRecord
+    from app.operations.models import IncidentRecord, WorkOrderRecord
     from app.workspaces.models import WorkspaceRecord
 
 
@@ -116,4 +116,12 @@ class FacilityRecord(Base):
             "FacilityRecord.id == foreign(IncidentRecord.facility_id))"
         ),
         foreign_keys="[IncidentRecord.facility_id]",
+    )
+    work_orders: Mapped[list[WorkOrderRecord]] = relationship(
+        back_populates="facility",
+        primaryjoin=(
+            "and_(FacilityRecord.workspace_id == WorkOrderRecord.workspace_id, "
+            "FacilityRecord.id == foreign(WorkOrderRecord.facility_id))"
+        ),
+        foreign_keys="[WorkOrderRecord.facility_id]",
     )

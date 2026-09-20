@@ -83,13 +83,13 @@ Additional infrastructure will be introduced incrementally as requirements emerg
 - containers
 - CI/CD
 
-No particular agent framework, workflow framework, vector database, or deployment platform is assumed at the start.
+No particular agent framework, workflow framework, vector database, or deployment platform is assumed at the start. LangChain and LangGraph may be evaluated later as implementation adapters for model, retrieval, tool, or durable-workflow capabilities; they are optional and do not define the application's contracts.
 
 ## Current Status
 
 **Phase 1 — Structured Operational Backend**
 
-The latest completed waypoint is **1.3 — Facility API**; the next is **1.4 — Core Operational Schema**. The backend includes typed configuration, PostgreSQL migrations, workspace-scoped Facility persistence, and read-only list/detail endpoints. See the [roadmap](docs/roadmap.md) for verification and completion status.
+The latest completed waypoint is **1.3 — Facility API**; **1.4 — Core Operational Schema** has passed acceptance verification and awaits commit bookkeeping. The backend includes typed configuration, PostgreSQL migrations, catalog/equipment/inventory and incident/work-order persistence, workspace isolation, and read-only Facility list/detail endpoints. See the [roadmap](docs/roadmap.md) for verification and completion status.
 
 Advanced AI capabilities are intentionally not being implemented yet.
 
@@ -240,37 +240,24 @@ pytest
 
 This project is under active development and is intentionally being built from the foundation upward.
 
-## Facility API Contract
+## API Documentation
 
-Configure both `SPACE_CORP_DATABASE_URL` and `SPACE_CORP_DEFAULT_WORKSPACE_ID` before starting the Facility API. Run `python -m scripts.seed_development_data` after migrations and application-role provisioning to create the configured local workspace and restore the catalog, Facility, equipment-unit, and inventory smoke dataset. The API remains read-only; the development seed uses the migration-owner connection, while the running application uses the restricted application role.
+Start the API locally, then use the generated documentation:
 
-| Request | Operation ID | Successful response |
-| --- | --- | --- |
-| `GET /health` | `getHealth` | `200`, `{ "status": "ok" }`; liveness only, without a database check. |
-| `GET /facilities?limit=50&offset=0` | `listFacilities` | `200`, `{ "items": [...], "pagination": { "limit": 50, "offset": 0, "total": 0 } }`. |
-| `GET /facilities/{facility_id}` | `getFacility` | `200`, one Facility object. |
+- [Swagger UI](http://127.0.0.1:8000/docs)
+- [ReDoc](http://127.0.0.1:8000/redoc)
+- [OpenAPI schema](http://127.0.0.1:8000/openapi.json)
 
-Facilities expose `id`, `code`, `name`, `facility_type`, `location`, `operational_status`, `created_at`, and `updated_at`. Workspace ownership remains internal. List results are ordered by code; `limit` defaults to 50 and accepts 1–100, while `offset` defaults to 0 and must be nonnegative. Empty workspaces and offsets past the final record return an empty page. Page contents and total are separate reads under PostgreSQL's default isolation, so concurrent writes can change the total between reads.
-
-- `404`: a valid UUID does not identify a Facility in the configured workspace. Missing and other-workspace records return identical errors.
-- `422`: malformed UUIDs or invalid list query parameters. FastAPI's existing `application/json` validation format is retained: `detail` is an array of validation errors. Unknown list query parameters, including `workspace_id`, are rejected. Query parameters or headers on detail requests cannot change the server-selected workspace.
-- `503`: a database operational failure after startup. Missing startup configuration or an unreachable database prevents the application from starting; database exception details are not returned to clients.
-
-The `404` and `503` responses use [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457.html) `application/problem+json`, with `type`, `title`, `status`, `detail`, and `instance` (request path). For example:
-
-```json
-{"type":"about:blank","title":"Not Found","status":404,"detail":"The requested Facility is not available.","instance":"/facilities/11111111-1111-1111-1111-111111111111"}
-```
-
-The generated `/openapi.json` documents response schemas, statuses, pagination, and stable operation IDs. Compatibility review for Waypoint 1.3: health and list success payloads remain unchanged; the detail route is additive. Existing consumers of the earlier 503 error must accept the new media type and additional problem fields; the string `detail` is preserved. No frontend consumer exists in this repository yet.
+See [API documentation](docs/api.md) for cross-cutting conventions, current
+usage notes, smoke-test setup, and API compatibility guidance.
 
 ## Domain Module Boundaries
 
 `app/equipment/` owns catalog releases, equipment models, components, deployed
-units, and inventory. `app/operations/` owns incident domain records, severity
-and status enums, validation, ORM records, and repository interfaces and
-implementations. Incident tests follow the same boundary under
-`tests/app/operations/`. Import incident types from `app.operations.domain`,
+units, and inventory. `app/operations/` owns incident and work-order domain records, lifecycle
+enums, validation, ORM records, and repository interfaces and implementations.
+Operational tests follow the same boundary under
+`tests/app/operations/`. Import operational types from `app.operations.domain`,
 `app.operations.models`, or `app.operations.repository`.
 
 Incidents still reference Facilities, Workspaces, and optional EquipmentUnits.
@@ -278,9 +265,10 @@ These relationships use SQLAlchemy's shared registry and
 [late-evaluated relationship references](https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html#late-evaluation-of-relationship-arguments),
 with cross-module type imports under `TYPE_CHECKING` to avoid circular imports.
 `app/persistence/models.py` registers all records for application startup;
-Alembic and the development seed also load the operations model. This is a
-Waypoint 1.4 code organization change: table names, constraints, permissions,
-and migration history are unchanged, so no database migration is needed.
+Alembic and the development seed also load the operations models. Moving
+incidents into this package did not change the schema. WorkOrder persistence is
+introduced by migration `0009_work_orders`; apply migrations and rerun role
+provisioning to install the table permissions and legacy-grant hardening.
 
 ## Packaging and Local Artifacts
 

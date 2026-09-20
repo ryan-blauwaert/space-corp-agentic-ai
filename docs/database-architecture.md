@@ -5,7 +5,7 @@
 This document records the PostgreSQL direction through the current Waypoint 1.4
 slice. Workspace records, Facility persistence, catalog releases, equipment
 models, components, their same-release compatibility associations,
-workspace-scoped equipment units, inventory, and incidents, and their row-level security
+workspace-scoped equipment units, inventory, incidents, and work orders, and their row-level security
 are now implemented. Reviewer sessions, editable baseline copies, and reset remain
 future work. The complete planned relational model is defined in the
 [operational data model](operational-data-model.md).
@@ -19,7 +19,7 @@ Isolation will be enforced in layers:
 1. A future application authorization or reviewer-session boundary derives the permitted workspace from trusted server-side context rather than an arbitrary client-supplied identifier.
 2. Repository operations require an explicit workspace scope so ownership is visible at the persistence boundary.
 3. PostgreSQL row-level security (RLS) provides database enforcement for
-   `facilities`, `equipment_units`, `inventory_items`, and `incidents`, including direct queries that bypass
+   `facilities`, `equipment_units`, `inventory_items`, `incidents`, and `work_orders`, including direct queries that bypass
    repository filtering.
 
 Foreign keys and uniqueness constraints introduced with domain entities must include workspace scope where required. This prevents cross-workspace relationships and allows the same baseline identifiers to be used in separate workspaces.
@@ -65,12 +65,12 @@ The local migration role is `space_corp`; the local application role is
 `space_corp_app`. The latter is explicitly `NOBYPASSRLS`, owns none of
 `workspaces`, `facilities`, `catalog_releases`, `equipment_models`,
 `components`, `equipment_model_components`, `equipment_units`, `inventory_items`, or
-`incidents`, has no role memberships, and has no superuser,
+`incidents`, or `work_orders`, has no role memberships, and has no superuser,
 database-creation, or role-creation capability. RLS behavior is verified using
 that application role, including cross-workspace reads, writes, unscoped access,
 approved-column updates, and connection reuse.
 
-### Planned Operational Write Permissions (Waypoint 1.4)
+### Operational Write Permissions (Waypoint 1.4)
 
 Operational tables allow scoped reads/inserts and column-level updates only for
 the allowlist in the [operational model](operational-data-model.md). Identity,
@@ -87,8 +87,8 @@ Controlled repair and dependency-ordered deletion are migration-owner or future
 trusted cleanup responsibilities, with restrictive foreign keys still preserving
 relationships. This is a guarantee against ordinary application writes, not
 against an administrator able to change schema or grants. This slice's
-provisioning script applies the Facility, EquipmentUnit, InventoryItem, and Incident
-grants; later operational tables must extend the same policy deliberately.
+provisioning script applies the Facility, EquipmentUnit, InventoryItem, Incident,
+and WorkOrder grants; later tables must extend the same policy deliberately.
 
 WorkOrder references have independent meanings: `originating_incident_id`
 records the reason for work, and `target_equipment_unit_id` records its target.
@@ -125,8 +125,6 @@ The following are intentionally deferred:
 - browser sessions, editable reviewer data, reset, and expiration
 - the full versioned baseline, catalog publication checks, and workspace pinning
   (the small Facility development smoke seed already exists)
-- incidents and work orders defined in the
-  [operational data model](operational-data-model.md)
 
 Core operational schema implementation belongs to Waypoint 1.4, full baseline
 creation to Waypoint 1.5, and reviewer session/reset behavior to Waypoint 2.5.
@@ -134,8 +132,15 @@ The design contract is documented now without introducing those later services.
 
 ## Application Role Hardening
 
-Provisioning uses `ON_ERROR_STOP` and a transaction per database, as described in the [psql documentation](https://www.postgresql.org/docs/current/app-psql.html). Failure stops subsequent commands; an earlier database transaction may already have committed. Correct the reported condition and rerun the idempotent script. It removes legacy table/sequence grants and default grants, then grants `SELECT`/`INSERT` plus approved column-level `UPDATE` permissions for Facilities, EquipmentUnits, and InventoryItems. Catalog releases, equipment models, components, and their compatibility associations are read-only to the application role; workspace creation and Alembic bookkeeping remain migration-owner operations. Future domain tables require explicit privilege decisions.
+Provisioning uses `ON_ERROR_STOP` and a transaction per database, as described in the [psql documentation](https://www.postgresql.org/docs/current/app-psql.html). Failure stops subsequent commands; an earlier database transaction may already have committed. Correct the reported condition and rerun the idempotent script. It removes legacy table/sequence grants from both PUBLIC and the application role, clears global and schema-specific migration-owner default grants, then grants `SELECT`/`INSERT` plus approved column-level `UPDATE` permissions for Facilities, EquipmentUnits, InventoryItems, Incidents, and WorkOrders. Catalog releases, equipment models, components, and their compatibility associations are read-only to the application role; workspace creation and Alembic bookkeeping remain migration-owner operations. Future domain tables require explicit privilege decisions.
 
 Migration `0004_facility_required_text` rejects whitespace-only required Facility text using the same whitespace set as Python's `str.strip()`, including Unicode whitespace. It does not rewrite existing data: invalid rows must be corrected explicitly before the migration can succeed. The migration is transactional and reversible.
 
 The API uses synchronous routes with synchronous SQLAlchemy sessions. Expected HTTP failures use FastAPI exception handlers; validation errors retain FastAPI's existing format. These are supported [FastAPI patterns](https://fastapi.tiangolo.com/tutorial/handling-errors/). No service layer is added because these read operations need no separate business orchestration.
+
+The provisioning script assumes dedicated project databases and manages access
+through explicit role grants. PUBLIC access is not retained in their public
+schemas. Rerun provisioning after migrations add tables or when applying this
+permission fix; changing the script alone does not change an existing database.
+Disposable-cluster tests verify legacy PUBLIC table/column grants and global and
+schema-specific defaults are removed in both development and test databases.

@@ -413,7 +413,25 @@ The implementation slices must add automated coverage for:
 | Historical meaning and permissions | Approved updates succeed as the restricted role; direct SQL identity/model/Facility/reference updates fail even for unreferenced records; DELETE/TRUNCATE fail; old broad grants are removed; controlled owner repair remains possible without breaking constraints; occurrence time differs from seed insertion time; terminal timestamps remain consistent with status. |
 | Waypoint 1.5 baseline contract | Repeated seed is stable; two workspace copies have disjoint operational UUIDs; foreign keys remap correctly; published catalog rewrites are rejected; old workspaces retain their release after a new baseline is published. |
 
-The existing Facility tests cover the implemented foundation only. New behavior
-remains an intentional coverage gap until its owning implementation slice; no
-waypoint is marked complete by this documentation change. Live workspace reset,
-reservations, and complete historical reconstruction are deferred scenarios.
+The Waypoint 1.4 schema and repository acceptance coverage is now implemented:
+
+- `tests/app/operations/test_domain.py` verifies typed lifecycle values, required
+  text, timezone-aware times, and completion-time ordering.
+- `tests/app/operations/test_models.py` verifies all four WorkOrder reference
+  combinations, different affected/target units, no target fallback, scoped
+  uniqueness, cross-Facility rejection, and database lifecycle constraints.
+- `tests/app/operations/test_repository.py` verifies creation, reads, counts,
+  pagination, missing records, workspace filtering, lifecycle updates, and
+  rejected updates preserving existing state.
+- `tests/scripts/test_provision_postgresql_application_role.py` verifies real
+  restricted-role operations, absent/foreign workspace context, cross-workspace
+  reference rejection, approved updates, denied fixed-field updates and deletion,
+  owner repair, and removal of legacy PUBLIC and application-role permissions.
+- Existing equipment, Facility, database, and seed tests cover catalog release
+  integrity, inventory, migration round trips, schema/model parity, connection
+  context cleanup, and repeatable smoke data.
+
+The Q1–Q5 scenario/evidence matrix and baseline publication/cloning tests remain
+Waypoint 1.5 work; natural-language query execution remains Waypoint 2.2 work.
+Live workspace reset, reservations, and historical reconstruction remain deferred.
+This coverage does not claim full seeded-query or public-demo readiness.

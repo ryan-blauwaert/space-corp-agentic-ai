@@ -12,7 +12,7 @@ from app.persistence.base import Base
 if TYPE_CHECKING:
     from app.equipment.models import EquipmentUnitRecord, InventoryItemRecord
     from app.facilities.models import FacilityRecord
-    from app.operations.models import IncidentRecord
+    from app.operations.models import IncidentRecord, WorkOrderRecord
 
 
 class WorkspaceRecord(Base):
@@ -36,3 +36,4 @@ class WorkspaceRecord(Base):
         back_populates="workspace"
     )
     incidents: Mapped[list[IncidentRecord]] = relationship(back_populates="workspace")
+    work_orders: Mapped[list[WorkOrderRecord]] = relationship(back_populates="workspace")

@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.config import Settings
 from app.database import Database
 from app.equipment.domain import EquipmentOperationalStatus
-from app.operations.domain import IncidentSeverity, IncidentStatus
+from app.operations.domain import IncidentSeverity, IncidentStatus, WorkOrderPriority, WorkOrderStatus
 from app.equipment.models import (
     CatalogReleaseRecord,
     ComponentRecord,
@@ -20,7 +20,7 @@ from app.equipment.models import (
     InventoryItemRecord,
     equipment_model_components,
 )
-from app.operations.models import IncidentRecord
+from app.operations.models import IncidentRecord, WorkOrderRecord
 from app.facilities.domain import FacilityOperationalStatus, FacilityType
 from app.facilities.models import FacilityRecord
 from app.workspaces.models import WorkspaceRecord
@@ -101,6 +101,19 @@ class IncidentSeed:
 
 
 @dataclass(frozen=True, slots=True)
+class WorkOrderSeed:
+    id: UUID
+    facility_id: UUID
+    originating_incident_id: UUID | None
+    target_equipment_unit_id: UUID | None
+    reference_code: str
+    priority: WorkOrderPriority
+    status: WorkOrderStatus
+    due_at: datetime | None
+    completed_at: datetime | None
+
+
+@dataclass(frozen=True, slots=True)
 class SeedResult:
     workspace_id: UUID
     workspace_created: bool
@@ -118,6 +131,8 @@ class SeedResult:
     inventory_items_refreshed: int
     incidents_created: int
     incidents_refreshed: int
+    work_orders_created: int
+    work_orders_refreshed: int
     facilities_created: int
     facilities_refreshed: int
 
@@ -287,6 +302,11 @@ INCIDENT_SMOKE_DATA = (
     ),
 )
 
+WORK_ORDER_SMOKE_DATA = (
+    WorkOrderSeed(UUID("26000000-0000-4000-8000-000000000001"), FACILITY_SMOKE_DATA[0].id, INCIDENT_SMOKE_DATA[0].id, EQUIPMENT_UNIT_SMOKE_DATA[0].id, "WO-ECS-001", WorkOrderPriority.CRITICAL, WorkOrderStatus.BLOCKED, datetime(2026, 1, 20, 12, 0, tzinfo=UTC), None),
+    WorkOrderSeed(UUID("26000000-0000-4000-8000-000000000002"), FACILITY_SMOKE_DATA[0].id, None, None, "WO-LUN-001", WorkOrderPriority.HIGH, WorkOrderStatus.OPEN, None, None),
+)
+
 
 def require_migration_owner(session: Session) -> str:
     """Require the connected role to own all tables modified by this seed."""
@@ -308,6 +328,7 @@ def require_migration_owner(session: Session) -> str:
                   'equipment_units',
                   'inventory_items',
                   'incidents'
+                  ,'work_orders'
               )
               AND relation.relkind = 'r'
             """
@@ -325,6 +346,7 @@ def require_migration_owner(session: Session) -> str:
         "equipment_units",
         "inventory_items",
         "incidents",
+        "work_orders",
     }
     if set(table_owners) != expected_tables:
         raise SeedConfigurationError(
@@ -584,6 +606,26 @@ def seed_smoke_data(session: Session, workspace_id: UUID) -> SeedResult:
         record.resolved_at = seed.resolved_at
 
     session.flush()
+    work_orders_created = 0
+    work_orders_refreshed = 0
+    for seed in WORK_ORDER_SMOKE_DATA:
+        record = session.scalar(select(WorkOrderRecord).where(WorkOrderRecord.workspace_id == workspace_id, WorkOrderRecord.reference_code == seed.reference_code))
+        if record is None:
+            record = WorkOrderRecord(id=seed.id, workspace_id=workspace_id)
+            session.add(record)
+            work_orders_created += 1
+        else:
+            work_orders_refreshed += 1
+        record.facility_id = seed.facility_id
+        record.originating_incident_id = seed.originating_incident_id
+        record.target_equipment_unit_id = seed.target_equipment_unit_id
+        record.reference_code = seed.reference_code
+        record.priority = seed.priority.value
+        record.status = seed.status.value
+        record.due_at = seed.due_at
+        record.completed_at = seed.completed_at
+
+    session.flush()
     return SeedResult(
         workspace_id=workspace_id,
         workspace_created=workspace_created,
@@ -601,6 +643,8 @@ def seed_smoke_data(session: Session, workspace_id: UUID) -> SeedResult:
         inventory_items_refreshed=inventory_items_refreshed,
         incidents_created=incidents_created,
         incidents_refreshed=incidents_refreshed,
+        work_orders_created=work_orders_created,
+        work_orders_refreshed=work_orders_refreshed,
         facilities_created=facilities_created,
         facilities_refreshed=facilities_refreshed,
     )

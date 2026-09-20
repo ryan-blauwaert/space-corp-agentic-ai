@@ -30,8 +30,9 @@ We are in Phase 1 — Structured Operational Backend. Follow the current waypoin
 ## API Documentation
 
 - Treat FastAPI route declarations, Pydantic schemas, and response metadata as the source of truth for the API contract.
-- Keep endpoint behavior and examples documented in the relevant README or roadmap waypoint.
-- Do not add a separate hand-maintained Swagger/OpenAPI file unless a consumer or integration explicitly requires a checked-in specification.
+- Keep cross-cutting API conventions, durable usage notes, and compatibility guidance in `docs/api.md`; keep the README focused on setup and links to generated documentation.
+- When adding or changing a route, update its FastAPI metadata, typed models, tests, and the relevant `docs/api.md` section; verify `/docs`, `/redoc`, and `/openapi.json` when practical.
+- Do not create a second hand-maintained OpenAPI schema. The generated OpenAPI document remains the detailed endpoint contract.
 
 ## Test Organization
 

@@ -470,16 +470,31 @@ introduces.
 
 ### Status
 
-- [~] In Progress
+- [~] In Progress — implementation verified; commit pending
 - Design refinement: Q1–Q5, catalog/baseline/workspace boundaries, identity rules,
   catalog release identity, incident/target semantics, restricted-role permissions,
   and the implementation coverage plan are documented.
-- CatalogRelease, EquipmentModel, Component, EquipmentUnit, InventoryItem, and Incident
-  persistence are implemented. Component/model compatibility is constrained to
-  one catalog release; inventory and incidents are isolated by workspace and
-  Facility. Incident domain records, ORM mappings, repositories, and matching
-  tests live in `app/operations/` and `tests/app/operations/`; catalog, units, and
-  inventory remain in equipment. WorkOrder implementation remains outstanding.
+- CatalogRelease, EquipmentModel, Component, EquipmentUnit, InventoryItem, Incident,
+  and WorkOrder persistence are implemented. Component/model compatibility is
+  constrained to one catalog release; workspace-owned operational records are
+  isolated by workspace and Facility. Incident and WorkOrder domain records, ORM
+  mappings, repositories, and matching tests live in `app/operations/` and
+  `tests/app/operations/`; catalog, units, and inventory remain in equipment.
+- Acceptance coverage: `tests/app/operations/` covers reference semantics,
+  lifecycle constraints, scoped uniqueness, repository reads/counts/pagination,
+  missing records, isolation, and updates. Disposable provisioning tests exercise
+  real restricted-role RLS, approved updates, denied fixed-field updates and
+  deletion, owner repair, and removal of PUBLIC/default permission bypasses in
+  both databases. Existing database/equipment/seed suites cover migration parity,
+  catalog integrity, connection reuse, and repeatable smoke data.
+- Verification (2026-09-20): 256 tests passed with no skips against PostgreSQL,
+  including disposable-cluster permission regressions in both databases.
+  `git diff --check` passed. One existing Starlette/AnyIO deprecation warning
+  remains. Q1–Q5 seeded scenarios and query-plan validation remain deliberately
+  deferred to their dataset/query waypoints; no new 1.4 acceptance gap is known.
+- Completion bookkeeping: keep 1.4 active until this increment, including
+  migration `0009_work_orders`, is committed.
+  No Waypoint 1.5 capability is implemented by this acceptance pass.
 
 ---
 
@@ -556,7 +571,8 @@ that support the later frontend and structured-query workflows.
 - endpoint scope follows the ownership model and cannot expose another
   workspace's mutable records
 - pagination, relevant filters, stable response schemas, and standard problem
-  responses are documented in OpenAPI
+  responses are documented in OpenAPI; cross-cutting conventions and durable
+  usage notes are maintained in `docs/api.md`
 - automated tests cover successful responses, empty results, validation errors,
   unavailable database behavior, and cross-workspace isolation
 - repeatable local smoke data and documented requests make every new endpoint's

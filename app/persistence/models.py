@@ -7,7 +7,7 @@ from app.equipment.models import (
     EquipmentUnitRecord,
     InventoryItemRecord,
 )
-from app.operations.models import IncidentRecord
+from app.operations.models import IncidentRecord, WorkOrderRecord
 from app.facilities.models import FacilityRecord
 from app.workspaces.models import WorkspaceRecord
 
@@ -18,6 +18,7 @@ __all__ = [
     "EquipmentUnitRecord",
     "InventoryItemRecord",
     "IncidentRecord",
+    "WorkOrderRecord",
     "FacilityRecord",
     "WorkspaceRecord",
 ]

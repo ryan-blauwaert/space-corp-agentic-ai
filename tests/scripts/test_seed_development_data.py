@@ -13,7 +13,7 @@ from app.equipment.models import (
     EquipmentUnitRecord,
     InventoryItemRecord,
 )
-from app.operations.models import IncidentRecord
+from app.operations.models import IncidentRecord, WorkOrderRecord
 from app.facilities.models import FacilityRecord
 from scripts.seed_development_data import (
     CATALOG_RELEASE_SMOKE_DATA,
@@ -24,6 +24,7 @@ from scripts.seed_development_data import (
     FACILITY_SMOKE_DATA,
     INVENTORY_ITEM_SMOKE_DATA,
     INCIDENT_SMOKE_DATA,
+    WORK_ORDER_SMOKE_DATA,
     SeedConfigurationError,
     require_migration_owner,
     seed_configured_development_database,
@@ -86,6 +87,7 @@ def test_seed_is_repeatable_and_scoped_to_the_selected_workspace(
     assert first_result.equipment_units_created == len(EQUIPMENT_UNIT_SMOKE_DATA)
     assert first_result.inventory_items_created == len(INVENTORY_ITEM_SMOKE_DATA)
     assert first_result.incidents_created == len(INCIDENT_SMOKE_DATA)
+    assert first_result.work_orders_created == len(WORK_ORDER_SMOKE_DATA)
     assert first_result.facilities_created == len(FACILITY_SMOKE_DATA)
     assert second_result.workspace_created is False
     assert second_result.catalog_releases_created == 0
@@ -104,6 +106,7 @@ def test_seed_is_repeatable_and_scoped_to_the_selected_workspace(
     assert second_result.inventory_items_refreshed == len(INVENTORY_ITEM_SMOKE_DATA)
     assert second_result.incidents_created == 0
     assert second_result.incidents_refreshed == len(INCIDENT_SMOKE_DATA)
+    assert second_result.work_orders_refreshed == len(WORK_ORDER_SMOKE_DATA)
     assert second_result.facilities_created == 0
     assert second_result.facilities_refreshed == len(FACILITY_SMOKE_DATA)
     assert integration_session.scalar(
@@ -141,6 +144,9 @@ def test_seed_is_repeatable_and_scoped_to_the_selected_workspace(
     assert integration_session.scalar(
         select(func.count()).where(IncidentRecord.workspace_id == other_workspace_id)
     ) == 0
+    assert integration_session.scalar(
+        select(func.count()).where(WorkOrderRecord.workspace_id == workspace_id)
+    ) == len(WORK_ORDER_SMOKE_DATA)
     active_unit_incidents = integration_session.scalars(
         select(IncidentRecord).where(
             IncidentRecord.equipment_unit_id == EQUIPMENT_UNIT_SMOKE_DATA[0].id,

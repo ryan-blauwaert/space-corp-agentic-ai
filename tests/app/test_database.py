@@ -146,7 +146,7 @@ def test_migrations_apply(integration_migration_database_url: str) -> None:
                 text("SELECT version_num FROM alembic_version")
             ).scalar_one()
 
-        assert revision == "0008_incidents"
+        assert revision == "0009_work_orders"
     finally:
         engine.dispose()
 
@@ -230,7 +230,7 @@ def test_workspace_catalog_and_equipment_tables_exist(
                         "'workspaces', 'facilities', 'catalog_releases', "
                         "'equipment_models', 'components', "
                         "'equipment_model_components', 'equipment_units', "
-                        "'inventory_items', 'incidents'"
+                        "'inventory_items', 'incidents', 'work_orders'"
                         ")"
                     )
                 ).scalars()
@@ -246,6 +246,7 @@ def test_workspace_catalog_and_equipment_tables_exist(
             "equipment_units",
             "inventory_items",
             "incidents",
+            "work_orders",
         }
     finally:
         engine.dispose()
@@ -294,7 +295,7 @@ def test_application_role_enforces_workspace_rls_and_resets_pooled_context(
                         "'workspaces', 'facilities', 'catalog_releases', "
                         "'equipment_models', 'components', "
                         "'equipment_model_components', 'equipment_units', "
-                        "'inventory_items', 'incidents'"
+                        "'inventory_items', 'incidents', 'work_orders'"
                         ")"
                     )
                 ).all()
@@ -324,6 +325,7 @@ def test_application_role_enforces_workspace_rls_and_resets_pooled_context(
             "facilities": "space_corp",
             "inventory_items": "space_corp",
             "incidents": "space_corp",
+            "work_orders": "space_corp",
             "workspaces": "space_corp",
         }
         assert role_memberships == []

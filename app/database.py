@@ -14,6 +14,7 @@ from app.persistence.models import (
     EquipmentUnitRecord,
     InventoryItemRecord,
     IncidentRecord,
+    WorkOrderRecord,
     FacilityRecord,
     WorkspaceRecord,
 )
@@ -26,6 +27,7 @@ _REGISTERED_MODELS = (
     EquipmentUnitRecord,
     InventoryItemRecord,
     IncidentRecord,
+    WorkOrderRecord,
     FacilityRecord,
     WorkspaceRecord,
 )

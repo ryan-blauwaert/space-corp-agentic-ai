@@ -7,6 +7,7 @@ from uuid import UUID
 
 
 INCIDENT_REFERENCE_CODE_MAX_LENGTH = 64
+WORK_ORDER_REFERENCE_CODE_MAX_LENGTH = 64
 
 
 INCIDENT_FAULT_CODE_MAX_LENGTH = 64
@@ -27,6 +28,21 @@ class IncidentStatus(StrEnum):
     OPEN = "open"
     INVESTIGATING = "investigating"
     RESOLVED = "resolved"
+
+
+class WorkOrderPriority(StrEnum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+
+
+class WorkOrderStatus(StrEnum):
+    OPEN = "open"
+    IN_PROGRESS = "in_progress"
+    BLOCKED = "blocked"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
 
 
 @dataclass(frozen=True, slots=True)
@@ -91,6 +107,42 @@ class Incident:
             raise ValueError("Incident fault code must be trimmed and uppercase.")
 
 
+@dataclass(frozen=True, slots=True)
+class NewWorkOrder:
+    facility_id: UUID
+    originating_incident_id: UUID | None
+    target_equipment_unit_id: UUID | None
+    reference_code: str
+    priority: WorkOrderPriority
+    status: WorkOrderStatus
+    due_at: datetime | None = None
+    completed_at: datetime | None = None
+
+    def __post_init__(self) -> None:
+        _validate_required_text("Work order reference code", self.reference_code, WORK_ORDER_REFERENCE_CODE_MAX_LENGTH)
+        _validate_work_order_lifecycle(self.priority, self.status, self.due_at, self.completed_at)
+
+
+@dataclass(frozen=True, slots=True)
+class WorkOrder:
+    id: UUID
+    workspace_id: UUID
+    facility_id: UUID
+    originating_incident_id: UUID | None
+    target_equipment_unit_id: UUID | None
+    reference_code: str
+    priority: WorkOrderPriority
+    status: WorkOrderStatus
+    due_at: datetime | None
+    completed_at: datetime | None
+    created_at: datetime
+    updated_at: datetime
+
+    def __post_init__(self) -> None:
+        _validate_required_text("Work order reference code", self.reference_code, WORK_ORDER_REFERENCE_CODE_MAX_LENGTH)
+        _validate_work_order_lifecycle(self.priority, self.status, self.due_at, self.completed_at, created_at=self.created_at)
+
+
 def _validate_required_text(field_name: str, value: str, maximum_length: int) -> None:
     if not value.strip():
         raise ValueError(f"{field_name} must not be blank.")
@@ -117,6 +169,28 @@ def _validate_incident_lifecycle(
         _validate_timezone_aware("Incident resolution time", resolved_at)
         if resolved_at < occurred_at:
             raise ValueError("Incident resolution time cannot precede occurrence time.")
+
+
+def _validate_work_order_lifecycle(
+    priority: WorkOrderPriority, status: WorkOrderStatus, due_at: datetime | None,
+    completed_at: datetime | None, *, created_at: datetime | None = None,
+) -> None:
+    if not isinstance(priority, WorkOrderPriority):
+        raise ValueError("Work order priority must be a WorkOrderPriority.")
+    if not isinstance(status, WorkOrderStatus):
+        raise ValueError("Work order status must be a WorkOrderStatus.")
+    if due_at is not None:
+        _validate_timezone_aware("Work order due time", due_at)
+    if status is WorkOrderStatus.COMPLETED and completed_at is None:
+        raise ValueError("Completed work orders must include a completion time.")
+    if status is not WorkOrderStatus.COMPLETED and completed_at is not None:
+        raise ValueError("Only completed work orders may include a completion time.")
+    if completed_at is not None:
+        _validate_timezone_aware("Work order completion time", completed_at)
+        if created_at is not None:
+            _validate_timezone_aware("Work order creation time", created_at)
+            if completed_at < created_at:
+                raise ValueError("Work order completion time cannot precede creation time.")
 
 
 def _normalize_fault_code(fault_code: str | None) -> str | None:
