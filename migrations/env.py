@@ -1,5 +1,6 @@
 from alembic import context
 
+from app.baselines.models import BaselineRecord  # noqa: F401
 from app.config import Settings
 from app.database import DatabaseConfigurationError, create_database_engine
 from app.equipment.models import (  # noqa: F401
@@ -20,6 +21,8 @@ target_metadata = Base.metadata
 
 
 def migration_database_url() -> str:
+    if "migration_database_url" in config.attributes:
+        return config.attributes["migration_database_url"]
     settings = Settings()
 
     if settings.migration_database_url is None:

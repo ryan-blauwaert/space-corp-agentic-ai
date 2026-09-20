@@ -90,6 +90,8 @@ class CatalogReleaseRecord(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
+    content_sha256: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
     equipment_models: Mapped[list[EquipmentModelRecord]] = relationship(
         back_populates="catalog_release"
     )

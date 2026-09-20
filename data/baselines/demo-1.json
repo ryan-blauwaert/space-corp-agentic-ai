@@ -1,0 +1,3470 @@
+{
+  "version": "demo-1",
+  "created_at": "2025-12-01T00:00:00Z",
+  "as_of": "2026-01-31T12:00:00Z",
+  "window_start": "2026-01-01T00:00:00Z",
+  "catalog": {
+    "version": "demo-catalog-1",
+    "models": [
+      {
+        "key": "M01",
+        "name": "Environmental Control"
+      },
+      {
+        "key": "M02",
+        "name": "Thermal Pump"
+      },
+      {
+        "key": "M03",
+        "name": "Power Converter"
+      },
+      {
+        "key": "M04",
+        "name": "Air Scrubber"
+      },
+      {
+        "key": "M05",
+        "name": "Water Recycler"
+      },
+      {
+        "key": "M06",
+        "name": "Solar Array Controller"
+      },
+      {
+        "key": "M07",
+        "name": "Docking Actuator"
+      },
+      {
+        "key": "M08",
+        "name": "Navigation Sensor"
+      },
+      {
+        "key": "M09",
+        "name": "Communications Relay"
+      },
+      {
+        "key": "M10",
+        "name": "Cargo Lift"
+      },
+      {
+        "key": "M11",
+        "name": "Pressure Regulator"
+      },
+      {
+        "key": "M12",
+        "name": "Experimental Spectrometer"
+      }
+    ],
+    "components": [
+      {
+        "key": "C01",
+        "name": "Environmental Control Filter"
+      },
+      {
+        "key": "C02",
+        "name": "Environmental Control Seal"
+      },
+      {
+        "key": "C03",
+        "name": "Environmental Control Sensor"
+      },
+      {
+        "key": "C04",
+        "name": "Thermal Pump Filter"
+      },
+      {
+        "key": "C05",
+        "name": "Thermal Pump Seal"
+      },
+      {
+        "key": "C06",
+        "name": "Thermal Pump Sensor"
+      },
+      {
+        "key": "C07",
+        "name": "Power Converter Filter"
+      },
+      {
+        "key": "C08",
+        "name": "Power Converter Seal"
+      },
+      {
+        "key": "C09",
+        "name": "Power Converter Sensor"
+      },
+      {
+        "key": "C10",
+        "name": "Air Scrubber Filter"
+      },
+      {
+        "key": "C11",
+        "name": "Air Scrubber Seal"
+      },
+      {
+        "key": "C12",
+        "name": "Air Scrubber Sensor"
+      },
+      {
+        "key": "C13",
+        "name": "Water Recycler Filter"
+      },
+      {
+        "key": "C14",
+        "name": "Water Recycler Seal"
+      },
+      {
+        "key": "C15",
+        "name": "Water Recycler Sensor"
+      },
+      {
+        "key": "C16",
+        "name": "Solar Array Controller Filter"
+      },
+      {
+        "key": "C17",
+        "name": "Solar Array Controller Seal"
+      },
+      {
+        "key": "C18",
+        "name": "Solar Array Controller Sensor"
+      },
+      {
+        "key": "C19",
+        "name": "Docking Actuator Filter"
+      },
+      {
+        "key": "C20",
+        "name": "Docking Actuator Seal"
+      },
+      {
+        "key": "C21",
+        "name": "Docking Actuator Sensor"
+      },
+      {
+        "key": "C22",
+        "name": "Navigation Sensor Filter"
+      },
+      {
+        "key": "C23",
+        "name": "Navigation Sensor Seal"
+      },
+      {
+        "key": "C24",
+        "name": "Navigation Sensor Sensor"
+      },
+      {
+        "key": "C25",
+        "name": "Communications Relay Filter"
+      },
+      {
+        "key": "C26",
+        "name": "Communications Relay Seal"
+      },
+      {
+        "key": "C27",
+        "name": "Communications Relay Sensor"
+      },
+      {
+        "key": "C28",
+        "name": "Cargo Lift Filter"
+      },
+      {
+        "key": "C29",
+        "name": "Cargo Lift Seal"
+      },
+      {
+        "key": "C30",
+        "name": "Cargo Lift Sensor"
+      },
+      {
+        "key": "C31",
+        "name": "Pressure Regulator Filter"
+      },
+      {
+        "key": "C32",
+        "name": "Pressure Regulator Seal"
+      },
+      {
+        "key": "C33",
+        "name": "Pressure Regulator Sensor"
+      },
+      {
+        "key": "C34",
+        "name": "Experimental Spectrometer Filter"
+      },
+      {
+        "key": "C35",
+        "name": "Experimental Spectrometer Seal"
+      },
+      {
+        "key": "C36",
+        "name": "Experimental Spectrometer Sensor"
+      }
+    ],
+    "compatibility": [
+      [
+        "M01",
+        "C01"
+      ],
+      [
+        "M01",
+        "C02"
+      ],
+      [
+        "M01",
+        "C03"
+      ],
+      [
+        "M02",
+        "C04"
+      ],
+      [
+        "M02",
+        "C05"
+      ],
+      [
+        "M02",
+        "C06"
+      ],
+      [
+        "M03",
+        "C07"
+      ],
+      [
+        "M03",
+        "C08"
+      ],
+      [
+        "M03",
+        "C09"
+      ],
+      [
+        "M04",
+        "C10"
+      ],
+      [
+        "M04",
+        "C11"
+      ],
+      [
+        "M04",
+        "C12"
+      ],
+      [
+        "M05",
+        "C13"
+      ],
+      [
+        "M05",
+        "C14"
+      ],
+      [
+        "M05",
+        "C15"
+      ],
+      [
+        "M06",
+        "C16"
+      ],
+      [
+        "M06",
+        "C17"
+      ],
+      [
+        "M06",
+        "C18"
+      ],
+      [
+        "M07",
+        "C19"
+      ],
+      [
+        "M07",
+        "C20"
+      ],
+      [
+        "M07",
+        "C21"
+      ],
+      [
+        "M08",
+        "C22"
+      ],
+      [
+        "M08",
+        "C23"
+      ],
+      [
+        "M08",
+        "C24"
+      ],
+      [
+        "M09",
+        "C25"
+      ],
+      [
+        "M09",
+        "C26"
+      ],
+      [
+        "M09",
+        "C27"
+      ],
+      [
+        "M10",
+        "C28"
+      ],
+      [
+        "M10",
+        "C29"
+      ],
+      [
+        "M10",
+        "C30"
+      ],
+      [
+        "M11",
+        "C31"
+      ],
+      [
+        "M11",
+        "C32"
+      ],
+      [
+        "M11",
+        "C33"
+      ]
+    ]
+  },
+  "facilities": [
+    {
+      "key": "LUN-OPS-01",
+      "name": "Lunar Operations One",
+      "facility_type": "lunar_installation",
+      "location": "Mare Imbrium",
+      "operational_status": "operational"
+    },
+    {
+      "key": "ORB-OPS-01",
+      "name": "Orbital Operations Station",
+      "facility_type": "orbital_station",
+      "location": "Low Earth Orbit",
+      "operational_status": "operational"
+    },
+    {
+      "key": "LOG-OPS-01",
+      "name": "Cislunar Logistics Depot",
+      "facility_type": "logistics_depot",
+      "location": "Earth-Moon L1",
+      "operational_status": "operational"
+    },
+    {
+      "key": "LUN-OPS-02",
+      "name": "South Pole Research Station",
+      "facility_type": "lunar_installation",
+      "location": "Shackleton Crater",
+      "operational_status": "operational"
+    },
+    {
+      "key": "MCC-OPS-01",
+      "name": "Mission Control Center",
+      "facility_type": "mission_control_center",
+      "location": "Houston",
+      "operational_status": "operational"
+    }
+  ],
+  "units": [
+    {
+      "key": "U001",
+      "facility": "LUN-OPS-01",
+      "model": "M01",
+      "operational_status": "degraded"
+    },
+    {
+      "key": "U002",
+      "facility": "LUN-OPS-01",
+      "model": "M02",
+      "operational_status": "offline"
+    },
+    {
+      "key": "U003",
+      "facility": "LUN-OPS-01",
+      "model": "M03",
+      "operational_status": "offline"
+    },
+    {
+      "key": "U004",
+      "facility": "LUN-OPS-01",
+      "model": "M04",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U005",
+      "facility": "LUN-OPS-01",
+      "model": "M05",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U006",
+      "facility": "LUN-OPS-01",
+      "model": "M06",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U007",
+      "facility": "LUN-OPS-01",
+      "model": "M07",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U008",
+      "facility": "LUN-OPS-01",
+      "model": "M08",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U009",
+      "facility": "LUN-OPS-01",
+      "model": "M09",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U010",
+      "facility": "LUN-OPS-01",
+      "model": "M10",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U011",
+      "facility": "LUN-OPS-01",
+      "model": "M11",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U012",
+      "facility": "LUN-OPS-01",
+      "model": "M12",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U013",
+      "facility": "ORB-OPS-01",
+      "model": "M01",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U014",
+      "facility": "ORB-OPS-01",
+      "model": "M02",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U015",
+      "facility": "ORB-OPS-01",
+      "model": "M03",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U016",
+      "facility": "ORB-OPS-01",
+      "model": "M04",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U017",
+      "facility": "ORB-OPS-01",
+      "model": "M05",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U018",
+      "facility": "ORB-OPS-01",
+      "model": "M06",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U019",
+      "facility": "ORB-OPS-01",
+      "model": "M07",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U020",
+      "facility": "ORB-OPS-01",
+      "model": "M08",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U021",
+      "facility": "ORB-OPS-01",
+      "model": "M09",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U022",
+      "facility": "ORB-OPS-01",
+      "model": "M10",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U023",
+      "facility": "ORB-OPS-01",
+      "model": "M11",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U024",
+      "facility": "ORB-OPS-01",
+      "model": "M12",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U025",
+      "facility": "LOG-OPS-01",
+      "model": "M01",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U026",
+      "facility": "LOG-OPS-01",
+      "model": "M02",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U027",
+      "facility": "LOG-OPS-01",
+      "model": "M03",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U028",
+      "facility": "LOG-OPS-01",
+      "model": "M04",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U029",
+      "facility": "LOG-OPS-01",
+      "model": "M05",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U030",
+      "facility": "LOG-OPS-01",
+      "model": "M06",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U031",
+      "facility": "LOG-OPS-01",
+      "model": "M07",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U032",
+      "facility": "LOG-OPS-01",
+      "model": "M08",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U033",
+      "facility": "LOG-OPS-01",
+      "model": "M09",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U034",
+      "facility": "LOG-OPS-01",
+      "model": "M10",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U035",
+      "facility": "LOG-OPS-01",
+      "model": "M11",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U036",
+      "facility": "LOG-OPS-01",
+      "model": "M12",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U037",
+      "facility": "LUN-OPS-02",
+      "model": "M01",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U038",
+      "facility": "LUN-OPS-02",
+      "model": "M02",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U039",
+      "facility": "LUN-OPS-02",
+      "model": "M03",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U040",
+      "facility": "LUN-OPS-02",
+      "model": "M04",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U041",
+      "facility": "LUN-OPS-02",
+      "model": "M05",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U042",
+      "facility": "LUN-OPS-02",
+      "model": "M06",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U043",
+      "facility": "LUN-OPS-02",
+      "model": "M07",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U044",
+      "facility": "LUN-OPS-02",
+      "model": "M08",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U045",
+      "facility": "LUN-OPS-02",
+      "model": "M09",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U046",
+      "facility": "LUN-OPS-02",
+      "model": "M10",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U047",
+      "facility": "LUN-OPS-02",
+      "model": "M11",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U048",
+      "facility": "LUN-OPS-02",
+      "model": "M12",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U049",
+      "facility": "MCC-OPS-01",
+      "model": "M01",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U050",
+      "facility": "MCC-OPS-01",
+      "model": "M02",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U051",
+      "facility": "MCC-OPS-01",
+      "model": "M03",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U052",
+      "facility": "MCC-OPS-01",
+      "model": "M04",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U053",
+      "facility": "MCC-OPS-01",
+      "model": "M05",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U054",
+      "facility": "MCC-OPS-01",
+      "model": "M06",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U055",
+      "facility": "MCC-OPS-01",
+      "model": "M07",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U056",
+      "facility": "MCC-OPS-01",
+      "model": "M08",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U057",
+      "facility": "MCC-OPS-01",
+      "model": "M09",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U058",
+      "facility": "MCC-OPS-01",
+      "model": "M10",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U059",
+      "facility": "MCC-OPS-01",
+      "model": "M11",
+      "operational_status": "operational"
+    },
+    {
+      "key": "U060",
+      "facility": "MCC-OPS-01",
+      "model": "M12",
+      "operational_status": "operational"
+    }
+  ],
+  "inventory": [
+    {
+      "key": "LUN-OPS-01-C01",
+      "facility": "LUN-OPS-01",
+      "component": "C01",
+      "quantity_on_hand": 3,
+      "reorder_point": 5
+    },
+    {
+      "key": "LUN-OPS-01-C02",
+      "facility": "LUN-OPS-01",
+      "component": "C02",
+      "quantity_on_hand": 0,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-01-C04",
+      "facility": "LUN-OPS-01",
+      "component": "C04",
+      "quantity_on_hand": 5,
+      "reorder_point": 5
+    },
+    {
+      "key": "LUN-OPS-01-C05",
+      "facility": "LUN-OPS-01",
+      "component": "C05",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-01-C06",
+      "facility": "LUN-OPS-01",
+      "component": "C06",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-01-C07",
+      "facility": "LUN-OPS-01",
+      "component": "C07",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-01-C08",
+      "facility": "LUN-OPS-01",
+      "component": "C08",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-01-C09",
+      "facility": "LUN-OPS-01",
+      "component": "C09",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-01-C10",
+      "facility": "LUN-OPS-01",
+      "component": "C10",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-01-C11",
+      "facility": "LUN-OPS-01",
+      "component": "C11",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-01-C12",
+      "facility": "LUN-OPS-01",
+      "component": "C12",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-01-C13",
+      "facility": "LUN-OPS-01",
+      "component": "C13",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-01-C14",
+      "facility": "LUN-OPS-01",
+      "component": "C14",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-01-C15",
+      "facility": "LUN-OPS-01",
+      "component": "C15",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-01-C16",
+      "facility": "LUN-OPS-01",
+      "component": "C16",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-01-C17",
+      "facility": "LUN-OPS-01",
+      "component": "C17",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-01-C18",
+      "facility": "LUN-OPS-01",
+      "component": "C18",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-01-C19",
+      "facility": "LUN-OPS-01",
+      "component": "C19",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-01-C20",
+      "facility": "LUN-OPS-01",
+      "component": "C20",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-01-C21",
+      "facility": "LUN-OPS-01",
+      "component": "C21",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-01-C22",
+      "facility": "LUN-OPS-01",
+      "component": "C22",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-01-C23",
+      "facility": "LUN-OPS-01",
+      "component": "C23",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-01-C24",
+      "facility": "LUN-OPS-01",
+      "component": "C24",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-01-C25",
+      "facility": "LUN-OPS-01",
+      "component": "C25",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-01-C26",
+      "facility": "LUN-OPS-01",
+      "component": "C26",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-01-C27",
+      "facility": "LUN-OPS-01",
+      "component": "C27",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-01-C28",
+      "facility": "LUN-OPS-01",
+      "component": "C28",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-01-C29",
+      "facility": "LUN-OPS-01",
+      "component": "C29",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-01-C30",
+      "facility": "LUN-OPS-01",
+      "component": "C30",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-01-C31",
+      "facility": "LUN-OPS-01",
+      "component": "C31",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-01-C32",
+      "facility": "LUN-OPS-01",
+      "component": "C32",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-01-C33",
+      "facility": "LUN-OPS-01",
+      "component": "C33",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-01-C34",
+      "facility": "LUN-OPS-01",
+      "component": "C34",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-01-C35",
+      "facility": "LUN-OPS-01",
+      "component": "C35",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-01-C36",
+      "facility": "LUN-OPS-01",
+      "component": "C36",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "ORB-OPS-01-C01",
+      "facility": "ORB-OPS-01",
+      "component": "C01",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "ORB-OPS-01-C02",
+      "facility": "ORB-OPS-01",
+      "component": "C02",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "ORB-OPS-01-C03",
+      "facility": "ORB-OPS-01",
+      "component": "C03",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "ORB-OPS-01-C04",
+      "facility": "ORB-OPS-01",
+      "component": "C04",
+      "quantity_on_hand": 5,
+      "reorder_point": 5
+    },
+    {
+      "key": "ORB-OPS-01-C05",
+      "facility": "ORB-OPS-01",
+      "component": "C05",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "ORB-OPS-01-C06",
+      "facility": "ORB-OPS-01",
+      "component": "C06",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "ORB-OPS-01-C07",
+      "facility": "ORB-OPS-01",
+      "component": "C07",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "ORB-OPS-01-C08",
+      "facility": "ORB-OPS-01",
+      "component": "C08",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "ORB-OPS-01-C09",
+      "facility": "ORB-OPS-01",
+      "component": "C09",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "ORB-OPS-01-C10",
+      "facility": "ORB-OPS-01",
+      "component": "C10",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "ORB-OPS-01-C11",
+      "facility": "ORB-OPS-01",
+      "component": "C11",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "ORB-OPS-01-C12",
+      "facility": "ORB-OPS-01",
+      "component": "C12",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "ORB-OPS-01-C13",
+      "facility": "ORB-OPS-01",
+      "component": "C13",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "ORB-OPS-01-C14",
+      "facility": "ORB-OPS-01",
+      "component": "C14",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "ORB-OPS-01-C15",
+      "facility": "ORB-OPS-01",
+      "component": "C15",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "ORB-OPS-01-C16",
+      "facility": "ORB-OPS-01",
+      "component": "C16",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "ORB-OPS-01-C17",
+      "facility": "ORB-OPS-01",
+      "component": "C17",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "ORB-OPS-01-C18",
+      "facility": "ORB-OPS-01",
+      "component": "C18",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "ORB-OPS-01-C19",
+      "facility": "ORB-OPS-01",
+      "component": "C19",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "ORB-OPS-01-C20",
+      "facility": "ORB-OPS-01",
+      "component": "C20",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "ORB-OPS-01-C21",
+      "facility": "ORB-OPS-01",
+      "component": "C21",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "ORB-OPS-01-C22",
+      "facility": "ORB-OPS-01",
+      "component": "C22",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "ORB-OPS-01-C23",
+      "facility": "ORB-OPS-01",
+      "component": "C23",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "ORB-OPS-01-C24",
+      "facility": "ORB-OPS-01",
+      "component": "C24",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "ORB-OPS-01-C25",
+      "facility": "ORB-OPS-01",
+      "component": "C25",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "ORB-OPS-01-C26",
+      "facility": "ORB-OPS-01",
+      "component": "C26",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "ORB-OPS-01-C27",
+      "facility": "ORB-OPS-01",
+      "component": "C27",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "ORB-OPS-01-C28",
+      "facility": "ORB-OPS-01",
+      "component": "C28",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "ORB-OPS-01-C29",
+      "facility": "ORB-OPS-01",
+      "component": "C29",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "ORB-OPS-01-C30",
+      "facility": "ORB-OPS-01",
+      "component": "C30",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "ORB-OPS-01-C31",
+      "facility": "ORB-OPS-01",
+      "component": "C31",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "ORB-OPS-01-C32",
+      "facility": "ORB-OPS-01",
+      "component": "C32",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "ORB-OPS-01-C33",
+      "facility": "ORB-OPS-01",
+      "component": "C33",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "ORB-OPS-01-C34",
+      "facility": "ORB-OPS-01",
+      "component": "C34",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "ORB-OPS-01-C35",
+      "facility": "ORB-OPS-01",
+      "component": "C35",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "ORB-OPS-01-C36",
+      "facility": "ORB-OPS-01",
+      "component": "C36",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LOG-OPS-01-C01",
+      "facility": "LOG-OPS-01",
+      "component": "C01",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LOG-OPS-01-C02",
+      "facility": "LOG-OPS-01",
+      "component": "C02",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LOG-OPS-01-C03",
+      "facility": "LOG-OPS-01",
+      "component": "C03",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LOG-OPS-01-C04",
+      "facility": "LOG-OPS-01",
+      "component": "C04",
+      "quantity_on_hand": 5,
+      "reorder_point": 5
+    },
+    {
+      "key": "LOG-OPS-01-C05",
+      "facility": "LOG-OPS-01",
+      "component": "C05",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LOG-OPS-01-C06",
+      "facility": "LOG-OPS-01",
+      "component": "C06",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LOG-OPS-01-C07",
+      "facility": "LOG-OPS-01",
+      "component": "C07",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LOG-OPS-01-C08",
+      "facility": "LOG-OPS-01",
+      "component": "C08",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LOG-OPS-01-C09",
+      "facility": "LOG-OPS-01",
+      "component": "C09",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LOG-OPS-01-C10",
+      "facility": "LOG-OPS-01",
+      "component": "C10",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LOG-OPS-01-C11",
+      "facility": "LOG-OPS-01",
+      "component": "C11",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LOG-OPS-01-C12",
+      "facility": "LOG-OPS-01",
+      "component": "C12",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LOG-OPS-01-C13",
+      "facility": "LOG-OPS-01",
+      "component": "C13",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LOG-OPS-01-C14",
+      "facility": "LOG-OPS-01",
+      "component": "C14",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LOG-OPS-01-C15",
+      "facility": "LOG-OPS-01",
+      "component": "C15",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LOG-OPS-01-C16",
+      "facility": "LOG-OPS-01",
+      "component": "C16",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LOG-OPS-01-C17",
+      "facility": "LOG-OPS-01",
+      "component": "C17",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LOG-OPS-01-C18",
+      "facility": "LOG-OPS-01",
+      "component": "C18",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LOG-OPS-01-C19",
+      "facility": "LOG-OPS-01",
+      "component": "C19",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LOG-OPS-01-C20",
+      "facility": "LOG-OPS-01",
+      "component": "C20",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LOG-OPS-01-C21",
+      "facility": "LOG-OPS-01",
+      "component": "C21",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LOG-OPS-01-C22",
+      "facility": "LOG-OPS-01",
+      "component": "C22",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LOG-OPS-01-C23",
+      "facility": "LOG-OPS-01",
+      "component": "C23",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LOG-OPS-01-C24",
+      "facility": "LOG-OPS-01",
+      "component": "C24",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LOG-OPS-01-C25",
+      "facility": "LOG-OPS-01",
+      "component": "C25",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LOG-OPS-01-C26",
+      "facility": "LOG-OPS-01",
+      "component": "C26",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LOG-OPS-01-C27",
+      "facility": "LOG-OPS-01",
+      "component": "C27",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LOG-OPS-01-C28",
+      "facility": "LOG-OPS-01",
+      "component": "C28",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LOG-OPS-01-C29",
+      "facility": "LOG-OPS-01",
+      "component": "C29",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LOG-OPS-01-C30",
+      "facility": "LOG-OPS-01",
+      "component": "C30",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LOG-OPS-01-C31",
+      "facility": "LOG-OPS-01",
+      "component": "C31",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LOG-OPS-01-C32",
+      "facility": "LOG-OPS-01",
+      "component": "C32",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LOG-OPS-01-C33",
+      "facility": "LOG-OPS-01",
+      "component": "C33",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LOG-OPS-01-C34",
+      "facility": "LOG-OPS-01",
+      "component": "C34",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LOG-OPS-01-C35",
+      "facility": "LOG-OPS-01",
+      "component": "C35",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LOG-OPS-01-C36",
+      "facility": "LOG-OPS-01",
+      "component": "C36",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-02-C01",
+      "facility": "LUN-OPS-02",
+      "component": "C01",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-02-C02",
+      "facility": "LUN-OPS-02",
+      "component": "C02",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-02-C03",
+      "facility": "LUN-OPS-02",
+      "component": "C03",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-02-C04",
+      "facility": "LUN-OPS-02",
+      "component": "C04",
+      "quantity_on_hand": 5,
+      "reorder_point": 5
+    },
+    {
+      "key": "LUN-OPS-02-C05",
+      "facility": "LUN-OPS-02",
+      "component": "C05",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-02-C06",
+      "facility": "LUN-OPS-02",
+      "component": "C06",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-02-C07",
+      "facility": "LUN-OPS-02",
+      "component": "C07",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-02-C08",
+      "facility": "LUN-OPS-02",
+      "component": "C08",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-02-C09",
+      "facility": "LUN-OPS-02",
+      "component": "C09",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-02-C10",
+      "facility": "LUN-OPS-02",
+      "component": "C10",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-02-C11",
+      "facility": "LUN-OPS-02",
+      "component": "C11",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-02-C12",
+      "facility": "LUN-OPS-02",
+      "component": "C12",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-02-C13",
+      "facility": "LUN-OPS-02",
+      "component": "C13",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-02-C14",
+      "facility": "LUN-OPS-02",
+      "component": "C14",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-02-C15",
+      "facility": "LUN-OPS-02",
+      "component": "C15",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-02-C16",
+      "facility": "LUN-OPS-02",
+      "component": "C16",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-02-C17",
+      "facility": "LUN-OPS-02",
+      "component": "C17",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-02-C18",
+      "facility": "LUN-OPS-02",
+      "component": "C18",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-02-C19",
+      "facility": "LUN-OPS-02",
+      "component": "C19",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-02-C20",
+      "facility": "LUN-OPS-02",
+      "component": "C20",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-02-C21",
+      "facility": "LUN-OPS-02",
+      "component": "C21",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-02-C22",
+      "facility": "LUN-OPS-02",
+      "component": "C22",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-02-C23",
+      "facility": "LUN-OPS-02",
+      "component": "C23",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-02-C24",
+      "facility": "LUN-OPS-02",
+      "component": "C24",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-02-C25",
+      "facility": "LUN-OPS-02",
+      "component": "C25",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-02-C26",
+      "facility": "LUN-OPS-02",
+      "component": "C26",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-02-C27",
+      "facility": "LUN-OPS-02",
+      "component": "C27",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-02-C28",
+      "facility": "LUN-OPS-02",
+      "component": "C28",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-02-C29",
+      "facility": "LUN-OPS-02",
+      "component": "C29",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-02-C30",
+      "facility": "LUN-OPS-02",
+      "component": "C30",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-02-C31",
+      "facility": "LUN-OPS-02",
+      "component": "C31",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-02-C32",
+      "facility": "LUN-OPS-02",
+      "component": "C32",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-02-C33",
+      "facility": "LUN-OPS-02",
+      "component": "C33",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-02-C34",
+      "facility": "LUN-OPS-02",
+      "component": "C34",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-02-C35",
+      "facility": "LUN-OPS-02",
+      "component": "C35",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "LUN-OPS-02-C36",
+      "facility": "LUN-OPS-02",
+      "component": "C36",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "MCC-OPS-01-C01",
+      "facility": "MCC-OPS-01",
+      "component": "C01",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "MCC-OPS-01-C02",
+      "facility": "MCC-OPS-01",
+      "component": "C02",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "MCC-OPS-01-C03",
+      "facility": "MCC-OPS-01",
+      "component": "C03",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "MCC-OPS-01-C04",
+      "facility": "MCC-OPS-01",
+      "component": "C04",
+      "quantity_on_hand": 5,
+      "reorder_point": 5
+    },
+    {
+      "key": "MCC-OPS-01-C05",
+      "facility": "MCC-OPS-01",
+      "component": "C05",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "MCC-OPS-01-C06",
+      "facility": "MCC-OPS-01",
+      "component": "C06",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "MCC-OPS-01-C07",
+      "facility": "MCC-OPS-01",
+      "component": "C07",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "MCC-OPS-01-C08",
+      "facility": "MCC-OPS-01",
+      "component": "C08",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "MCC-OPS-01-C09",
+      "facility": "MCC-OPS-01",
+      "component": "C09",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "MCC-OPS-01-C10",
+      "facility": "MCC-OPS-01",
+      "component": "C10",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "MCC-OPS-01-C11",
+      "facility": "MCC-OPS-01",
+      "component": "C11",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "MCC-OPS-01-C12",
+      "facility": "MCC-OPS-01",
+      "component": "C12",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "MCC-OPS-01-C13",
+      "facility": "MCC-OPS-01",
+      "component": "C13",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "MCC-OPS-01-C14",
+      "facility": "MCC-OPS-01",
+      "component": "C14",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "MCC-OPS-01-C15",
+      "facility": "MCC-OPS-01",
+      "component": "C15",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "MCC-OPS-01-C16",
+      "facility": "MCC-OPS-01",
+      "component": "C16",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "MCC-OPS-01-C17",
+      "facility": "MCC-OPS-01",
+      "component": "C17",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "MCC-OPS-01-C18",
+      "facility": "MCC-OPS-01",
+      "component": "C18",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "MCC-OPS-01-C19",
+      "facility": "MCC-OPS-01",
+      "component": "C19",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "MCC-OPS-01-C20",
+      "facility": "MCC-OPS-01",
+      "component": "C20",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "MCC-OPS-01-C21",
+      "facility": "MCC-OPS-01",
+      "component": "C21",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "MCC-OPS-01-C22",
+      "facility": "MCC-OPS-01",
+      "component": "C22",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "MCC-OPS-01-C23",
+      "facility": "MCC-OPS-01",
+      "component": "C23",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "MCC-OPS-01-C24",
+      "facility": "MCC-OPS-01",
+      "component": "C24",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "MCC-OPS-01-C25",
+      "facility": "MCC-OPS-01",
+      "component": "C25",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "MCC-OPS-01-C26",
+      "facility": "MCC-OPS-01",
+      "component": "C26",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "MCC-OPS-01-C27",
+      "facility": "MCC-OPS-01",
+      "component": "C27",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "MCC-OPS-01-C28",
+      "facility": "MCC-OPS-01",
+      "component": "C28",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "MCC-OPS-01-C29",
+      "facility": "MCC-OPS-01",
+      "component": "C29",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "MCC-OPS-01-C30",
+      "facility": "MCC-OPS-01",
+      "component": "C30",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "MCC-OPS-01-C31",
+      "facility": "MCC-OPS-01",
+      "component": "C31",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "MCC-OPS-01-C32",
+      "facility": "MCC-OPS-01",
+      "component": "C32",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "MCC-OPS-01-C33",
+      "facility": "MCC-OPS-01",
+      "component": "C33",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "MCC-OPS-01-C34",
+      "facility": "MCC-OPS-01",
+      "component": "C34",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "MCC-OPS-01-C35",
+      "facility": "MCC-OPS-01",
+      "component": "C35",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    },
+    {
+      "key": "MCC-OPS-01-C36",
+      "facility": "MCC-OPS-01",
+      "component": "C36",
+      "quantity_on_hand": 10,
+      "reorder_point": 2
+    }
+  ],
+  "incidents": [
+    {
+      "key": "I001",
+      "facility": "LUN-OPS-01",
+      "unit": "U001",
+      "severity": "high",
+      "status": "open",
+      "occurred_at": "2026-01-01T00:00:00Z",
+      "fault_code": "AIRFLOW",
+      "resolved_at": null
+    },
+    {
+      "key": "I002",
+      "facility": "LUN-OPS-01",
+      "unit": "U001",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "AIRFLOW",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I003",
+      "facility": "LUN-OPS-01",
+      "unit": "U001",
+      "severity": "high",
+      "status": "open",
+      "occurred_at": "2026-01-31T12:00:00Z",
+      "fault_code": "AIRFLOW",
+      "resolved_at": null
+    },
+    {
+      "key": "I004",
+      "facility": "LUN-OPS-01",
+      "unit": "U001",
+      "severity": "high",
+      "status": "open",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "TEMPERATURE",
+      "resolved_at": null
+    },
+    {
+      "key": "I005",
+      "facility": "LUN-OPS-01",
+      "unit": "U001",
+      "severity": "high",
+      "status": "open",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": null,
+      "resolved_at": null
+    },
+    {
+      "key": "I006",
+      "facility": "LUN-OPS-01",
+      "unit": null,
+      "severity": "high",
+      "status": "open",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": null
+    },
+    {
+      "key": "I007",
+      "facility": "LUN-OPS-01",
+      "unit": "U012",
+      "severity": "high",
+      "status": "investigating",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": null
+    },
+    {
+      "key": "I008",
+      "facility": "ORB-OPS-01",
+      "unit": "U013",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2025-12-31T23:59:59Z",
+      "fault_code": "AIRFLOW",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I009",
+      "facility": "ORB-OPS-01",
+      "unit": "U013",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I010",
+      "facility": "ORB-OPS-01",
+      "unit": "U014",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "SINGLE",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I011",
+      "facility": "ORB-OPS-01",
+      "unit": "U015",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I012",
+      "facility": "ORB-OPS-01",
+      "unit": "U016",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I013",
+      "facility": "ORB-OPS-01",
+      "unit": "U017",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I014",
+      "facility": "ORB-OPS-01",
+      "unit": "U018",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I015",
+      "facility": "ORB-OPS-01",
+      "unit": "U019",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I016",
+      "facility": "ORB-OPS-01",
+      "unit": "U020",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I017",
+      "facility": "ORB-OPS-01",
+      "unit": "U021",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I018",
+      "facility": "ORB-OPS-01",
+      "unit": "U022",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I019",
+      "facility": "ORB-OPS-01",
+      "unit": "U023",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I020",
+      "facility": "ORB-OPS-01",
+      "unit": "U024",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I021",
+      "facility": "LOG-OPS-01",
+      "unit": "U025",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I022",
+      "facility": "LOG-OPS-01",
+      "unit": "U026",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I023",
+      "facility": "LOG-OPS-01",
+      "unit": "U027",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I024",
+      "facility": "LOG-OPS-01",
+      "unit": "U028",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I025",
+      "facility": "LOG-OPS-01",
+      "unit": "U029",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I026",
+      "facility": "LOG-OPS-01",
+      "unit": "U030",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I027",
+      "facility": "LOG-OPS-01",
+      "unit": "U031",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I028",
+      "facility": "LOG-OPS-01",
+      "unit": "U032",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I029",
+      "facility": "LOG-OPS-01",
+      "unit": "U033",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I030",
+      "facility": "LOG-OPS-01",
+      "unit": "U034",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I031",
+      "facility": "LOG-OPS-01",
+      "unit": "U035",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I032",
+      "facility": "LOG-OPS-01",
+      "unit": "U036",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I033",
+      "facility": "LUN-OPS-02",
+      "unit": "U037",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I034",
+      "facility": "LUN-OPS-02",
+      "unit": "U038",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I035",
+      "facility": "LUN-OPS-02",
+      "unit": "U039",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I036",
+      "facility": "LUN-OPS-02",
+      "unit": "U040",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I037",
+      "facility": "LUN-OPS-02",
+      "unit": "U041",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I038",
+      "facility": "LUN-OPS-02",
+      "unit": "U042",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I039",
+      "facility": "LUN-OPS-02",
+      "unit": "U043",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I040",
+      "facility": "LUN-OPS-02",
+      "unit": "U044",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I041",
+      "facility": "LUN-OPS-02",
+      "unit": "U045",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I042",
+      "facility": "LUN-OPS-02",
+      "unit": "U046",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I043",
+      "facility": "LUN-OPS-02",
+      "unit": "U047",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I044",
+      "facility": "LUN-OPS-02",
+      "unit": "U048",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I045",
+      "facility": "MCC-OPS-01",
+      "unit": "U049",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I046",
+      "facility": "MCC-OPS-01",
+      "unit": "U050",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I047",
+      "facility": "MCC-OPS-01",
+      "unit": "U051",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I048",
+      "facility": "MCC-OPS-01",
+      "unit": "U052",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I049",
+      "facility": "MCC-OPS-01",
+      "unit": "U053",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I050",
+      "facility": "MCC-OPS-01",
+      "unit": "U054",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I051",
+      "facility": "MCC-OPS-01",
+      "unit": "U055",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I052",
+      "facility": "MCC-OPS-01",
+      "unit": "U056",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I053",
+      "facility": "MCC-OPS-01",
+      "unit": "U057",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I054",
+      "facility": "MCC-OPS-01",
+      "unit": "U058",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I055",
+      "facility": "MCC-OPS-01",
+      "unit": "U059",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I056",
+      "facility": "MCC-OPS-01",
+      "unit": "U060",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I057",
+      "facility": "ORB-OPS-01",
+      "unit": "U014",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I058",
+      "facility": "ORB-OPS-01",
+      "unit": "U015",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I059",
+      "facility": "ORB-OPS-01",
+      "unit": "U016",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    },
+    {
+      "key": "I060",
+      "facility": "ORB-OPS-01",
+      "unit": "U017",
+      "severity": "high",
+      "status": "resolved",
+      "occurred_at": "2026-01-15T00:00:00Z",
+      "fault_code": "BACKGROUND",
+      "resolved_at": "2026-01-16T00:00:00Z"
+    }
+  ],
+  "work_orders": [
+    {
+      "key": "W001",
+      "facility": "LUN-OPS-01",
+      "incident": "I001",
+      "target": "U002",
+      "priority": "critical",
+      "status": "blocked",
+      "due_at": "2026-01-30T00:00:00Z",
+      "completed_at": null
+    },
+    {
+      "key": "W002",
+      "facility": "LUN-OPS-01",
+      "incident": "I001",
+      "target": null,
+      "priority": "high",
+      "status": "open",
+      "due_at": "2026-01-31T12:00:00Z",
+      "completed_at": null
+    },
+    {
+      "key": "W003",
+      "facility": "LUN-OPS-01",
+      "incident": null,
+      "target": null,
+      "priority": "high",
+      "status": "in_progress",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W004",
+      "facility": "LUN-OPS-01",
+      "incident": null,
+      "target": null,
+      "priority": "high",
+      "status": "completed",
+      "due_at": "2026-01-10T00:00:00Z",
+      "completed_at": "2026-01-20T00:00:00Z"
+    },
+    {
+      "key": "W005",
+      "facility": "LUN-OPS-01",
+      "incident": null,
+      "target": null,
+      "priority": "high",
+      "status": "cancelled",
+      "due_at": "2026-01-10T00:00:00Z",
+      "completed_at": null
+    },
+    {
+      "key": "W006",
+      "facility": "LUN-OPS-01",
+      "incident": null,
+      "target": null,
+      "priority": "low",
+      "status": "open",
+      "due_at": "2026-01-10T00:00:00Z",
+      "completed_at": null
+    },
+    {
+      "key": "W007",
+      "facility": "LUN-OPS-01",
+      "incident": "I001",
+      "target": "U001",
+      "priority": "high",
+      "status": "open",
+      "due_at": "2026-02-01T00:00:00Z",
+      "completed_at": null
+    },
+    {
+      "key": "W008",
+      "facility": "LUN-OPS-01",
+      "incident": null,
+      "target": "U008",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W009",
+      "facility": "LUN-OPS-01",
+      "incident": null,
+      "target": "U009",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W010",
+      "facility": "LUN-OPS-01",
+      "incident": null,
+      "target": "U010",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W011",
+      "facility": "LUN-OPS-01",
+      "incident": null,
+      "target": "U011",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W012",
+      "facility": "LUN-OPS-01",
+      "incident": null,
+      "target": "U012",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W013",
+      "facility": "ORB-OPS-01",
+      "incident": null,
+      "target": "U013",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W014",
+      "facility": "ORB-OPS-01",
+      "incident": null,
+      "target": "U014",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W015",
+      "facility": "ORB-OPS-01",
+      "incident": null,
+      "target": "U015",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W016",
+      "facility": "ORB-OPS-01",
+      "incident": null,
+      "target": "U016",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W017",
+      "facility": "ORB-OPS-01",
+      "incident": null,
+      "target": "U017",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W018",
+      "facility": "ORB-OPS-01",
+      "incident": null,
+      "target": "U018",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W019",
+      "facility": "ORB-OPS-01",
+      "incident": null,
+      "target": "U019",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W020",
+      "facility": "ORB-OPS-01",
+      "incident": null,
+      "target": "U020",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W021",
+      "facility": "ORB-OPS-01",
+      "incident": null,
+      "target": "U021",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W022",
+      "facility": "ORB-OPS-01",
+      "incident": null,
+      "target": "U022",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W023",
+      "facility": "ORB-OPS-01",
+      "incident": null,
+      "target": "U023",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W024",
+      "facility": "ORB-OPS-01",
+      "incident": null,
+      "target": "U024",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W025",
+      "facility": "LOG-OPS-01",
+      "incident": null,
+      "target": "U025",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W026",
+      "facility": "LOG-OPS-01",
+      "incident": null,
+      "target": "U026",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W027",
+      "facility": "LOG-OPS-01",
+      "incident": null,
+      "target": "U027",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W028",
+      "facility": "LOG-OPS-01",
+      "incident": null,
+      "target": "U028",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W029",
+      "facility": "LOG-OPS-01",
+      "incident": null,
+      "target": "U029",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W030",
+      "facility": "LOG-OPS-01",
+      "incident": null,
+      "target": "U030",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W031",
+      "facility": "LOG-OPS-01",
+      "incident": null,
+      "target": "U031",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W032",
+      "facility": "LOG-OPS-01",
+      "incident": null,
+      "target": "U032",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W033",
+      "facility": "LOG-OPS-01",
+      "incident": null,
+      "target": "U033",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W034",
+      "facility": "LOG-OPS-01",
+      "incident": null,
+      "target": "U034",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W035",
+      "facility": "LOG-OPS-01",
+      "incident": null,
+      "target": "U035",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W036",
+      "facility": "LOG-OPS-01",
+      "incident": null,
+      "target": "U036",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W037",
+      "facility": "LUN-OPS-02",
+      "incident": null,
+      "target": "U037",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W038",
+      "facility": "LUN-OPS-02",
+      "incident": null,
+      "target": "U038",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W039",
+      "facility": "LUN-OPS-02",
+      "incident": null,
+      "target": "U039",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W040",
+      "facility": "LUN-OPS-02",
+      "incident": null,
+      "target": "U040",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W041",
+      "facility": "LUN-OPS-02",
+      "incident": null,
+      "target": "U041",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W042",
+      "facility": "LUN-OPS-02",
+      "incident": null,
+      "target": "U042",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W043",
+      "facility": "LUN-OPS-02",
+      "incident": null,
+      "target": "U043",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W044",
+      "facility": "LUN-OPS-02",
+      "incident": null,
+      "target": "U044",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W045",
+      "facility": "LUN-OPS-02",
+      "incident": null,
+      "target": "U045",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W046",
+      "facility": "LUN-OPS-02",
+      "incident": null,
+      "target": "U046",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W047",
+      "facility": "LUN-OPS-02",
+      "incident": null,
+      "target": "U047",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W048",
+      "facility": "LUN-OPS-02",
+      "incident": null,
+      "target": "U048",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W049",
+      "facility": "MCC-OPS-01",
+      "incident": null,
+      "target": "U049",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W050",
+      "facility": "MCC-OPS-01",
+      "incident": null,
+      "target": "U050",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W051",
+      "facility": "MCC-OPS-01",
+      "incident": null,
+      "target": "U051",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W052",
+      "facility": "MCC-OPS-01",
+      "incident": null,
+      "target": "U052",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W053",
+      "facility": "MCC-OPS-01",
+      "incident": null,
+      "target": "U053",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W054",
+      "facility": "MCC-OPS-01",
+      "incident": null,
+      "target": "U054",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W055",
+      "facility": "MCC-OPS-01",
+      "incident": null,
+      "target": "U055",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W056",
+      "facility": "MCC-OPS-01",
+      "incident": null,
+      "target": "U056",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W057",
+      "facility": "MCC-OPS-01",
+      "incident": null,
+      "target": "U057",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W058",
+      "facility": "MCC-OPS-01",
+      "incident": null,
+      "target": "U058",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W059",
+      "facility": "MCC-OPS-01",
+      "incident": null,
+      "target": "U059",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    },
+    {
+      "key": "W060",
+      "facility": "MCC-OPS-01",
+      "incident": null,
+      "target": "U060",
+      "priority": "low",
+      "status": "open",
+      "due_at": null,
+      "completed_at": null
+    }
+  ],
+  "scenarios": [
+    {
+      "key": "q1-positive-unrelated-and-deduplicated",
+      "question": "Q1",
+      "inputs": {},
+      "expected": {
+        "rows": [
+          {
+            "facility_id": "@facilities:LUN-OPS-01",
+            "units": [
+              {
+                "unit_id": "@units:U001",
+                "operational_status": "degraded"
+              }
+            ],
+            "incidents": [
+              {
+                "incident_id": "@incidents:I001",
+                "equipment_unit_id": "@units:U001",
+                "status": "open"
+              },
+              {
+                "incident_id": "@incidents:I003",
+                "equipment_unit_id": "@units:U001",
+                "status": "open"
+              },
+              {
+                "incident_id": "@incidents:I004",
+                "equipment_unit_id": "@units:U001",
+                "status": "open"
+              },
+              {
+                "incident_id": "@incidents:I005",
+                "equipment_unit_id": "@units:U001",
+                "status": "open"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "key": "q1-empty",
+      "question": "Q1",
+      "inputs": {
+        "facility": "MCC-OPS-01"
+      },
+      "expected": {
+        "rows": []
+      }
+    },
+    {
+      "key": "q2-stock-zero-and-unknown",
+      "question": "Q2",
+      "inputs": {
+        "unit": "U001"
+      },
+      "expected": {
+        "status": "matched",
+        "incident_ids": [
+          "@incidents:I001",
+          "@incidents:I003",
+          "@incidents:I004",
+          "@incidents:I005"
+        ],
+        "rows": [
+          {
+            "model_id": "@models:M01",
+            "component_id": "@components:C01",
+            "inventory_id": "@inventory:LUN-OPS-01-C01",
+            "quantity_on_hand": 3
+          },
+          {
+            "model_id": "@models:M01",
+            "component_id": "@components:C02",
+            "inventory_id": "@inventory:LUN-OPS-01-C02",
+            "quantity_on_hand": 0
+          },
+          {
+            "model_id": "@models:M01",
+            "component_id": "@components:C03",
+            "inventory_id": null,
+            "quantity_on_hand": null
+          }
+        ]
+      }
+    },
+    {
+      "key": "q2-no-incident",
+      "question": "Q2",
+      "inputs": {
+        "unit": "U002"
+      },
+      "expected": {
+        "status": "no_unresolved_incident",
+        "incident_ids": [],
+        "rows": []
+      }
+    },
+    {
+      "key": "q2-no-compatibility",
+      "question": "Q2",
+      "inputs": {
+        "unit": "U012"
+      },
+      "expected": {
+        "status": "no_compatibility",
+        "incident_ids": [
+          "@incidents:I007"
+        ],
+        "rows": []
+      }
+    },
+    {
+      "key": "q3-active-boundaries-and-distinct-targets",
+      "question": "Q3",
+      "inputs": {
+        "facility": "LUN-OPS-01"
+      },
+      "expected": {
+        "rows": [
+          {
+            "work_order_id": "@work_orders:W001",
+            "overdue": true,
+            "blocked": true,
+            "due_at": "2026-01-30T00:00:00+00:00",
+            "originating_incident_id": "@incidents:I001",
+            "incident_equipment_unit_id": "@units:U001",
+            "target_equipment_unit_id": "@units:U002",
+            "status": "blocked",
+            "priority": "critical"
+          },
+          {
+            "work_order_id": "@work_orders:W002",
+            "overdue": false,
+            "blocked": false,
+            "due_at": "2026-01-31T12:00:00+00:00",
+            "originating_incident_id": "@incidents:I001",
+            "incident_equipment_unit_id": "@units:U001",
+            "target_equipment_unit_id": null,
+            "status": "open",
+            "priority": "high"
+          },
+          {
+            "work_order_id": "@work_orders:W003",
+            "overdue": false,
+            "blocked": false,
+            "due_at": null,
+            "originating_incident_id": null,
+            "incident_equipment_unit_id": null,
+            "target_equipment_unit_id": null,
+            "status": "in_progress",
+            "priority": "high"
+          },
+          {
+            "work_order_id": "@work_orders:W007",
+            "overdue": false,
+            "blocked": false,
+            "due_at": "2026-02-01T00:00:00+00:00",
+            "originating_incident_id": "@incidents:I001",
+            "incident_equipment_unit_id": "@units:U001",
+            "target_equipment_unit_id": "@units:U001",
+            "status": "open",
+            "priority": "high"
+          }
+        ]
+      }
+    },
+    {
+      "key": "q3-empty",
+      "question": "Q3",
+      "inputs": {
+        "facility": "MCC-OPS-01"
+      },
+      "expected": {
+        "rows": []
+      }
+    },
+    {
+      "key": "q4-same-fault-time-boundaries-and-distinct-incidents",
+      "question": "Q4",
+      "inputs": {
+        "model": "M01",
+        "fault_code": "AIRFLOW"
+      },
+      "expected": {
+        "count": 2,
+        "repeated": true,
+        "rows": [
+          {
+            "incident_id": "@incidents:I001",
+            "unit_id": "@units:U001",
+            "facility_id": "@facilities:LUN-OPS-01",
+            "occurred_at": "2026-01-01T00:00:00+00:00"
+          },
+          {
+            "incident_id": "@incidents:I002",
+            "unit_id": "@units:U001",
+            "facility_id": "@facilities:LUN-OPS-01",
+            "occurred_at": "2026-01-15T00:00:00+00:00"
+          }
+        ]
+      }
+    },
+    {
+      "key": "q4-one-is-not-recurrence",
+      "question": "Q4",
+      "inputs": {
+        "model": "M02",
+        "fault_code": "SINGLE"
+      },
+      "expected": {
+        "count": 1,
+        "repeated": false,
+        "rows": [
+          {
+            "incident_id": "@incidents:I010",
+            "unit_id": "@units:U014",
+            "facility_id": "@facilities:ORB-OPS-01",
+            "occurred_at": "2026-01-15T00:00:00+00:00"
+          }
+        ]
+      }
+    },
+    {
+      "key": "q4-empty",
+      "question": "Q4",
+      "inputs": {
+        "model": "M01",
+        "fault_code": "NOT_RECORDED"
+      },
+      "expected": {
+        "count": 0,
+        "repeated": false,
+        "rows": []
+      }
+    },
+    {
+      "key": "q5-shortfall-and-equality",
+      "question": "Q5",
+      "inputs": {
+        "facility": "LUN-OPS-01"
+      },
+      "expected": {
+        "rows": [
+          {
+            "inventory_id": "@inventory:LUN-OPS-01-C01",
+            "component_id": "@components:C01",
+            "quantity_on_hand": 3,
+            "reorder_point": 5,
+            "shortfall": 2
+          },
+          {
+            "inventory_id": "@inventory:LUN-OPS-01-C02",
+            "component_id": "@components:C02",
+            "quantity_on_hand": 0,
+            "reorder_point": 2,
+            "shortfall": 2
+          }
+        ]
+      }
+    },
+    {
+      "key": "q5-empty",
+      "question": "Q5",
+      "inputs": {
+        "facility": "MCC-OPS-01"
+      },
+      "expected": {
+        "rows": []
+      }
+    }
+  ]
+}

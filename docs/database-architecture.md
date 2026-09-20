@@ -2,8 +2,7 @@
 
 ## Purpose and Scope
 
-This document records the PostgreSQL direction through the current Waypoint 1.4
-slice. Workspace records, Facility persistence, catalog releases, equipment
+This document records the PostgreSQL direction through Waypoint 1.5. Workspace records, Facility persistence, catalog releases, equipment
 models, components, their same-release compatibility associations,
 workspace-scoped equipment units, inventory, incidents, and work orders, and their row-level security
 are now implemented. Reviewer sessions, editable baseline copies, and reset remain
@@ -39,16 +38,19 @@ changes create new releases rather than rewriting old definitions or compatibili
 pairs. This slice adds `catalog_releases` (`id`, unique `code`, `created_at`),
 the required `catalog_release_id` reference from equipment-model and Component
 revisions, and same-release composite foreign keys for compatibility links.
-Waypoint 1.5 implements manifests, publication checks, and
-baseline/catalog foreign-key pins to those release records for workspaces. Future
+Waypoint 1.5 implements frozen manifests, publication checks, and
+baseline/catalog foreign-key pins to those release records for seeded workspaces.
+The [dataset guide](dataset.md) documents release enforcement, compatibility
+with legacy unpinned workspaces, and the privileged bootstrap/refresh contract. Future
 queries use those pins so a new release cannot silently change an existing
 workspace's answers.
 
 Operational rows retain globally unique UUIDs, but their human codes may repeat
 between workspace copies. Waypoint 1.5 derives seeded UUIDs from the workspace
 and stable baseline entity identity and remaps relationships consistently.
-The existing fixed-ID Facility seed is a limited smoke helper, not the general
-cloning implementation. Shared catalog revision IDs are reused across copies.
+The fixed-ID Facility seed has been retired. All new development copies use the
+versioned dataset bootstrap; existing unpinned workspaces remain intact. Shared
+catalog revision IDs are reused across copies.
 
 Authorization, repository scoping, and [PostgreSQL row security](https://www.postgresql.org/docs/current/ddl-rowsecurity.html)
 protect operational access; composite foreign keys protect relationship integrity.
@@ -123,8 +125,6 @@ Docker is not required for this waypoint. Startup, migration, and provisioning c
 The following are intentionally deferred:
 
 - browser sessions, editable reviewer data, reset, and expiration
-- the full versioned baseline, catalog publication checks, and workspace pinning
-  (the small Facility development smoke seed already exists)
 
 Core operational schema implementation belongs to Waypoint 1.4, full baseline
 creation to Waypoint 1.5, and reviewer session/reset behavior to Waypoint 2.5.

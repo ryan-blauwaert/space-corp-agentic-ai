@@ -201,9 +201,10 @@ yields different IDs. Stable codes and asset tags may repeat across workspaces.
 Seed relationships are resolved through this mapping, not copied UUIDs from the
 source workspace. Shared catalog revisions keep their own globally unique IDs.
 
-The existing Facility smoke seed uses fixed global UUIDs and deliberately refuses
-to reuse them in another workspace. It remains a single-workspace smoke helper;
-Waypoint 1.5 must adapt or replace that strategy before baseline cloning.
+Waypoint 1.5 replaces the old fixed-ID smoke seed with the workspace-derived
+identity contract above. The [dataset bootstrap](dataset.md) is the sole seeding
+path. Existing unpinned workspace rows remain intact; select a new workspace UUID
+rather than repurposing their identities.
 
 Raw SQL inserts must provide an `id` explicitly because existing tables use
 application-side UUID defaults; server-side defaults require a deliberate migration.
@@ -431,7 +432,9 @@ The Waypoint 1.4 schema and repository acceptance coverage is now implemented:
   integrity, inventory, migration round trips, schema/model parity, connection
   context cleanup, and repeatable smoke data.
 
-The Q1–Q5 scenario/evidence matrix and baseline publication/cloning tests remain
-Waypoint 1.5 work; natural-language query execution remains Waypoint 2.2 work.
+The Q1–Q5 scenario/evidence matrix and baseline publication/copying tests are
+implemented in Waypoint 1.5; see [the dataset guide](dataset.md). Natural-language
+query execution remains Waypoint 2.2 work.
 Live workspace reset, reservations, and historical reconstruction remain deferred.
-This coverage does not claim full seeded-query or public-demo readiness.
+The dataset reference queries validate seeded evidence; this does not claim
+natural-language execution or public-demo readiness.
