@@ -47,24 +47,57 @@ BEGIN
         JOIN pg_namespace AS schema ON schema.oid = relation.relnamespace
         JOIN pg_roles AS owner ON owner.oid = relation.relowner
         WHERE schema.nspname = 'public'
-          AND relation.relname IN ('workspaces', 'facilities')
+          AND relation.relname IN (
+              'workspaces',
+              'facilities',
+              'catalog_releases',
+              'equipment_models',
+              'components',
+              'equipment_model_components',
+              'equipment_units',
+              'inventory_items',
+              'incidents',
+              'work_orders'
+          )
           AND relation.relkind = 'r'
           AND owner.rolname <> 'space_corp'
     ) THEN
         RAISE EXCEPTION
-            'workspaces and facilities must be owned by the space_corp migration role';
+            'workspace, Facility, and equipment tables must be owned by the space_corp migration role';
     END IF;
 END
 $$;
--- Remove grants installed by older versions, including migration-table access.
-REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM space_corp_app;
-REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM space_corp_app;
+-- Remove legacy grants, including PUBLIC access that would defeat column grants.
+REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM PUBLIC, space_corp_app;
+REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM PUBLIC, space_corp_app;
+-- Global defaults and schema-specific defaults are additive; clear both.
+ALTER DEFAULT PRIVILEGES FOR ROLE space_corp
+    REVOKE ALL PRIVILEGES ON TABLES FROM PUBLIC, space_corp_app;
+ALTER DEFAULT PRIVILEGES FOR ROLE space_corp
+    REVOKE ALL PRIVILEGES ON SEQUENCES FROM PUBLIC, space_corp_app;
 ALTER DEFAULT PRIVILEGES FOR ROLE space_corp IN SCHEMA public
-    REVOKE ALL PRIVILEGES ON TABLES FROM space_corp_app;
+    REVOKE ALL PRIVILEGES ON TABLES FROM PUBLIC, space_corp_app;
 ALTER DEFAULT PRIVILEGES FOR ROLE space_corp IN SCHEMA public
-    REVOKE ALL PRIVILEGES ON SEQUENCES FROM space_corp_app;
+    REVOKE ALL PRIVILEGES ON SEQUENCES FROM PUBLIC, space_corp_app;
 GRANT USAGE ON SCHEMA public TO space_corp_app;
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.facilities TO space_corp_app;
+GRANT SELECT, INSERT ON TABLE public.facilities TO space_corp_app;
+GRANT UPDATE (name, location, operational_status, updated_at)
+    ON TABLE public.facilities TO space_corp_app;
+GRANT SELECT ON TABLE public.catalog_releases, public.equipment_models,
+    public.components, public.equipment_model_components
+    TO space_corp_app;
+GRANT SELECT, INSERT ON TABLE public.equipment_units TO space_corp_app;
+GRANT UPDATE (operational_status, updated_at)
+    ON TABLE public.equipment_units TO space_corp_app;
+GRANT SELECT, INSERT ON TABLE public.inventory_items TO space_corp_app;
+GRANT UPDATE (quantity_on_hand, reorder_point, updated_at)
+    ON TABLE public.inventory_items TO space_corp_app;
+GRANT SELECT, INSERT ON TABLE public.incidents TO space_corp_app;
+GRANT UPDATE (severity, status, resolved_at, updated_at)
+    ON TABLE public.incidents TO space_corp_app;
+GRANT SELECT, INSERT ON TABLE public.work_orders TO space_corp_app;
+GRANT UPDATE (priority, status, due_at, completed_at, updated_at)
+    ON TABLE public.work_orders TO space_corp_app;
 COMMIT;
 
 \connect space_corp_test
@@ -87,22 +120,55 @@ BEGIN
         JOIN pg_namespace AS schema ON schema.oid = relation.relnamespace
         JOIN pg_roles AS owner ON owner.oid = relation.relowner
         WHERE schema.nspname = 'public'
-          AND relation.relname IN ('workspaces', 'facilities')
+          AND relation.relname IN (
+              'workspaces',
+              'facilities',
+              'catalog_releases',
+              'equipment_models',
+              'components',
+              'equipment_model_components',
+              'equipment_units',
+              'inventory_items',
+              'incidents',
+              'work_orders'
+          )
           AND relation.relkind = 'r'
           AND owner.rolname <> 'space_corp'
     ) THEN
         RAISE EXCEPTION
-            'workspaces and facilities must be owned by the space_corp migration role';
+            'workspace, Facility, and equipment tables must be owned by the space_corp migration role';
     END IF;
 END
 $$;
--- Remove grants installed by older versions, including migration-table access.
-REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM space_corp_app;
-REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM space_corp_app;
+-- Remove legacy grants, including PUBLIC access that would defeat column grants.
+REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM PUBLIC, space_corp_app;
+REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM PUBLIC, space_corp_app;
+-- Global defaults and schema-specific defaults are additive; clear both.
+ALTER DEFAULT PRIVILEGES FOR ROLE space_corp
+    REVOKE ALL PRIVILEGES ON TABLES FROM PUBLIC, space_corp_app;
+ALTER DEFAULT PRIVILEGES FOR ROLE space_corp
+    REVOKE ALL PRIVILEGES ON SEQUENCES FROM PUBLIC, space_corp_app;
 ALTER DEFAULT PRIVILEGES FOR ROLE space_corp IN SCHEMA public
-    REVOKE ALL PRIVILEGES ON TABLES FROM space_corp_app;
+    REVOKE ALL PRIVILEGES ON TABLES FROM PUBLIC, space_corp_app;
 ALTER DEFAULT PRIVILEGES FOR ROLE space_corp IN SCHEMA public
-    REVOKE ALL PRIVILEGES ON SEQUENCES FROM space_corp_app;
+    REVOKE ALL PRIVILEGES ON SEQUENCES FROM PUBLIC, space_corp_app;
 GRANT USAGE ON SCHEMA public TO space_corp_app;
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.facilities TO space_corp_app;
+GRANT SELECT, INSERT ON TABLE public.facilities TO space_corp_app;
+GRANT UPDATE (name, location, operational_status, updated_at)
+    ON TABLE public.facilities TO space_corp_app;
+GRANT SELECT ON TABLE public.catalog_releases, public.equipment_models,
+    public.components, public.equipment_model_components
+    TO space_corp_app;
+GRANT SELECT, INSERT ON TABLE public.equipment_units TO space_corp_app;
+GRANT UPDATE (operational_status, updated_at)
+    ON TABLE public.equipment_units TO space_corp_app;
+GRANT SELECT, INSERT ON TABLE public.inventory_items TO space_corp_app;
+GRANT UPDATE (quantity_on_hand, reorder_point, updated_at)
+    ON TABLE public.inventory_items TO space_corp_app;
+GRANT SELECT, INSERT ON TABLE public.incidents TO space_corp_app;
+GRANT UPDATE (severity, status, resolved_at, updated_at)
+    ON TABLE public.incidents TO space_corp_app;
+GRANT SELECT, INSERT ON TABLE public.work_orders TO space_corp_app;
+GRANT UPDATE (priority, status, due_at, completed_at, updated_at)
+    ON TABLE public.work_orders TO space_corp_app;
 COMMIT;

@@ -146,7 +146,7 @@ def test_migrations_apply(integration_migration_database_url: str) -> None:
                 text("SELECT version_num FROM alembic_version")
             ).scalar_one()
 
-        assert revision == "0004_facility_required_text"
+        assert revision == "0009_work_orders"
     finally:
         engine.dispose()
 
@@ -162,51 +162,57 @@ def test_migrations_match_persistence_models(
 
 
 @pytest.mark.integration
-def test_workspace_and_facility_migration_downgrades_and_reapplies(
+def test_component_catalog_migration_downgrades_and_reapplies(
     integration_migration_database_url: str,
 ) -> None:
     config = Config(str(PROJECT_ROOT / "alembic.ini"))
     command.upgrade(config, "head")
-
-    # Dropping tables also drops their explicit grants. Preserve them for cleanup.
-    grant_engine = create_database_engine(integration_migration_database_url)
-    with grant_engine.connect() as connection:
-        privileges = connection.execute(text(
-            "SELECT privilege_type FROM information_schema.role_table_grants "
-            "WHERE table_schema = 'public' AND table_name = 'facilities' "
-            "AND grantee = 'space_corp_app'"
-        )).scalars().all()
-
     try:
-        command.downgrade(config, "0001_initial")
+        command.downgrade(config, "0005_catalog_equipment_units")
         engine = create_database_engine(integration_migration_database_url)
 
         try:
             with engine.connect() as connection:
-                workspace_table, facility_table = connection.execute(
+                component_table, compatibility_table = connection.execute(
                     text(
-                        "SELECT to_regclass('public.workspaces'), "
-                        "to_regclass('public.facilities')"
+                        "SELECT to_regclass('public.components'), "
+                        "to_regclass('public.equipment_model_components')"
                     )
                 ).one()
 
-            assert workspace_table is None
-            assert facility_table is None
+            assert component_table is None
+            assert compatibility_table is None
         finally:
             engine.dispose()
     finally:
-        try:
-            command.upgrade(config, "head")
-            with grant_engine.begin() as connection:
-                for privilege in privileges:
-                    assert privilege in {"SELECT", "INSERT", "UPDATE", "DELETE", "REFERENCES", "TRIGGER", "TRUNCATE"}
-                    connection.execute(text(f"GRANT {privilege} ON facilities TO space_corp_app"))
-        finally:
-            grant_engine.dispose()
+        command.upgrade(config, "head")
 
 
 @pytest.mark.integration
-def test_workspace_and_facility_tables_exist(
+def test_inventory_migration_downgrades_and_reapplies(
+    integration_migration_database_url: str,
+) -> None:
+    config = Config(str(PROJECT_ROOT / "alembic.ini"))
+    command.upgrade(config, "head")
+    try:
+        command.downgrade(config, "0006_components_compatibility")
+        engine = create_database_engine(integration_migration_database_url)
+
+        try:
+            with engine.connect() as connection:
+                inventory_table = connection.execute(
+                    text("SELECT to_regclass('public.inventory_items')")
+                ).scalar_one()
+
+            assert inventory_table is None
+        finally:
+            engine.dispose()
+    finally:
+        command.upgrade(config, "head")
+
+
+@pytest.mark.integration
+def test_workspace_catalog_and_equipment_tables_exist(
     integration_migration_database_url: str,
 ) -> None:
     config = Config(str(PROJECT_ROOT / "alembic.ini"))
@@ -220,12 +226,28 @@ def test_workspace_and_facility_tables_exist(
                     text(
                         "SELECT table_name FROM information_schema.tables "
                         "WHERE table_schema = 'public' "
-                        "AND table_name IN ('workspaces', 'facilities')"
+                        "AND table_name IN ("
+                        "'workspaces', 'facilities', 'catalog_releases', "
+                        "'equipment_models', 'components', "
+                        "'equipment_model_components', 'equipment_units', "
+                        "'inventory_items', 'incidents', 'work_orders'"
+                        ")"
                     )
                 ).scalars()
             )
 
-        assert table_names == {"workspaces", "facilities"}
+        assert table_names == {
+            "workspaces",
+            "facilities",
+            "catalog_releases",
+            "components",
+            "equipment_model_components",
+            "equipment_models",
+            "equipment_units",
+            "inventory_items",
+            "incidents",
+            "work_orders",
+        }
     finally:
         engine.dispose()
 
@@ -269,7 +291,12 @@ def test_application_role_enforces_workspace_rls_and_resets_pooled_context(
                         "ON schema.oid = relation.relnamespace "
                         "JOIN pg_roles AS owner ON owner.oid = relation.relowner "
                         "WHERE schema.nspname = 'public' "
-                        "AND relation.relname IN ('workspaces', 'facilities')"
+                        "AND relation.relname IN ("
+                        "'workspaces', 'facilities', 'catalog_releases', "
+                        "'equipment_models', 'components', "
+                        "'equipment_model_components', 'equipment_units', "
+                        "'inventory_items', 'incidents', 'work_orders'"
+                        ")"
                     )
                 ).all()
             )
@@ -290,7 +317,15 @@ def test_application_role_enforces_workspace_rls_and_resets_pooled_context(
             False,
         )
         assert table_owners == {
+            "catalog_releases": "space_corp",
+            "components": "space_corp",
+            "equipment_model_components": "space_corp",
+            "equipment_models": "space_corp",
+            "equipment_units": "space_corp",
             "facilities": "space_corp",
+            "inventory_items": "space_corp",
+            "incidents": "space_corp",
+            "work_orders": "space_corp",
             "workspaces": "space_corp",
         }
         assert role_memberships == []
