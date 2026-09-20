@@ -465,8 +465,8 @@ introduces.
   and the implementation coverage plan are documented.
 - CatalogRelease, EquipmentModel, Component, EquipmentUnit, InventoryItem, and Incident
   persistence are implemented. Component/model compatibility is constrained to
-  one catalog release, and inventory is isolated by workspace and Facility.
-  Incident and WorkOrder implementation remains outstanding.
+  one catalog release; inventory and incidents are isolated by workspace and
+  Facility. WorkOrder implementation remains outstanding.
 
 ---
 
