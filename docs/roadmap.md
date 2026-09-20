@@ -59,6 +59,14 @@ solely because they may eventually be useful.
 
 Design boundaries early, but distribute components only when the benefit becomes concrete.
 
+### Framework Guidance
+
+LangChain and LangGraph are optional implementation candidates, not roadmap
+requirements. Evaluate them when they reduce integration or workflow complexity,
+while keeping domain contracts, authorization, persistence, execution, and
+evaluation in application-owned interfaces. Framework choice must not be part of
+a waypoint's acceptance criteria.
+
 ---
 
 ## 3. Every waypoint must be measurable
@@ -414,7 +422,9 @@ change:
 2. add CatalogRelease, EquipmentModel, and EquipmentUnit
 3. add Component and InventoryItem
 4. add Incident and WorkOrder
-5. verify the complete model against the canonical questions
+5. verify that the complete model is traceable to the canonical questions,
+   including the entities, relationships, fields, constraints, and repository
+   query paths each question requires
 
 Each entity slice includes its migration, typed domain and persistence models,
 repository coverage, workspace-isolation checks, required role grants and RLS
@@ -423,9 +433,11 @@ introduces.
 
 ### Completion Criteria
 
-- the five canonical questions Q1–Q5 in `docs/operational-data-model.md` define
-  scoped inputs, exact predicates, evidence, empty/unknown results, and fixed
-  time semantics, and drive relationships, constraints, and query paths
+- the schema design is traceable to the five canonical questions Q1–Q5 in
+  `docs/operational-data-model.md`: each question's required entities,
+  relationships, predicates, evidence, and time semantics are represented in
+  the documented model; complete seeded scenarios and natural-language query
+  execution are deferred to Waypoints 1.5 and 2.2
 - entity relationships, lifecycle states, and an ownership matrix are documented
 - the ownership matrix distinguishes workspace-owned records from intentionally
   shared immutable reference data and identifies the migration owner and
@@ -449,7 +461,6 @@ introduces.
   possible within relational constraints
 - indexes support the documented query paths
 - basic repository tests exist for each major entity
-- schema supports the first planned demo questions
 - mutable operational records carry workspace ownership; intentionally shared immutable reference data is documented
 - foreign keys and uniqueness constraints include workspace scope where needed to prevent cross-workspace relationships and allow repeated baseline identifiers
 - tests verify isolation across related entities and reject cross-workspace references
@@ -622,6 +633,12 @@ The backend can make a controlled LLM request.
 
 Prevents application code from being tightly coupled to one model implementation.
 
+### Possible Framework Use
+
+LangChain model integrations or structured-output helpers may be used behind the
+provider and request/response interfaces. Keep retries, telemetry, redaction, and
+provider-independent contracts in the application layer.
+
 ### Completion Criteria
 
 - test endpoint or internal service can successfully invoke a model
@@ -666,9 +683,17 @@ The model must not receive unrestricted database execution capability.
 
 Introduces model-guided reasoning while retaining deterministic execution controls.
 
+### Possible Framework Use
+
+LangChain prompt and structured-output components may help produce a typed query
+plan. Query validation, read-only enforcement, SQL execution, and unsafe-case
+handling must remain deterministic application behavior.
+
 ### Completion Criteria
 
-- at least five supported question patterns work
+- the Q1–Q5 canonical scenarios are supported, or an explicitly documented
+  superset is supported; each scenario produces a validated structured query,
+  correct records, and the required prohibited-behavior result
 - generated queries are validated before execution
 - database access is read-only
 - invalid queries fail safely
@@ -707,6 +732,12 @@ A user can ask an operational question conversationally instead of using an API 
 - the evaluation baseline from Waypoint 2.2 includes expected answer facts, empty-result cases, and unsupported-claim cases
 
 These checks provide measurable grounding guarantees; they do not claim that a generative model can never invent a fact. Publish known limitations alongside evaluation results.
+
+### Possible Framework Use
+
+LangChain output parsers or runnable composition may assist with answer formatting,
+but evidence selection, identifier checks, grounding decisions, and cautious
+fallbacks remain application-owned.
 
 ### Status
 
@@ -901,6 +932,11 @@ Select hosting when implementing this waypoint. A documented manual deployment i
 
 Allow questions to incorporate technical documents and operational knowledge.
 
+LangChain is a possible adapter layer for document loaders, text splitters,
+embeddings, retrievers, and prompt composition in this phase. Preserve the
+project's own metadata, provenance, workspace boundaries, and retrieval interfaces
+so the system can be evaluated or replaced independently of the framework.
+
 ---
 
 ## Waypoint 3.1 — Document Storage and Metadata
@@ -1047,6 +1083,11 @@ Responses should include evidence provenance.
 
 Support questions requiring both relational data and document retrieval.
 
+LangChain runnable composition or retriever interfaces may help connect the
+structured and unstructured paths. The capability router, typed evidence model,
+concurrency policy, and failure representation should remain explicit application
+contracts.
+
 ---
 
 ## Waypoint 4.1 — Capability Router
@@ -1128,6 +1169,10 @@ The synthesis layer should not independently call external tools.
 ## Objective
 
 Move from answering questions to safely changing system state.
+
+LangChain tool schemas or tool-calling adapters may be used at the model boundary.
+Authorization, validation, auditability, idempotency, and side-effect policy must
+remain outside the model and outside opaque framework behavior.
 
 ---
 
@@ -1218,6 +1263,11 @@ The system distinguishes informational requests from action requests.
 ## Objective
 
 Demonstrate long-running agent workflows capable of pausing and resuming safely.
+
+LangGraph is a possible implementation candidate for stateful, interruptible
+orchestration once the workflow contracts are understood. It must complement—not
+replace—the project's persisted workflow state, restart/recovery semantics,
+workspace checks, and explicit side-effect controls.
 
 ---
 
@@ -1420,6 +1470,11 @@ Human operators can manage asynchronous AI work.
 
 Measure system behavior at multiple layers.
 
+LangSmith or other framework-specific tracing and evaluation integrations may be
+considered as supplemental inspection tools if they preserve the project's
+versioned datasets, deterministic evaluators, privacy rules, and reproducible
+reports. They are not substitutes for the application's evaluation contracts.
+
 ---
 
 ## Waypoint 8.1 — Evaluation Dataset Schema
@@ -1539,6 +1594,11 @@ Admin UI displays evaluation runs and regressions.
 ## Objective
 
 Make model context deliberate, inspectable, and efficient.
+
+LangChain message, context, or middleware utilities may be useful for selected
+assembly tasks. The context builder remains the authoritative component for token
+budgets, provenance, persistence boundaries, and what information is allowed into
+model context.
 
 ---
 
