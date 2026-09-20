@@ -10,16 +10,29 @@ We are in Phase 1 — Structured Operational Backend. Follow the current waypoin
 
 - Make small, reviewable changes.
 - Inspect the repository before editing.
-- Before making changes, summarize the files you plan to create or modify.
-- After making changes, summarize exactly what changed.
-- Run tests when tests exist.
+- Before editing, identify the files in scope; after editing, summarize the files changed and verification performed.
+- Run the relevant test suite and report failures, skips, and any remaining coverage gaps.
 - Do not add agents, RAG, MCP, vector databases, authentication, Docker, CI/CD, or extra infrastructure unless explicitly asked.
 - Prefer simple architecture over premature abstraction.
-- Check current official guidance and established industry practice when making architectural or design decisions. Document meaningful deviations when project constraints justify them.
-- Backend will start with Python, FastAPI, and pytest.
+- Check current official guidance and established practice for architectural decisions; document meaningful deviations when project constraints justify them.
+- Use the repository's Python version and dependencies as defined in `pyproject.toml`.
 - Keep interfaces typed.
 - Do not introduce dependencies without explaining why.
-- When all completion criteria for a roadmap waypoint have been verified, update its status to complete as part of the same work.
+- Work only on the active roadmap waypoint unless the task explicitly expands scope. Do not implement future-waypoint architecture speculatively.
+- When all completion criteria for a waypoint have been verified, update its status to complete in the same change; do not mark it complete when required checks are skipped or unverified.
+
+## Python Environment
+
+- Use the repository-local `.venv` for Python, pytest, and development commands.
+- Install or update dependencies with `python -m pip` inside `.venv`; do not install project dependencies globally.
+- Keep `.venv/`, credentials, and local database files out of commits. Update `pyproject.toml` when a dependency is required.
+
+## API Documentation
+
+- Treat FastAPI route declarations, Pydantic schemas, and response metadata as the source of truth for the API contract.
+- Keep cross-cutting API conventions, durable usage notes, and compatibility guidance in `docs/api.md`; keep the README focused on setup and links to generated documentation.
+- When adding or changing a route, update its FastAPI metadata, typed models, tests, and the relevant `docs/api.md` section; verify `/docs`, `/redoc`, and `/openapi.json` when practical.
+- Do not create a second hand-maintained OpenAPI schema. The generated OpenAPI document remains the detailed endpoint contract.
 
 ## Test Organization
 
@@ -40,6 +53,7 @@ For each change:
 - do not stop after adding a nominal number of tests
 - before declaring work complete, identify any known coverage gaps
 - if a gap is intentionally left uncovered, explain why
+- distinguish a passing test from a skipped or environment-dependent test
 
 ## Commit Messages
 
@@ -76,7 +90,7 @@ Allowed types:
 Examples:
 - `feat/0.2-minimal-backend`
 - `feat/1.2-facility-domain-model`
-- `fix/3.3-vector-retrieval`
+- `fix/1.4-equipment-relationship`
 - `docs/0.1-project-roadmap`
 - `test/2.2-query-safety`
 - `refactor/4.2-retrieval-interface`
@@ -89,5 +103,6 @@ Rules:
 - describe the capability, not the implementation method
 - include the roadmap waypoint when the work belongs to one
 - create a new branch for each independently reviewable capability
+- keep `main` as the only long-lived branch for this single-contributor project
 - do not use personal, temporary, or agent-specific names such as `dev`, `working`, `codex`, or `new-stuff`
 - delete merged branches unless there is a specific reason to keep them

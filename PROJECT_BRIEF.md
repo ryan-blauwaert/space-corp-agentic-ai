@@ -420,7 +420,7 @@ The initial backend will use:
 
 Additional infrastructure such as PostgreSQL, vector storage, model providers, workflow persistence, queues or eventing, MCP, observability tooling, service containers, and CI/CD will be introduced incrementally as requirements emerge.
 
-No specific agent, workflow, or microservice framework should be assumed at the beginning of the project.
+No specific agent, workflow, or microservice framework should be assumed at the beginning of the project. LangChain and LangGraph are possible later implementation choices for model integrations, retrieval composition, tool boundaries, or durable orchestration, but they should remain behind explicit application contracts and are never requirements for a waypoint by themselves.
 
 The orchestration approach should remain explicit enough to demonstrate how routing, state, tool execution, context construction, retries, persistence, human intervention, service interaction, and resumption work.
 

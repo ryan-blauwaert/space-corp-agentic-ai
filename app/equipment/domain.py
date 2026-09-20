@@ -1,0 +1,207 @@
+"""Typed domain records for the equipment catalog and deployed units."""
+
+from dataclasses import dataclass
+from datetime import datetime
+from enum import StrEnum
+from uuid import UUID
+
+
+CATALOG_RELEASE_CODE_MAX_LENGTH = 64
+EQUIPMENT_MODEL_CODE_MAX_LENGTH = 64
+EQUIPMENT_MODEL_NAME_MAX_LENGTH = 256
+COMPONENT_CODE_MAX_LENGTH = 64
+COMPONENT_NAME_MAX_LENGTH = 256
+EQUIPMENT_UNIT_ASSET_TAG_MAX_LENGTH = 64
+
+
+class EquipmentOperationalStatus(StrEnum):
+    """The current condition of an individually deployed equipment unit."""
+
+    OPERATIONAL = "operational"
+    DEGRADED = "degraded"
+    OFFLINE = "offline"
+    MAINTENANCE = "maintenance"
+
+
+@dataclass(frozen=True, slots=True)
+class NewCatalogRelease:
+    """Validated shared catalog-release data before persistence identifiers exist."""
+
+    code: str
+
+    def __post_init__(self) -> None:
+        _validate_required_text(
+            "Catalog release code", self.code, CATALOG_RELEASE_CODE_MAX_LENGTH
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class CatalogRelease:
+    """A stable shared identity for one equipment and component catalog release."""
+
+    id: UUID
+    code: str
+    created_at: datetime
+
+    def __post_init__(self) -> None:
+        _validate_required_text(
+            "Catalog release code", self.code, CATALOG_RELEASE_CODE_MAX_LENGTH
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class NewEquipmentModel:
+    """Validated shared equipment-model data before persistence identifiers exist."""
+
+    catalog_release_id: UUID
+    code: str
+    name: str
+
+    def __post_init__(self) -> None:
+        _validate_required_text(
+            "Equipment model code", self.code, EQUIPMENT_MODEL_CODE_MAX_LENGTH
+        )
+        _validate_required_text(
+            "Equipment model name", self.name, EQUIPMENT_MODEL_NAME_MAX_LENGTH
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class EquipmentModel:
+    """An immutable shared equipment-model revision in one catalog release."""
+
+    id: UUID
+    catalog_release_id: UUID
+    code: str
+    name: str
+    created_at: datetime
+
+    def __post_init__(self) -> None:
+        _validate_required_text(
+            "Equipment model code", self.code, EQUIPMENT_MODEL_CODE_MAX_LENGTH
+        )
+        _validate_required_text(
+            "Equipment model name", self.name, EQUIPMENT_MODEL_NAME_MAX_LENGTH
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class NewComponent:
+    """Validated shared component data before persistence identifiers exist."""
+
+    catalog_release_id: UUID
+    code: str
+    name: str
+
+    def __post_init__(self) -> None:
+        _validate_required_text("Component code", self.code, COMPONENT_CODE_MAX_LENGTH)
+        _validate_required_text("Component name", self.name, COMPONENT_NAME_MAX_LENGTH)
+
+
+@dataclass(frozen=True, slots=True)
+class Component:
+    """An immutable shared component revision in one catalog release."""
+
+    id: UUID
+    catalog_release_id: UUID
+    code: str
+    name: str
+    created_at: datetime
+
+    def __post_init__(self) -> None:
+        _validate_required_text("Component code", self.code, COMPONENT_CODE_MAX_LENGTH)
+        _validate_required_text("Component name", self.name, COMPONENT_NAME_MAX_LENGTH)
+
+
+@dataclass(frozen=True, slots=True)
+class NewInventoryItem:
+    """Validated local component stock data before persistence identifiers exist."""
+
+    facility_id: UUID
+    component_id: UUID
+    quantity_on_hand: int
+    reorder_point: int
+
+    def __post_init__(self) -> None:
+        _validate_nonnegative_whole_number("Quantity on hand", self.quantity_on_hand)
+        _validate_nonnegative_whole_number("Reorder point", self.reorder_point)
+
+
+@dataclass(frozen=True, slots=True)
+class InventoryItem:
+    """A workspace-owned quantity of one component at one Facility."""
+
+    id: UUID
+    workspace_id: UUID
+    facility_id: UUID
+    component_id: UUID
+    quantity_on_hand: int
+    reorder_point: int
+    created_at: datetime
+    updated_at: datetime
+
+    def __post_init__(self) -> None:
+        _validate_nonnegative_whole_number("Quantity on hand", self.quantity_on_hand)
+        _validate_nonnegative_whole_number("Reorder point", self.reorder_point)
+
+
+@dataclass(frozen=True, slots=True)
+class NewEquipmentUnit:
+    """Validated deployed-unit data before persistence identifiers exist."""
+
+    facility_id: UUID
+    equipment_model_id: UUID
+    asset_tag: str
+    operational_status: EquipmentOperationalStatus
+
+    def __post_init__(self) -> None:
+        _validate_required_text(
+            "Equipment unit asset tag",
+            self.asset_tag,
+            EQUIPMENT_UNIT_ASSET_TAG_MAX_LENGTH,
+        )
+        if not isinstance(self.operational_status, EquipmentOperationalStatus):
+            raise ValueError(
+                "Equipment unit operational status must be an "
+                "EquipmentOperationalStatus."
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class EquipmentUnit:
+    """A workspace-owned instance of an equipment model deployed at a Facility."""
+
+    id: UUID
+    workspace_id: UUID
+    facility_id: UUID
+    equipment_model_id: UUID
+    asset_tag: str
+    operational_status: EquipmentOperationalStatus
+    created_at: datetime
+    updated_at: datetime
+
+    def __post_init__(self) -> None:
+        _validate_required_text(
+            "Equipment unit asset tag",
+            self.asset_tag,
+            EQUIPMENT_UNIT_ASSET_TAG_MAX_LENGTH,
+        )
+        if not isinstance(self.operational_status, EquipmentOperationalStatus):
+            raise ValueError(
+                "Equipment unit operational status must be an "
+                "EquipmentOperationalStatus."
+            )
+
+
+def _validate_required_text(field_name: str, value: str, maximum_length: int) -> None:
+    if not value.strip():
+        raise ValueError(f"{field_name} must not be blank.")
+    if len(value) > maximum_length:
+        raise ValueError(f"{field_name} must be at most {maximum_length} characters.")
+
+
+def _validate_nonnegative_whole_number(field_name: str, value: int) -> None:
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise ValueError(f"{field_name} must be a whole number.")
+    if value < 0:
+        raise ValueError(f"{field_name} must not be negative.")

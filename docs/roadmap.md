@@ -59,6 +59,14 @@ solely because they may eventually be useful.
 
 Design boundaries early, but distribute components only when the benefit becomes concrete.
 
+### Framework Guidance
+
+LangChain and LangGraph are optional implementation candidates, not roadmap
+requirements. Evaluate them when they reduce integration or workflow complexity,
+while keeping domain contracts, authorization, persistence, execution, and
+evaluation in application-owned interfaces. Framework choice must not be part of
+a waypoint's acceptance criteria.
+
 ---
 
 ## 3. Every waypoint must be measurable
@@ -392,6 +400,7 @@ The database represents enough of the fictional organization to support meaningf
 Recommended minimum:
 
 - Facility
+- CatalogRelease
 - EquipmentModel
 - EquipmentUnit
 - Component
@@ -403,20 +412,89 @@ Recommended minimum:
 
 Creates the minimum relational world required for later structured reasoning.
 
+### Recommended Execution Units
+
+Implement this waypoint as small vertical slices rather than a single schema-only
+change:
+
+1. document the first canonical operational questions, entity relationships,
+   lifecycle states, and data-ownership model
+2. add CatalogRelease, EquipmentModel, and EquipmentUnit
+3. add Component and InventoryItem
+4. add Incident and WorkOrder
+5. verify that the complete model is traceable to the canonical questions,
+   including the entities, relationships, fields, constraints, and repository
+   query paths each question requires
+
+Each entity slice includes its migration, typed domain and persistence models,
+repository coverage, workspace-isolation checks, required role grants and RLS
+policies, and enough deterministic smoke data to exercise the capabilities it
+introduces.
+
 ### Completion Criteria
 
-- entity relationships are documented
+- the schema design is traceable to the five canonical questions Q1–Q5 in
+  `docs/operational-data-model.md`: each question's required entities,
+  relationships, predicates, evidence, and time semantics are represented in
+  the documented model; complete seeded scenarios and natural-language query
+  execution are deferred to Waypoints 1.5 and 2.2
+- entity relationships, lifecycle states, and an ownership matrix are documented
+- the ownership matrix distinguishes workspace-owned records from intentionally
+  shared immutable reference data and identifies the migration owner and
+  restricted application-role access for each table
 - migrations create the schema
 - foreign-key constraints enforce valid relationships
+- check constraints or typed enumerations enforce documented lifecycle values
+- `catalog_releases` supplies a stable relational identity; model/component
+  revisions reference it and composite foreign keys reject mixed-release compatibility
+- incident fault classification and occurrence time support recurrence queries;
+  work-order due times and terminal timestamps follow the documented semantics
+- WorkOrder accepts an optional originating Incident and optional target Unit,
+  including both or neither; incident-affected and work-target units may differ
+  within one Facility, and evidence preserves those distinct meanings
+- composite foreign keys enforce common workspace and Facility for each reference
+- column-level UPDATE grants and repository allowlists protect identity and
+  relationship fields from creation; approved updates succeed and direct
+  restricted-role changes to fixed fields fail
+- application DELETE/TRUNCATE privileges are absent on operational tables;
+  legacy broad grants are removed, and controlled migration-owner repair remains
+  possible within relational constraints
+- indexes support the documented query paths
 - basic repository tests exist for each major entity
-- schema supports the first planned demo questions
 - mutable operational records carry workspace ownership; intentionally shared immutable reference data is documented
 - foreign keys and uniqueness constraints include workspace scope where needed to prevent cross-workspace relationships and allow repeated baseline identifiers
 - tests verify isolation across related entities and reject cross-workspace references
+- migrations, application-role provisioning, and tests verify least-privilege
+  grants and RLS policies for each workspace-owned table; shared reference data
+  is read-only to the restricted application role
 
 ### Status
 
-- [ ] Complete
+- [~] In Progress — implementation verified; commit pending
+- Design refinement: Q1–Q5, catalog/baseline/workspace boundaries, identity rules,
+  catalog release identity, incident/target semantics, restricted-role permissions,
+  and the implementation coverage plan are documented.
+- CatalogRelease, EquipmentModel, Component, EquipmentUnit, InventoryItem, Incident,
+  and WorkOrder persistence are implemented. Component/model compatibility is
+  constrained to one catalog release; workspace-owned operational records are
+  isolated by workspace and Facility. Incident and WorkOrder domain records, ORM
+  mappings, repositories, and matching tests live in `app/operations/` and
+  `tests/app/operations/`; catalog, units, and inventory remain in equipment.
+- Acceptance coverage: `tests/app/operations/` covers reference semantics,
+  lifecycle constraints, scoped uniqueness, repository reads/counts/pagination,
+  missing records, isolation, and updates. Disposable provisioning tests exercise
+  real restricted-role RLS, approved updates, denied fixed-field updates and
+  deletion, owner repair, and removal of PUBLIC/default permission bypasses in
+  both databases. Existing database/equipment/seed suites cover migration parity,
+  catalog integrity, connection reuse, and repeatable smoke data.
+- Verification (2026-09-20): 256 tests passed with no skips against PostgreSQL,
+  including disposable-cluster permission regressions in both databases.
+  `git diff --check` passed. One existing Starlette/AnyIO deprecation warning
+  remains. Q1–Q5 seeded scenarios and query-plan validation remain deliberately
+  deferred to their dataset/query waypoints; no new 1.4 acceptance gap is known.
+- Completion bookkeeping: keep 1.4 active until this increment, including
+  migration `0009_work_orders`, is committed.
+  No Waypoint 1.5 capability is implemented by this acceptance pass.
 
 ---
 
@@ -450,12 +528,28 @@ Small endpoint-specific developer smoke fixtures may be introduced before this w
 
 - seed process is repeatable
 - all foreign keys are valid
-- seeded identifiers are deterministic where practical
+- seeded operational UUIDs are deterministic per workspace and baseline entity;
+  two copies reuse human codes but have disjoint operational IDs and correctly
+  remapped foreign keys
 - seed validation checks pass
 - dataset can be recreated from scratch
+- each frozen baseline manifest pins a `catalog_releases` row; workspaces
+  retain baseline identity and a catalog-release foreign key, and their
+  queries/references cannot mix catalog releases
+- publication rejects changes to existing released catalog content; new releases
+  do not change existing workspace results
 - the canonical synthetic baseline has an explicit version and remains unchanged by reviewer edits
+- Q1–Q5 baseline scenarios include fixed evaluation times, expected evidence IDs,
+  and the positive, empty, unknown, boundary, and isolation cases in the model's
+  verification plan
 - the seed process can populate a specified workspace with internally consistent records and deterministic identifiers within that workspace
 - seeding one workspace does not modify another; tests cover repeatability, isolation, and baseline-version tracking
+- after one-time local PostgreSQL role provisioning, a documented project command
+  applies migrations and creates or refreshes a specified development workspace
+  from the canonical baseline
+- the bootstrap documentation distinguishes privileged one-time role provisioning
+  from repeatable migration and development-seeding commands, and includes
+  successful endpoint smoke-test examples
 
 ### Status
 
@@ -463,11 +557,40 @@ Small endpoint-specific developer smoke fixtures may be introduced before this w
 
 ---
 
-## Waypoint 1.6 — Basic Pull Request Checks
+## Waypoint 1.6 — Core Operational Read API
 
 ### Capability
 
-Pull requests automatically run the existing unit suite and applicable PostgreSQL integration tests.
+The core operational dataset is available through typed, read-only HTTP APIs
+that support the later frontend and structured-query workflows.
+
+### Completion Criteria
+
+- list and detail endpoints expose the operational records required by the
+  canonical questions
+- endpoint scope follows the ownership model and cannot expose another
+  workspace's mutable records
+- pagination, relevant filters, stable response schemas, and standard problem
+  responses are documented in OpenAPI; cross-cutting conventions and durable
+  usage notes are maintained in `docs/api.md`
+- automated tests cover successful responses, empty results, validation errors,
+  unavailable database behavior, and cross-workspace isolation
+- repeatable local smoke data and documented requests make every new endpoint's
+  primary successful response manually verifiable
+- no write endpoints are introduced; reviewer editing remains Waypoint 2.5 work
+
+### Status
+
+- [ ] Complete
+
+---
+
+## Waypoint 1.7 — Basic Pull Request Checks
+
+### Capability
+
+Pull requests automatically run the existing unit suite, applicable PostgreSQL
+integration tests, and baseline static quality checks.
 
 ### Architectural Value
 
@@ -480,8 +603,14 @@ Protects the working backend before AI and public-demo capabilities are added.
 - failed required checks prevent merging
 - local reproduction commands and required configuration are documented
 - external model calls and provider credentials are not required for these checks
+- formatting and lint checks run automatically
+- static type checks run automatically for the typed backend interfaces
+- migrations are exercised by the automated checks
+- dependency installation is reproducible from documented project inputs
 
-This is the explicitly scoped introduction of basic CI. Phase 11 expands the pipeline with broader quality checks, AI evaluation automation, and deployment gates; those capabilities are not required here.
+This is the explicitly scoped introduction of basic CI. Phase 11 expands the
+pipeline with AI evaluation automation and deployment gates; those capabilities
+are not required here.
 
 ### Status
 
@@ -519,6 +648,12 @@ The backend can make a controlled LLM request.
 ### Architectural Value
 
 Prevents application code from being tightly coupled to one model implementation.
+
+### Possible Framework Use
+
+LangChain model integrations or structured-output helpers may be used behind the
+provider and request/response interfaces. Keep retries, telemetry, redaction, and
+provider-independent contracts in the application layer.
 
 ### Completion Criteria
 
@@ -564,9 +699,17 @@ The model must not receive unrestricted database execution capability.
 
 Introduces model-guided reasoning while retaining deterministic execution controls.
 
+### Possible Framework Use
+
+LangChain prompt and structured-output components may help produce a typed query
+plan. Query validation, read-only enforcement, SQL execution, and unsafe-case
+handling must remain deterministic application behavior.
+
 ### Completion Criteria
 
-- at least five supported question patterns work
+- the Q1–Q5 canonical scenarios are supported, or an explicitly documented
+  superset is supported; each scenario produces a validated structured query,
+  correct records, and the required prohibited-behavior result
 - generated queries are validated before execution
 - database access is read-only
 - invalid queries fail safely
@@ -605,6 +748,12 @@ A user can ask an operational question conversationally instead of using an API 
 - the evaluation baseline from Waypoint 2.2 includes expected answer facts, empty-result cases, and unsupported-claim cases
 
 These checks provide measurable grounding guarantees; they do not claim that a generative model can never invent a fact. Publish known limitations alongside evaluation results.
+
+### Possible Framework Use
+
+LangChain output parsers or runnable composition may assist with answer formatting,
+but evidence selection, identifier checks, grounding decisions, and cautious
+fallbacks remain application-owned.
 
 ### Status
 
@@ -699,9 +848,13 @@ The MVP must demonstrate:
 7. automated tests
 8. basic tracing/logging
 
-At this point the project should already be demoable.
+At this point the project reaches a **technical MVP**: it is suitable for a
+local or private demonstration of the complete read-only query journey.
 
-Everything after this section is an enhancement.
+The reviewer-ready portfolio release is completed at Waypoint 2.6, after private
+workspaces, controlled editing, reset, resource limits, and hosted recovery have
+been demonstrated. Those capabilities are part of the intended portfolio
+experience, not optional replacements for the technical MVP.
 
 ---
 
@@ -727,6 +880,13 @@ Reviewers can explore the system independently and repeat demonstrations without
 ### Architectural Value
 
 Exercises workspace isolation through the UI, API, structured-query execution, conversations, and generated results. A workspace identifier alone does not authorize access; the server derives access from the validated session.
+
+### Recommended Execution Units
+
+1. private session creation and baseline workspace provisioning
+2. selected-record browsing and validated editing
+3. workspace reset, stale-request protection, expiration, and cleanup
+4. cross-session resource limits and global model-spending controls
 
 ### Completion Criteria
 
@@ -787,6 +947,11 @@ Select hosting when implementing this waypoint. A documented manual deployment i
 ## Objective
 
 Allow questions to incorporate technical documents and operational knowledge.
+
+LangChain is a possible adapter layer for document loaders, text splitters,
+embeddings, retrievers, and prompt composition in this phase. Preserve the
+project's own metadata, provenance, workspace boundaries, and retrieval interfaces
+so the system can be evaluated or replaced independently of the framework.
 
 ---
 
@@ -934,6 +1099,11 @@ Responses should include evidence provenance.
 
 Support questions requiring both relational data and document retrieval.
 
+LangChain runnable composition or retriever interfaces may help connect the
+structured and unstructured paths. The capability router, typed evidence model,
+concurrency policy, and failure representation should remain explicit application
+contracts.
+
 ---
 
 ## Waypoint 4.1 — Capability Router
@@ -1015,6 +1185,10 @@ The synthesis layer should not independently call external tools.
 ## Objective
 
 Move from answering questions to safely changing system state.
+
+LangChain tool schemas or tool-calling adapters may be used at the model boundary.
+Authorization, validation, auditability, idempotency, and side-effect policy must
+remain outside the model and outside opaque framework behavior.
 
 ---
 
@@ -1105,6 +1279,11 @@ The system distinguishes informational requests from action requests.
 ## Objective
 
 Demonstrate long-running agent workflows capable of pausing and resuming safely.
+
+LangGraph is a possible implementation candidate for stateful, interruptible
+orchestration once the workflow contracts are understood. It must complement—not
+replace—the project's persisted workflow state, restart/recovery semantics,
+workspace checks, and explicit side-effect controls.
 
 ---
 
@@ -1307,6 +1486,11 @@ Human operators can manage asynchronous AI work.
 
 Measure system behavior at multiple layers.
 
+LangSmith or other framework-specific tracing and evaluation integrations may be
+considered as supplemental inspection tools if they preserve the project's
+versioned datasets, deterministic evaluators, privacy rules, and reproducible
+reports. They are not substitutes for the application's evaluation contracts.
+
 ---
 
 ## Waypoint 8.1 — Evaluation Dataset Schema
@@ -1427,6 +1611,11 @@ Admin UI displays evaluation runs and regressions.
 
 Make model context deliberate, inspectable, and efficient.
 
+LangChain message, context, or middleware utilities may be useful for selected
+assembly tasks. The context builder remains the authoritative component for token
+budgets, provenance, persistence boundaries, and what information is allowed into
+model context.
+
 ---
 
 ## Waypoint 9.1 — Context Builder
@@ -1545,7 +1734,7 @@ Prevent AI behavior regressions from reaching deployment.
 
 ### Capability
 
-Expand the basic PR checks introduced in Waypoint 1.6. This phase does not defer the earlier requirement for automated regression protection.
+Expand the basic PR checks introduced in Waypoint 1.7. This phase does not defer the earlier requirement for automated regression protection.
 
 Every pull request runs:
 
@@ -1756,7 +1945,9 @@ Requires:
 
 Adds private, editable reviewer sessions with guided scenarios and a repeatable reset experience.
 
-The technical MVP remains Waypoint 2.4. Waypoint 2.6 delivers hosting and recovery for this release, using the basic PR checks from Waypoint 1.6. Advanced CI/CD capabilities in Phase 11 are not a prerequisite.
+The technical MVP remains Waypoint 2.4. Waypoint 2.6 delivers the reviewer-ready
+hosted release and recovery capabilities, using the basic PR checks from
+Waypoint 1.7. Advanced CI/CD capabilities in Phase 11 are not a prerequisite.
 
 ---
 

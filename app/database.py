@@ -7,10 +7,30 @@ from sqlalchemy.engine import Engine, make_url
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.config import Settings
-from app.persistence.models import FacilityRecord, WorkspaceRecord
+from app.persistence.models import (
+    CatalogReleaseRecord,
+    ComponentRecord,
+    EquipmentModelRecord,
+    EquipmentUnitRecord,
+    InventoryItemRecord,
+    IncidentRecord,
+    WorkOrderRecord,
+    FacilityRecord,
+    WorkspaceRecord,
+)
 
 
-_REGISTERED_MODELS = (FacilityRecord, WorkspaceRecord)
+_REGISTERED_MODELS = (
+    CatalogReleaseRecord,
+    ComponentRecord,
+    EquipmentModelRecord,
+    EquipmentUnitRecord,
+    InventoryItemRecord,
+    IncidentRecord,
+    WorkOrderRecord,
+    FacilityRecord,
+    WorkspaceRecord,
+)
 
 
 class DatabaseConfigurationError(RuntimeError):
