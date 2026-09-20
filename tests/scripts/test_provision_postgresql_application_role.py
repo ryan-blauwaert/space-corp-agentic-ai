@@ -127,7 +127,12 @@ def test_provisioning_removes_legacy_grants_and_is_repeatable(
         provisioning_cluster,
         "SELECT has_table_privilege('space_corp_app', 'facilities', 'DELETE,TRUNCATE')",
     ) == "f"
-    for table in ("catalog_releases", "equipment_models"):
+    for table in (
+        "catalog_releases",
+        "equipment_models",
+        "components",
+        "equipment_model_components",
+    ):
         assert sql(
             provisioning_cluster,
             f"SELECT has_table_privilege('space_corp_app', '{table}', 'SELECT')",

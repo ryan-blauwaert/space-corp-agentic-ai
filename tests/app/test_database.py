@@ -146,7 +146,7 @@ def test_migrations_apply(integration_migration_database_url: str) -> None:
                 text("SELECT version_num FROM alembic_version")
             ).scalar_one()
 
-        assert revision == "0005_catalog_equipment_units"
+        assert revision == "0006_components_compatibility"
     finally:
         engine.dispose()
 
@@ -162,28 +162,26 @@ def test_migrations_match_persistence_models(
 
 
 @pytest.mark.integration
-def test_catalog_and_equipment_migration_downgrades_and_reapplies(
+def test_component_catalog_migration_downgrades_and_reapplies(
     integration_migration_database_url: str,
 ) -> None:
     config = Config(str(PROJECT_ROOT / "alembic.ini"))
     command.upgrade(config, "head")
     try:
-        command.downgrade(config, "0004_facility_required_text")
+        command.downgrade(config, "0005_catalog_equipment_units")
         engine = create_database_engine(integration_migration_database_url)
 
         try:
             with engine.connect() as connection:
-                catalog_release_table, equipment_model_table, equipment_unit_table = connection.execute(
+                component_table, compatibility_table = connection.execute(
                     text(
-                        "SELECT to_regclass('public.catalog_releases'), "
-                        "to_regclass('public.equipment_models'), "
-                        "to_regclass('public.equipment_units')"
+                        "SELECT to_regclass('public.components'), "
+                        "to_regclass('public.equipment_model_components')"
                     )
                 ).one()
 
-            assert catalog_release_table is None
-            assert equipment_model_table is None
-            assert equipment_unit_table is None
+            assert component_table is None
+            assert compatibility_table is None
         finally:
             engine.dispose()
     finally:
@@ -207,7 +205,8 @@ def test_workspace_catalog_and_equipment_tables_exist(
                         "WHERE table_schema = 'public' "
                         "AND table_name IN ("
                         "'workspaces', 'facilities', 'catalog_releases', "
-                        "'equipment_models', 'equipment_units'"
+                        "'equipment_models', 'components', "
+                        "'equipment_model_components', 'equipment_units'"
                         ")"
                     )
                 ).scalars()
@@ -217,6 +216,8 @@ def test_workspace_catalog_and_equipment_tables_exist(
             "workspaces",
             "facilities",
             "catalog_releases",
+            "components",
+            "equipment_model_components",
             "equipment_models",
             "equipment_units",
         }
@@ -265,7 +266,8 @@ def test_application_role_enforces_workspace_rls_and_resets_pooled_context(
                         "WHERE schema.nspname = 'public' "
                         "AND relation.relname IN ("
                         "'workspaces', 'facilities', 'catalog_releases', "
-                        "'equipment_models', 'equipment_units'"
+                        "'equipment_models', 'components', "
+                        "'equipment_model_components', 'equipment_units'"
                         ")"
                     )
                 ).all()
@@ -288,6 +290,8 @@ def test_application_role_enforces_workspace_rls_and_resets_pooled_context(
         )
         assert table_owners == {
             "catalog_releases": "space_corp",
+            "components": "space_corp",
+            "equipment_model_components": "space_corp",
             "equipment_models": "space_corp",
             "equipment_units": "space_corp",
             "facilities": "space_corp",

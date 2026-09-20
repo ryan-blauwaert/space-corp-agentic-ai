@@ -8,17 +8,21 @@ from sqlalchemy.orm import Session
 
 from app.equipment.domain import (
     CatalogRelease,
+    Component,
     EquipmentModel,
     EquipmentOperationalStatus,
     EquipmentUnit,
     NewCatalogRelease,
+    NewComponent,
     NewEquipmentModel,
     NewEquipmentUnit,
 )
 from app.equipment.models import (
     CatalogReleaseRecord,
+    ComponentRecord,
     EquipmentModelRecord,
     EquipmentUnitRecord,
+    equipment_model_components,
 )
 
 
@@ -33,6 +37,20 @@ class CatalogRepository(Protocol):
 
     def get_model_by_id(self, equipment_model_id: UUID) -> EquipmentModel | None:
         """Return an equipment model by its globally unique revision identity."""
+
+    def create_component(self, component: NewComponent) -> Component:
+        """Create one component revision in a catalog release."""
+
+    def get_component_by_id(self, component_id: UUID) -> Component | None:
+        """Return a component by its globally unique revision identity."""
+
+    def link_model_to_component(
+        self,
+        catalog_release_id: UUID,
+        equipment_model_id: UUID,
+        component_id: UUID,
+    ) -> None:
+        """Record compatibility between same-release model and component revisions."""
 
 
 class EquipmentUnitRepository(Protocol):
@@ -95,6 +113,36 @@ class SqlAlchemyCatalogRepository:
     def get_model_by_id(self, equipment_model_id: UUID) -> EquipmentModel | None:
         record = self._session.get(EquipmentModelRecord, equipment_model_id)
         return None if record is None else _equipment_model_to_domain(record)
+
+    def create_component(self, component: NewComponent) -> Component:
+        record = ComponentRecord(
+            catalog_release_id=component.catalog_release_id,
+            code=component.code,
+            name=component.name,
+        )
+        self._session.add(record)
+        self._session.flush()
+        self._session.refresh(record)
+        return _component_to_domain(record)
+
+    def get_component_by_id(self, component_id: UUID) -> Component | None:
+        record = self._session.get(ComponentRecord, component_id)
+        return None if record is None else _component_to_domain(record)
+
+    def link_model_to_component(
+        self,
+        catalog_release_id: UUID,
+        equipment_model_id: UUID,
+        component_id: UUID,
+    ) -> None:
+        self._session.execute(
+            equipment_model_components.insert().values(
+                catalog_release_id=catalog_release_id,
+                equipment_model_id=equipment_model_id,
+                component_id=component_id,
+            )
+        )
+        self._session.flush()
 
 
 class SqlAlchemyEquipmentUnitRepository:
@@ -181,6 +229,16 @@ def _catalog_release_to_domain(record: CatalogReleaseRecord) -> CatalogRelease:
 
 def _equipment_model_to_domain(record: EquipmentModelRecord) -> EquipmentModel:
     return EquipmentModel(
+        id=record.id,
+        catalog_release_id=record.catalog_release_id,
+        code=record.code,
+        name=record.name,
+        created_at=record.created_at,
+    )
+
+
+def _component_to_domain(record: ComponentRecord) -> Component:
+    return Component(
         id=record.id,
         catalog_release_id=record.catalog_release_id,
         code=record.code,

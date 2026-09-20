@@ -2,9 +2,10 @@
 
 ## Purpose and Scope
 
-This document records the PostgreSQL direction through the first Waypoint 1.4
+This document records the PostgreSQL direction through the current Waypoint 1.4
 slice. Workspace records, Facility persistence, catalog releases, equipment
-models, workspace-scoped equipment units, and their row-level security are now
+models, components, their same-release compatibility associations,
+workspace-scoped equipment units, and their row-level security are now
 implemented. Reviewer sessions, editable baseline copies, and reset remain
 future work. The complete planned relational model is defined in the
 [operational data model](operational-data-model.md).
@@ -132,7 +133,7 @@ The design contract is documented now without introducing those later services.
 
 ## Application Role Hardening
 
-Provisioning uses `ON_ERROR_STOP` and a transaction per database, as described in the [psql documentation](https://www.postgresql.org/docs/current/app-psql.html). Failure stops subsequent commands; an earlier database transaction may already have committed. Correct the reported condition and rerun the idempotent script. It removes legacy table/sequence grants and default grants, then grants `SELECT`/`INSERT` plus approved column-level `UPDATE` permissions for Facilities and EquipmentUnits. Catalog releases and equipment models are read-only to the application role; workspace creation and Alembic bookkeeping remain migration-owner operations. Future domain tables require explicit privilege decisions.
+Provisioning uses `ON_ERROR_STOP` and a transaction per database, as described in the [psql documentation](https://www.postgresql.org/docs/current/app-psql.html). Failure stops subsequent commands; an earlier database transaction may already have committed. Correct the reported condition and rerun the idempotent script. It removes legacy table/sequence grants and default grants, then grants `SELECT`/`INSERT` plus approved column-level `UPDATE` permissions for Facilities and EquipmentUnits. Catalog releases, equipment models, components, and their compatibility associations are read-only to the application role; workspace creation and Alembic bookkeeping remain migration-owner operations. Future domain tables require explicit privilege decisions.
 
 Migration `0004_facility_required_text` rejects whitespace-only required Facility text using the same whitespace set as Python's `str.strip()`, including Unicode whitespace. It does not rewrite existing data: invalid rows must be corrected explicitly before the migration can succeed. The migration is transactional and reversible.
 

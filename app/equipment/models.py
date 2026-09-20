@@ -8,12 +8,15 @@ from uuid import UUID, uuid4
 
 from sqlalchemy import (
     and_,
+    Column,
     CheckConstraint,
     DateTime,
     ForeignKey,
     ForeignKeyConstraint,
     Index,
+    PrimaryKeyConstraint,
     String,
+    Table,
     UniqueConstraint,
     Uuid,
     func,
@@ -22,6 +25,8 @@ from sqlalchemy.orm import Mapped, foreign, mapped_column, relationship
 
 from app.equipment.domain import (
     CATALOG_RELEASE_CODE_MAX_LENGTH,
+    COMPONENT_CODE_MAX_LENGTH,
+    COMPONENT_NAME_MAX_LENGTH,
     EQUIPMENT_MODEL_CODE_MAX_LENGTH,
     EQUIPMENT_MODEL_NAME_MAX_LENGTH,
     EQUIPMENT_UNIT_ASSET_TAG_MAX_LENGTH,
@@ -38,6 +43,30 @@ _REQUIRED_TEXT_WHITESPACE = (
     '\\0009\\000A\\000B\\000C\\000D\\001C\\001D\\001E\\001F\\0020'
     '\\0085\\00A0\\1680\\2000\\2001\\2002\\2003\\2004\\2005\\2006'
     '\\2007\\2008\\2009\\200A\\2028\\2029\\202F\\205F\\3000'
+)
+
+
+equipment_model_components = Table(
+    "equipment_model_components",
+    Base.metadata,
+    Column("catalog_release_id", Uuid, nullable=False),
+    Column("equipment_model_id", Uuid, nullable=False),
+    Column("component_id", Uuid, nullable=False),
+    ForeignKeyConstraint(
+        ["catalog_release_id", "equipment_model_id"],
+        ["equipment_models.catalog_release_id", "equipment_models.id"],
+        ondelete="RESTRICT",
+    ),
+    ForeignKeyConstraint(
+        ["catalog_release_id", "component_id"],
+        ["components.catalog_release_id", "components.id"],
+        ondelete="RESTRICT",
+    ),
+    PrimaryKeyConstraint(
+        "equipment_model_id",
+        "component_id",
+        name="pk_equipment_model_components",
+    ),
 )
 
 
@@ -60,6 +89,9 @@ class CatalogReleaseRecord(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     equipment_models: Mapped[list[EquipmentModelRecord]] = relationship(
+        back_populates="catalog_release"
+    )
+    components: Mapped[list[ComponentRecord]] = relationship(
         back_populates="catalog_release"
     )
 
@@ -107,6 +139,49 @@ class EquipmentModelRecord(Base):
     )
     equipment_units: Mapped[list[EquipmentUnitRecord]] = relationship(
         back_populates="equipment_model"
+    )
+    components: Mapped[list[ComponentRecord]] = relationship(
+        secondary=equipment_model_components,
+        back_populates="equipment_models",
+    )
+
+
+class ComponentRecord(Base):
+    """Persistence record for an immutable component revision."""
+
+    __tablename__ = "components"
+    __table_args__ = (
+        CheckConstraint(
+            f"char_length(btrim(code, U&'{_REQUIRED_TEXT_WHITESPACE}')) > 0",
+            name="ck_components_code_not_blank",
+        ),
+        CheckConstraint(
+            f"char_length(btrim(name, U&'{_REQUIRED_TEXT_WHITESPACE}')) > 0",
+            name="ck_components_name_not_blank",
+        ),
+        UniqueConstraint(
+            "catalog_release_id", "code", name="uq_components_release_code"
+        ),
+        UniqueConstraint(
+            "catalog_release_id", "id", name="uq_components_release_id"
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
+    catalog_release_id: Mapped[UUID] = mapped_column(
+        ForeignKey("catalog_releases.id", ondelete="RESTRICT"), nullable=False
+    )
+    code: Mapped[str] = mapped_column(String(COMPONENT_CODE_MAX_LENGTH), nullable=False)
+    name: Mapped[str] = mapped_column(String(COMPONENT_NAME_MAX_LENGTH), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    catalog_release: Mapped[CatalogReleaseRecord] = relationship(
+        back_populates="components"
+    )
+    equipment_models: Mapped[list[EquipmentModelRecord]] = relationship(
+        secondary=equipment_model_components,
+        back_populates="components",
     )
 
 

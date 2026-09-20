@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.equipment.domain import (
     EquipmentOperationalStatus,
     NewCatalogRelease,
+    NewComponent,
     NewEquipmentModel,
     NewEquipmentUnit,
 )
@@ -14,6 +15,7 @@ from app.equipment.repository import (
     SqlAlchemyCatalogRepository,
     SqlAlchemyEquipmentUnitRepository,
 )
+from app.equipment.models import EquipmentModelRecord
 from app.facilities.domain import FacilityOperationalStatus, FacilityType, NewFacility
 from app.facilities.repository import SqlAlchemyFacilityRepository
 from app.workspaces.models import WorkspaceRecord
@@ -49,6 +51,16 @@ def create_model(integration_session: Session):
     )
 
 
+def create_component(integration_session: Session, catalog_release_id: UUID):
+    return SqlAlchemyCatalogRepository(integration_session).create_component(
+        NewComponent(
+            catalog_release_id=catalog_release_id,
+            code="FLT-F12",
+            name="Air Filter F-12",
+        )
+    )
+
+
 def make_new_equipment_unit(
     facility_id: UUID, equipment_model_id: UUID, asset_tag: str = "ECS-14"
 ) -> NewEquipmentUnit:
@@ -68,6 +80,49 @@ def test_catalog_repository_creates_and_retrieves_model(
     repository = SqlAlchemyCatalogRepository(integration_session)
 
     assert repository.get_model_by_id(model.id) == model
+
+
+@pytest.mark.integration
+def test_catalog_repository_creates_components_and_links_same_release_revisions(
+    integration_session: Session,
+) -> None:
+    repository = SqlAlchemyCatalogRepository(integration_session)
+    release = repository.create_release(NewCatalogRelease(code="catalog-1"))
+    model = repository.create_model(
+        NewEquipmentModel(
+            catalog_release_id=release.id,
+            code="ECS-4",
+            name="Environmental Control System 4",
+        )
+    )
+    component = create_component(integration_session, release.id)
+
+    repository.link_model_to_component(release.id, model.id, component.id)
+
+    assert repository.get_component_by_id(component.id) == component
+    persisted_model = integration_session.get(EquipmentModelRecord, model.id)
+    assert persisted_model is not None
+    assert [record.id for record in persisted_model.components] == [component.id]
+
+
+@pytest.mark.integration
+def test_catalog_repository_rejects_mixed_release_compatibility(
+    integration_session: Session,
+) -> None:
+    repository = SqlAlchemyCatalogRepository(integration_session)
+    first_release = repository.create_release(NewCatalogRelease(code="catalog-1"))
+    second_release = repository.create_release(NewCatalogRelease(code="catalog-2"))
+    model = repository.create_model(
+        NewEquipmentModel(
+            catalog_release_id=first_release.id,
+            code="ECS-4",
+            name="Environmental Control System 4",
+        )
+    )
+    component = create_component(integration_session, second_release.id)
+
+    with pytest.raises(IntegrityError):
+        repository.link_model_to_component(first_release.id, model.id, component.id)
 
 
 @pytest.mark.integration

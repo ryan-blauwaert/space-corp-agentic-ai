@@ -52,6 +52,8 @@ BEGIN
               'facilities',
               'catalog_releases',
               'equipment_models',
+              'components',
+              'equipment_model_components',
               'equipment_units'
           )
           AND relation.relkind = 'r'
@@ -73,7 +75,8 @@ GRANT USAGE ON SCHEMA public TO space_corp_app;
 GRANT SELECT, INSERT ON TABLE public.facilities TO space_corp_app;
 GRANT UPDATE (name, location, operational_status, updated_at)
     ON TABLE public.facilities TO space_corp_app;
-GRANT SELECT ON TABLE public.catalog_releases, public.equipment_models
+GRANT SELECT ON TABLE public.catalog_releases, public.equipment_models,
+    public.components, public.equipment_model_components
     TO space_corp_app;
 GRANT SELECT, INSERT ON TABLE public.equipment_units TO space_corp_app;
 GRANT UPDATE (operational_status, updated_at)
@@ -105,6 +108,8 @@ BEGIN
               'facilities',
               'catalog_releases',
               'equipment_models',
+              'components',
+              'equipment_model_components',
               'equipment_units'
           )
           AND relation.relkind = 'r'
@@ -126,7 +131,8 @@ GRANT USAGE ON SCHEMA public TO space_corp_app;
 GRANT SELECT, INSERT ON TABLE public.facilities TO space_corp_app;
 GRANT UPDATE (name, location, operational_status, updated_at)
     ON TABLE public.facilities TO space_corp_app;
-GRANT SELECT ON TABLE public.catalog_releases, public.equipment_models
+GRANT SELECT ON TABLE public.catalog_releases, public.equipment_models,
+    public.components, public.equipment_model_components
     TO space_corp_app;
 GRANT SELECT, INSERT ON TABLE public.equipment_units TO space_corp_app;
 GRANT UPDATE (operational_status, updated_at)

@@ -4,6 +4,7 @@ from app.config import Settings
 from app.database import DatabaseConfigurationError, create_database_engine
 from app.equipment.models import (  # noqa: F401
     CatalogReleaseRecord,
+    ComponentRecord,
     EquipmentModelRecord,
     EquipmentUnitRecord,
 )

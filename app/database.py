@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.config import Settings
 from app.persistence.models import (
     CatalogReleaseRecord,
+    ComponentRecord,
     EquipmentModelRecord,
     EquipmentUnitRecord,
     FacilityRecord,
@@ -18,6 +19,7 @@ from app.persistence.models import (
 
 _REGISTERED_MODELS = (
     CatalogReleaseRecord,
+    ComponentRecord,
     EquipmentModelRecord,
     EquipmentUnitRecord,
     FacilityRecord,

@@ -1,4 +1,4 @@
-"""Typed domain records for catalog releases, equipment models, and units."""
+"""Typed domain records for the equipment catalog and deployed units."""
 
 from dataclasses import dataclass
 from datetime import datetime
@@ -9,6 +9,8 @@ from uuid import UUID
 CATALOG_RELEASE_CODE_MAX_LENGTH = 64
 EQUIPMENT_MODEL_CODE_MAX_LENGTH = 64
 EQUIPMENT_MODEL_NAME_MAX_LENGTH = 256
+COMPONENT_CODE_MAX_LENGTH = 64
+COMPONENT_NAME_MAX_LENGTH = 256
 EQUIPMENT_UNIT_ASSET_TAG_MAX_LENGTH = 64
 
 
@@ -81,6 +83,34 @@ class EquipmentModel:
         _validate_required_text(
             "Equipment model name", self.name, EQUIPMENT_MODEL_NAME_MAX_LENGTH
         )
+
+
+@dataclass(frozen=True, slots=True)
+class NewComponent:
+    """Validated shared component data before persistence identifiers exist."""
+
+    catalog_release_id: UUID
+    code: str
+    name: str
+
+    def __post_init__(self) -> None:
+        _validate_required_text("Component code", self.code, COMPONENT_CODE_MAX_LENGTH)
+        _validate_required_text("Component name", self.name, COMPONENT_NAME_MAX_LENGTH)
+
+
+@dataclass(frozen=True, slots=True)
+class Component:
+    """An immutable shared component revision in one catalog release."""
+
+    id: UUID
+    catalog_release_id: UUID
+    code: str
+    name: str
+    created_at: datetime
+
+    def __post_init__(self) -> None:
+        _validate_required_text("Component code", self.code, COMPONENT_CODE_MAX_LENGTH)
+        _validate_required_text("Component name", self.name, COMPONENT_NAME_MAX_LENGTH)
 
 
 @dataclass(frozen=True, slots=True)

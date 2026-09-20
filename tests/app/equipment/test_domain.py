@@ -5,14 +5,18 @@ import pytest
 
 from app.equipment.domain import (
     CATALOG_RELEASE_CODE_MAX_LENGTH,
+    COMPONENT_CODE_MAX_LENGTH,
+    COMPONENT_NAME_MAX_LENGTH,
     EQUIPMENT_MODEL_CODE_MAX_LENGTH,
     EQUIPMENT_MODEL_NAME_MAX_LENGTH,
     EQUIPMENT_UNIT_ASSET_TAG_MAX_LENGTH,
     CatalogRelease,
+    Component,
     EquipmentModel,
     EquipmentOperationalStatus,
     EquipmentUnit,
     NewCatalogRelease,
+    NewComponent,
     NewEquipmentModel,
     NewEquipmentUnit,
 )
@@ -45,6 +49,41 @@ def test_equipment_model_accepts_valid_data() -> None:
     )
 
     assert model.code == "ECS-4"
+
+
+def test_component_accepts_valid_data() -> None:
+    component = Component(
+        id=uuid4(),
+        catalog_release_id=uuid4(),
+        code="FLT-F12",
+        name="Air Filter F-12",
+        created_at=datetime.now(UTC),
+    )
+
+    assert component.code == "FLT-F12"
+
+
+@pytest.mark.parametrize(
+    ("field_name", "value", "message"),
+    [
+        ("code", "", "must not be blank"),
+        ("code", "x" * (COMPONENT_CODE_MAX_LENGTH + 1), "at most"),
+        ("name", "\t", "must not be blank"),
+        ("name", "x" * (COMPONENT_NAME_MAX_LENGTH + 1), "at most"),
+    ],
+)
+def test_new_component_rejects_invalid_text(
+    field_name: str, value: str, message: str
+) -> None:
+    values: dict[str, object] = {
+        "catalog_release_id": uuid4(),
+        "code": "FLT-F12",
+        "name": "Air Filter F-12",
+    }
+    values[field_name] = value
+
+    with pytest.raises(ValueError, match=message):
+        NewComponent(**values)  # type: ignore[arg-type]
 
 
 @pytest.mark.parametrize(
@@ -107,9 +146,16 @@ def test_new_equipment_unit_rejects_invalid_data(
 
 def test_domain_models_are_immutable() -> None:
     release = NewCatalogRelease(code="catalog-1")
+    component = NewComponent(
+        catalog_release_id=uuid4(),
+        code="FLT-F12",
+        name="Air Filter F-12",
+    )
 
     with pytest.raises(AttributeError):
         release.code = "catalog-2"  # type: ignore[misc]
+    with pytest.raises(AttributeError):
+        component.name = "Replacement Filter F-12"  # type: ignore[misc]
 
 
 def test_catalog_release_length_constant_matches_contract() -> None:

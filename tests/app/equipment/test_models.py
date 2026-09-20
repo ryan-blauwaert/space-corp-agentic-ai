@@ -8,8 +8,10 @@ from sqlalchemy.orm import Session
 
 from app.equipment.models import (
     CatalogReleaseRecord,
+    ComponentRecord,
     EquipmentModelRecord,
     EquipmentUnitRecord,
+    equipment_model_components,
 )
 from app.facilities.models import FacilityRecord
 from app.workspaces.models import WorkspaceRecord
@@ -31,6 +33,18 @@ def make_equipment_model(
     }
     values.update(overrides)
     return EquipmentModelRecord(**values)
+
+
+def make_component(
+    catalog_release_id: UUID, **overrides: object
+) -> ComponentRecord:
+    values = {
+        "catalog_release_id": catalog_release_id,
+        "code": "FLT-F12",
+        "name": "Air Filter F-12",
+    }
+    values.update(overrides)
+    return ComponentRecord(**values)
 
 
 def make_facility(workspace_id: UUID, **overrides: object) -> FacilityRecord:
@@ -80,6 +94,39 @@ def test_equipment_model_uses_release_scoped_uniqueness() -> None:
     )
 
 
+def test_component_uses_release_scoped_uniqueness() -> None:
+    constraints = [
+        constraint
+        for constraint in ComponentRecord.__table__.constraints
+        if isinstance(constraint, UniqueConstraint)
+    ]
+
+    assert any(
+        tuple(constraint.columns.keys()) == ("catalog_release_id", "code")
+        for constraint in constraints
+    )
+    assert any(
+        tuple(constraint.columns.keys()) == ("catalog_release_id", "id")
+        for constraint in constraints
+    )
+
+
+def test_model_component_compatibility_requires_a_shared_release() -> None:
+    association_table = equipment_model_components
+
+    assert association_table.primary_key.columns.keys() == [
+        "equipment_model_id",
+        "component_id",
+    ]
+    assert {
+        tuple(constraint.column_keys)
+        for constraint in association_table.foreign_key_constraints
+    } == {
+        ("catalog_release_id", "equipment_model_id"),
+        ("catalog_release_id", "component_id"),
+    }
+
+
 def test_equipment_unit_uses_workspace_scoped_facility_relationship() -> None:
     unit_table = EquipmentUnitRecord.__table__
 
@@ -95,6 +142,9 @@ def test_equipment_unit_uses_workspace_scoped_facility_relationship() -> None:
 
 def test_catalog_and_workspace_relationships_are_registered() -> None:
     assert CatalogReleaseRecord.__mapper__.relationships["equipment_models"].mapper.class_ is EquipmentModelRecord
+    assert CatalogReleaseRecord.__mapper__.relationships["components"].mapper.class_ is ComponentRecord
+    assert EquipmentModelRecord.__mapper__.relationships["components"].mapper.class_ is ComponentRecord
+    assert ComponentRecord.__mapper__.relationships["equipment_models"].mapper.class_ is EquipmentModelRecord
     assert EquipmentModelRecord.__mapper__.relationships["equipment_units"].mapper.class_ is EquipmentUnitRecord
     assert FacilityRecord.__mapper__.relationships["equipment_units"].mapper.class_ is EquipmentUnitRecord
     assert WorkspaceRecord.__mapper__.relationships["equipment_units"].mapper.class_ is EquipmentUnitRecord
@@ -108,7 +158,8 @@ def test_catalog_and_equipment_records_generate_ids_and_timestamps(
     integration_session.add(release)
     integration_session.flush()
     model = make_equipment_model(release.id)
-    integration_session.add(model)
+    component = make_component(release.id)
+    integration_session.add_all([model, component])
     workspace = WorkspaceRecord()
     integration_session.add(workspace)
     integration_session.flush()
@@ -124,6 +175,8 @@ def test_catalog_and_equipment_records_generate_ids_and_timestamps(
     assert isinstance(release.created_at, datetime)
     assert isinstance(model.id, UUID)
     assert isinstance(model.created_at, datetime)
+    assert isinstance(component.id, UUID)
+    assert isinstance(component.created_at, datetime)
     assert isinstance(unit.id, UUID)
     assert isinstance(unit.created_at, datetime)
     assert isinstance(unit.updated_at, datetime)
@@ -136,6 +189,8 @@ def test_catalog_and_equipment_records_generate_ids_and_timestamps(
         (make_catalog_release, "code", " "),
         (make_equipment_model, "code", " "),
         (make_equipment_model, "name", ""),
+        (make_component, "code", " "),
+        (make_component, "name", ""),
         (make_equipment_unit, "asset_tag", "\u00a0\u2003"),
         (make_equipment_unit, "operational_status", "unsupported"),
     ],
@@ -163,6 +218,8 @@ def test_database_rejects_invalid_equipment_values(
         record = make_catalog_release(**{field_name: invalid_value})
     elif record_factory is make_equipment_model:
         record = make_equipment_model(release.id, **{field_name: invalid_value})
+    elif record_factory is make_component:
+        record = make_component(release.id, **{field_name: invalid_value})
     else:
         record = make_equipment_unit(
             workspace.id, facility.id, model.id, **{field_name: invalid_value}
@@ -192,6 +249,97 @@ def test_equipment_model_code_is_unique_within_one_catalog_release(
 
     with pytest.raises(IntegrityError):
         integration_session.flush()
+
+
+@pytest.mark.integration
+def test_component_code_is_unique_within_one_catalog_release(
+    integration_session: Session,
+) -> None:
+    first_release = make_catalog_release(code="catalog-1")
+    second_release = make_catalog_release(code="catalog-2")
+    integration_session.add_all([first_release, second_release])
+    integration_session.flush()
+    integration_session.add_all(
+        [
+            make_component(first_release.id, code="FLT-F12"),
+            make_component(second_release.id, code="FLT-F12"),
+        ]
+    )
+    integration_session.flush()
+    integration_session.add(make_component(first_release.id, code="FLT-F12"))
+
+    with pytest.raises(IntegrityError):
+        integration_session.flush()
+
+
+@pytest.mark.integration
+def test_model_component_compatibility_rejects_mixed_catalog_releases(
+    integration_session: Session,
+) -> None:
+    first_release = make_catalog_release(code="catalog-1")
+    second_release = make_catalog_release(code="catalog-2")
+    integration_session.add_all([first_release, second_release])
+    integration_session.flush()
+    model = make_equipment_model(first_release.id)
+    component = make_component(second_release.id)
+    integration_session.add_all([model, component])
+    integration_session.flush()
+    with pytest.raises(IntegrityError):
+        integration_session.execute(
+            equipment_model_components.insert().values(
+                catalog_release_id=first_release.id,
+                equipment_model_id=model.id,
+                component_id=component.id,
+            )
+        )
+
+
+@pytest.mark.integration
+def test_model_component_compatibility_rejects_duplicate_pairs(
+    integration_session: Session,
+) -> None:
+    release = make_catalog_release()
+    integration_session.add(release)
+    integration_session.flush()
+    model = make_equipment_model(release.id)
+    component = make_component(release.id)
+    integration_session.add_all([model, component])
+    integration_session.flush()
+    values = {
+        "catalog_release_id": release.id,
+        "equipment_model_id": model.id,
+        "component_id": component.id,
+    }
+    integration_session.execute(equipment_model_components.insert().values(**values))
+    integration_session.flush()
+    with pytest.raises(IntegrityError):
+        integration_session.execute(equipment_model_components.insert().values(**values))
+
+
+@pytest.mark.integration
+def test_component_delete_is_restricted_when_compatibility_exists(
+    integration_session: Session,
+) -> None:
+    release = make_catalog_release()
+    integration_session.add(release)
+    integration_session.flush()
+    model = make_equipment_model(release.id)
+    component = make_component(release.id)
+    integration_session.add_all([model, component])
+    integration_session.flush()
+    integration_session.execute(
+        equipment_model_components.insert().values(
+            catalog_release_id=release.id,
+            equipment_model_id=model.id,
+            component_id=component.id,
+        )
+    )
+    integration_session.flush()
+
+    with pytest.raises(IntegrityError):
+        integration_session.execute(
+            delete(ComponentRecord).where(ComponentRecord.id == component.id)
+        )
 
 
 @pytest.mark.integration
