@@ -381,7 +381,7 @@ Until reviewer sessions are introduced in Waypoint 2.5, local API development ma
   - `tests/app/api/routes/test_facilities.py` verifies list/detail success, empty results, pagination, invalid IDs/queries, missing records, trusted workspace scope, cross-workspace denial, configuration failures, safe database errors, OpenAPI response formats, and stable operation IDs.
   - `tests/app/schemas/` verifies typed public responses and pagination/error schemas; `tests/app/api/test_errors.py` checks HTTP headers survive problem conversion.
   - `tests/app/test_database.py`, `tests/app/facilities/`, and `tests/scripts/test_provision_postgresql_application_role.py` verify transaction cleanup, migration round trips and invalid legacy data, domain/database constraints, real RLS enforcement, and least-privilege provisioning success/failure.
-  - `tests/app/test_main.py` verifies application assembly and owned/injected database lifecycles. `tests/scripts/test_seed_development_data.py` verifies guarded, idempotent local smoke seeding; `tests/scripts/test_test_environment.py` verifies automatic local integration-test configuration. `README.md` records the contract compatibility review and manual smoke workflow.
+  - `tests/app/test_main.py` verifies application assembly and owned/injected database lifecycles. The original smoke-seed coverage is now superseded by `tests/scripts/test_seed_support.py`, `test_seed_dataset.py`, and `test_bootstrap_development.py`; `tests/scripts/test_test_environment.py` verifies automatic local integration-test configuration. `README.md` records the contract compatibility review and manual smoke workflow.
 - Architectural decisions: retain synchronous SQLAlchemy routes and the existing FastAPI 422 format; use RFC 9457 problems for expected HTTP failures; keep workspace selection in server configuration until reviewer sessions; discover only application packages for wheel builds; grant application privileges explicitly per table.
 - Scope: packaging, ignore rules, PostgreSQL safeguards, and documentation repair the existing foundation. No new application dependencies, authentication, AI, Docker configuration, CI, or additional services were introduced.
 - Known limits: database outage responses are tested through injected operational failures rather than a live outage drill; verification used Python 3.14 and PostgreSQL 17, not a full version matrix. One existing Starlette/AnyIO deprecation warning remains. These do not leave an active completion criterion uncovered. Dependency locking, lint/type-check tooling, and later infrastructure remain follow-up work.
@@ -470,7 +470,7 @@ introduces.
 
 ### Status
 
-- [~] In Progress — implementation verified; commit pending
+- [x] Complete — implementation verified and merged
 - Design refinement: Q1–Q5, catalog/baseline/workspace boundaries, identity rules,
   catalog release identity, incident/target semantics, restricted-role permissions,
   and the implementation coverage plan are documented.
@@ -492,9 +492,7 @@ introduces.
   `git diff --check` passed. One existing Starlette/AnyIO deprecation warning
   remains. Q1–Q5 seeded scenarios and query-plan validation remain deliberately
   deferred to their dataset/query waypoints; no new 1.4 acceptance gap is known.
-- Completion bookkeeping: keep 1.4 active until this increment, including
-  migration `0009_work_orders`, is committed.
-  No Waypoint 1.5 capability is implemented by this acceptance pass.
+- No Waypoint 1.5 capability is implemented by this acceptance pass.
 
 ---
 
@@ -553,7 +551,30 @@ Small endpoint-specific developer smoke fixtures may be introduced before this w
 
 ### Status
 
-- [ ] Complete
+- [~] In Progress — implementation verified; commit pending
+- `data/baselines/demo-1.json` supplies 5 Facilities, 12 models, 36 Components,
+  60 units, 179 stock rows, 60 Incidents, 60 WorkOrders, and 12 fixed Q1–Q5 cases.
+- `scripts/bootstrap_development.py` applies migrations and seeds/validates a
+  specified workspace; explicit refresh restores only that pinned copy. The old
+  smoke seeder is retired. Its owner/configuration safeguards are retained by
+  the shared seed-support module and the bootstrap tests; the example/local
+  configuration selects the full dataset workspace.
+- `0010_baseline_pins` records frozen manifests and workspace catalog pins.
+  Publication rejects released-content rewrites; catalog checks reject mixed
+  release references without granting workspace administration to the app role.
+- See `docs/dataset.md` for commands, identity encoding, ownership, known limits,
+  and the completion-criteria test mapping.
+- Verification (2026-09-20): 279 tests passed, no skips; one existing
+  Starlette/AnyIO deprecation warning. Coverage includes migration/model parity,
+  an empty-schema bootstrap, independent workspace copies, frozen publication,
+  release-pin enforcement under the application role, all 12 evidence scenarios,
+  and existing Facility API compatibility. `git diff --check` passed.
+- The documented development workspace `15000000-0000-4000-8000-000000000001`
+  was created and validated. Restricted-role list/detail smoke requests returned
+  200 with five Facilities. Q1–Q5 execution plans were inspected on this small
+  dataset; this is not a production-scale performance benchmark.
+- No active acceptance coverage gap is known. Final completion bookkeeping awaits
+  committing this increment; no Waypoint 1.6 API or later capability is implemented.
 
 ---
 
@@ -2028,7 +2049,7 @@ Current phase:
 
 Current recommended waypoint:
 
-**Waypoint 1.4 — Core Operational Schema**
+**Waypoint 1.5 — Synthetic Structured Dataset**
 
 The project should not begin implementing later phases until the current waypoint is complete.
 

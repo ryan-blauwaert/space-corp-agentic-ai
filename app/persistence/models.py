@@ -1,5 +1,6 @@
 """Load all ORM records into SQLAlchemy's shared declarative registry."""
 
+from app.baselines.models import BaselineRecord
 from app.equipment.models import (
     CatalogReleaseRecord,
     ComponentRecord,
@@ -12,6 +13,7 @@ from app.facilities.models import FacilityRecord
 from app.workspaces.models import WorkspaceRecord
 
 __all__ = [
+    "BaselineRecord",
     "CatalogReleaseRecord",
     "ComponentRecord",
     "EquipmentModelRecord",

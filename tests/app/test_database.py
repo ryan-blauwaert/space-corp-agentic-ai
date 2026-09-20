@@ -146,7 +146,7 @@ def test_migrations_apply(integration_migration_database_url: str) -> None:
                 text("SELECT version_num FROM alembic_version")
             ).scalar_one()
 
-        assert revision == "0009_work_orders"
+        assert revision == "0010_baseline_pins"
     finally:
         engine.dispose()
 
@@ -411,8 +411,9 @@ def test_required_text_migration_rejects_existing_invalid_data_without_rewriting
     try:
         command.downgrade(config, "0003_facility_workspace_rls")
         with database.session() as session:
-            session.add(WorkspaceRecord(id=workspace_id))
-            session.flush()
+            # This intentionally targets the pre-baseline schema. Do not use
+            # today's ORM workspace columns to construct historical test data.
+            session.execute(text("INSERT INTO workspaces (id) VALUES (:id)"), {"id": workspace_id})
             session.add(FacilityRecord(
                 id=facility_id, workspace_id=workspace_id, code=" ", name="Legacy",
                 facility_type="orbital_station", location="Orbit",

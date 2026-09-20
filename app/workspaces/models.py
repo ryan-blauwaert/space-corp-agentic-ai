@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, Uuid, func
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, ForeignKeyConstraint, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.persistence.base import Base
@@ -19,6 +19,24 @@ class WorkspaceRecord(Base):
     """Persistence record for the owner of workspace-scoped operational data."""
 
     __tablename__ = "workspaces"
+    __table_args__ = (
+        CheckConstraint(
+            "(baseline_id IS NULL) = (catalog_release_id IS NULL)",
+            name="ck_workspaces_baseline_pin_pair",
+        ),
+        ForeignKeyConstraint(
+            ["baseline_id", "catalog_release_id"],
+            ["baselines.id", "baselines.catalog_release_id"],
+            ondelete="RESTRICT", name="fk_workspaces_baseline_release",
+        ),
+    )
+
+    # Null pins preserve pre-baseline development workspaces; published copies
+    # always set both. A pinned workspace cannot be repointed to a new baseline.
+    baseline_id: Mapped[UUID | None] = mapped_column(Uuid, nullable=True)
+    catalog_release_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("catalog_releases.id", ondelete="RESTRICT"), nullable=True
+    )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
     created_at: Mapped[datetime] = mapped_column(

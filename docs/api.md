@@ -18,10 +18,11 @@ added or changed, but do not duplicate every generated schema here.
 ## Current Facility API
 
 Configure both `SPACE_CORP_DATABASE_URL` and `SPACE_CORP_DEFAULT_WORKSPACE_ID`
-before starting the Facility API. Run `python -m scripts.seed_development_data`
-after migrations and application-role provisioning to create the configured local
-workspace and restore the catalog, Facility, equipment-unit, and inventory smoke
-dataset. The API is read-only; development seeding uses the migration-owner
+before starting the Facility API. After one-time role provisioning, run
+`.venv/bin/python -m scripts.bootstrap_development --validate` to apply migrations
+and create or verify the configured workspace from the versioned baseline.
+The canonical dataset contains five Facilities; see the [dataset guide](dataset.md)
+for initial setup and explicit refresh. The API is read-only; development seeding uses the migration-owner
 connection while the running application uses the restricted application role.
 
 | Request | Operation ID | Successful response |

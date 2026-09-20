@@ -89,9 +89,11 @@ No particular agent framework, workflow framework, vector database, or deploymen
 
 **Phase 1 — Structured Operational Backend**
 
-The latest completed waypoint is **1.3 — Facility API**; **1.4 — Core Operational Schema** has passed acceptance verification and awaits commit bookkeeping. The backend includes typed configuration, PostgreSQL migrations, catalog/equipment/inventory and incident/work-order persistence, workspace isolation, and read-only Facility list/detail endpoints. See the [roadmap](docs/roadmap.md) for verification and completion status.
-
-Advanced AI capabilities are intentionally not being implemented yet.
+Waypoint 1.4 is complete. Waypoint 1.5 adds the versioned operational dataset,
+frozen catalog/baseline publication, and independent workspace copies. See the
+[dataset guide](docs/dataset.md) for setup, bootstrap, refresh, validation, and
+Facility API smoke commands. The [roadmap](docs/roadmap.md) records acceptance
+and commit status. AI capabilities and new operational read APIs remain later work.
 
 ## Planned Capability Areas
 
@@ -220,14 +222,14 @@ PostgreSQL is required for the Phase 1 persistence, migration, and integration c
 Configure the migration-owner URL before applying migrations:
 
 ```bash
-alembic upgrade head
-python -m scripts.seed_development_data
+.venv/bin/python -m scripts.bootstrap_development --validate
 ```
 
-The seed command uses the configured migration-owner connection to create the
-local workspace when needed and restore a small deterministic catalog, Facility,
-and equipment-unit dataset for curl or Postman smoke testing. It is
-development-only and safe to rerun.
+After one-time role provisioning, this command applies migrations and uses the
+configured migration-owner connection to create or validate the complete versioned
+dataset. Ordinary reruns preserve workspace edits; `--refresh` explicitly restores
+the selected workspace. See [the dataset guide](docs/dataset.md) for setup and
+switching an existing installation to the canonical dataset.
 
 Copy the test configuration template once before running real PostgreSQL checks:
 

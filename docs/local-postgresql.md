@@ -61,6 +61,14 @@ localhost:5432:space_corp_test:space_corp_app:<application-role-password>
 chmod 600 ~/.pgpass
 ```
 
+## Full operational dataset (Waypoint 1.5)
+
+After the one-time migration and role setup above, use the repeatable command in
+[the dataset guide](dataset.md). It applies pending migrations and creates or
+validates a new pinned workspace. Use a new workspace UUID for the full dataset;
+any older workspace is preserved. The bootstrap command is the sole supported
+seeding path.
+
 ## Local Application Configuration
 
 Copy the repository template to the ignored local configuration file:
@@ -71,33 +79,30 @@ cp .env.example .env
 
 The migration-owner connection is the URL whose PostgreSQL login owns the schema—in this setup, `space_corp`. It is separate from the restricted `space_corp_app` URL used by the running API. Administrative development tasks need the owner connection because `space_corp_app` intentionally cannot create or inspect workspace records and is constrained by row-level security. The seed command verifies table ownership rather than trusting the username written in the URL.
 
-After applying migrations and provisioning the application role, populate the
-configured workspace with the repeatable catalog, Facility, equipment-unit, and
-inventory smoke dataset:
+After one-time role provisioning, set `SPACE_CORP_DEFAULT_WORKSPACE_ID` in `.env`
+to `15000000-0000-4000-8000-000000000001` (the value in `.env.example`) or another
+new workspace UUID, then run:
 
 ```bash
-python -m scripts.seed_development_data
+.venv/bin/python -m scripts.bootstrap_development --validate
 ```
 
-The command reads `SPACE_CORP_MIGRATION_DATABASE_URL` and
-`SPACE_CORP_DEFAULT_WORKSPACE_ID` from `.env`. It creates the workspace when
-necessary and creates or restores one catalog release, two equipment models,
-three component types, three model-component compatibility links, three
-deterministic Facilities, two deployed equipment units, and three inventory
-records. The inventory examples include a known stockout, below-reorder stock,
-and a quantity equal to its reorder point; a compatible component is
-intentionally absent from Lunar Operations One. Re-running it is safe and
-restores canonical smoke values without adding duplicates. It refuses
-non-development environments and databases whose names begin with
-`space_corp_test`.
+This applies pending migrations, publishes/verifies the frozen baseline, and seeds
+or validates the selected workspace. An existing nonempty unpinned workspace is
+rejected rather than overwritten. Ordinary reruns preserve edits; `--refresh`
+explicitly restores that pinned copy. The [dataset guide](dataset.md) documents
+counts, identity mapping, publication rules, and API smoke requests.
 
-Verify the running API against the seeded data:
+Restart the API after changing its workspace configuration. Its list endpoint
+should now return five Facilities with `pagination.total` equal to `5`:
 
 ```bash
-curl http://127.0.0.1:8000/facilities
+curl -fsS 'http://127.0.0.1:8000/facilities?limit=5'
 ```
 
-`.env` is ignored. Its database URLs use the restricted `space_corp_app` login for the running API and the `space_corp` migration-owner login for Alembic; passwords remain in `~/.pgpass`, not in `.env`. The application loads `.env` automatically, validates the database URL and workspace ID, and checks database reachability before it begins serving requests. Process environment variables override `.env` values for deployment or temporary command-level changes.
+`.env` is ignored. Keep the API URL on the restricted `space_corp_app` role and
+the migration URL on the schema owner. Passwords remain outside the repository.
+Explicit process environment variables take precedence over `.env`.
 
 ## Migration and Test Commands
 
