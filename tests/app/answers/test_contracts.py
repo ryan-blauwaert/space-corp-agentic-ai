@@ -1,14 +1,15 @@
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import pytest
 from pydantic import ValidationError
 
 from app.answers.contracts import (
     ANSWER_OUTCOME,
-    AnswerDraft,
     AnswerRequest,
     AnswerResponse,
+    FactSelection,
     RecordReference,
+    RenderedAnswer,
 )
 from app.queries.contracts import QueryContext, QueryResponse
 from app.queries.service import QueryOutcome
@@ -88,20 +89,27 @@ def test_declined_query_cannot_claim_evidence_or_approval(mutation):
 @pytest.mark.parametrize("text", ["", "  ", "x" * 12001])
 def test_invalid_answer_text(text):
     with pytest.raises(ValidationError):
-        AnswerDraft(text=text, references=())
+        RenderedAnswer(text=text, references=())
 
 
-def test_typed_unique_references_and_forbidden_authority_fields():
-    reference = RecordReference(entity="inventory", record_id=UUID(int=1))
+def test_selection_forbids_prose_values_and_authority():
+    key = "a" * 64 + ":0"
     with pytest.raises(ValidationError, match="unique"):
-        AnswerDraft(text="Stock is low.", references=(reference, reference))
-    for extra in ({"workspace_id": str(uuid4())}, {"scope_status": "confirmed"}):
+        FactSelection(fact_ids=(key, key))
+    for extra in (
+        {"text": "quantity is 999"},
+        {"value": 999},
+        {"references": []},
+        {"claims": []},
+        {"workspace_id": str(uuid4())},
+        {"coverage": "complete"},
+    ):
         with pytest.raises(ValidationError):
-            AnswerDraft.model_validate({"text": "Stock is low.", "references": [], **extra})
+            FactSelection.model_validate({"fact_ids": [key], **extra})
     with pytest.raises(ValidationError):
         RecordReference(entity="customer", record_id=uuid4())
     with pytest.raises(ValidationError):
-        RecordReference(entity="inventory", record_id="invented")
+        FactSelection(fact_ids=("invented",))
 
 
 @pytest.mark.parametrize(
@@ -136,5 +144,4 @@ def test_answered_outcome_keeps_caller_owned_coverage(coverage):
         }
     )
     assert outcome.coverage == coverage
-    # Schema acceptance is deliberately not presented as factual validation.
-    assert AnswerDraft(text="An unsupported claim.", references=()).text
+    # RenderedAnswer is an output value; the renderer never accepts it as input.

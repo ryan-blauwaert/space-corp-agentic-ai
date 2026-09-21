@@ -1,18 +1,14 @@
-"""Deterministic evidence checks, not a semantic judge for natural-language prose."""
+"""Returned identity membership, bounded selection, and cautious responses."""
 
-import re
 from typing import Literal
 from uuid import UUID
 
 from pydantic import ValidationError
 
 from app.answers.contracts import (
-    AnswerDraft,
-    Answered,
-    AnswerOutcome,
     AnswerRequest,
     CautiousAnswer,
-    EvidenceClaim,
+    FactSelection,
     RecordReference,
 )
 from app.queries.contracts import DeclinedPlan, QueryResult
@@ -44,10 +40,6 @@ _IDENTITIES: dict[
     "incident_equipment_unit_id": "equipment_unit",
     "target_equipment_unit_id": "equipment_unit",
 }
-_UUID = re.compile(
-    r"(?<![0-9a-f])(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{32})(?![0-9a-f])",
-    re.IGNORECASE,
-)
 
 
 def evidence_references(result: QueryResult) -> frozenset[RecordReference]:
@@ -70,19 +62,6 @@ def evidence_references(result: QueryResult) -> frozenset[RecordReference]:
 
     visit(result.model_dump(mode="json"))
     return frozenset(found)
-
-
-def claim_matches(claim: EvidenceClaim, result: QueryResult) -> bool:
-    """Reject missing paths, null/zero confusion, coercion, and row/value swaps."""
-    value: object = result.model_dump(mode="json")
-    for part in claim.path:
-        if isinstance(value, dict) and isinstance(part, str) and part in value:
-            value = value[part]
-        elif isinstance(value, list) and type(part) is int and 0 <= part < len(value):
-            value = value[part]
-        else:
-            return False
-    return type(value) is type(claim.value) and value == claim.value
 
 
 def cautious_response(request: AnswerRequest) -> CautiousAnswer | None:
@@ -116,7 +95,10 @@ def cautious_response(request: AnswerRequest) -> CautiousAnswer | None:
             if result.status == "no_incident_match":
                 text = "No incident matched the requested condition, so this conditional query returned no compatible components."
             elif result.status == "no_compatibility":
-                text = "No compatible components were returned for this query. This does not establish whether components are in stock."
+                text = "No compatible components were returned for this query."
+                if result.incident_ids:
+                    text += " Matching incidents were returned."
+                text += " This does not establish whether components are in stock."
         return CautiousAnswer(reason="no_results", text=text)
     if not result.page.rows:
         return CautiousAnswer(
@@ -137,39 +119,10 @@ def failed_answer(reason: Literal["invalid_answer", "model_failure"]) -> Cautiou
     )
 
 
-def validate_draft(request: AnswerRequest, draft: AnswerDraft) -> AnswerOutcome:
-    """Check declared facts and IDs; passing does not certify the prose's meaning.
-
-    Invalid trusted input raises ValidationError. Invalid model output is withheld.
-    This function never queries, generates, approves scope, or logs content.
-    """
-    request = AnswerRequest.model_validate(request.model_dump(warnings=False))
-    cautious = cautious_response(request)
-    if cautious is not None:
-        return cautious
+def validate_selection(selection: FactSelection, allowed_ids: set[str]) -> bool:
+    """Reject forged schema/IDs; a selection never supplies evidence or sentence text."""
     try:
-        draft = AnswerDraft.model_validate(draft.model_dump(warnings=False))
+        selection = FactSelection.model_validate(selection.model_dump(warnings=False))
     except ValidationError:
-        return failed_answer("invalid_answer")
-    assert request.query.response is not None
-    result = request.query.response.result
-    allowed = evidence_references(result)
-    supplied = set(draft.references)
-    mentioned = {UUID(match[0]) for match in _UUID.finditer(draft.text)}
-    if (
-        not supplied <= allowed
-        or not mentioned <= {reference.record_id for reference in supplied}
-        or not draft.claims
-        or not all(claim_matches(claim, result) for claim in draft.claims)
-    ):
-        return failed_answer("invalid_answer")
-    page = result.page
-    complete = page.offset == 0 and len(page.rows) == page.total
-    if not complete:
-        notice = f"Partial results: this page contains {len(page.rows)} of {page.total} matching records. "
-        if len(notice) + len(draft.text) > 12000:
-            return failed_answer("invalid_answer")
-        draft = AnswerDraft(
-            text=notice + draft.text, references=draft.references, claims=draft.claims
-        )
-    return Answered(answer=draft, coverage="complete" if complete else "partial")
+        return False
+    return set(selection.fact_ids) <= allowed_ids
