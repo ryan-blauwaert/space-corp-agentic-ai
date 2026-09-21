@@ -9,6 +9,7 @@ import time
 from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from datetime import UTC, datetime
+from enum import StrEnum
 from pathlib import Path
 from typing import Any
 from uuid import UUID, uuid4
@@ -17,8 +18,16 @@ from sqlalchemy import text
 
 from app.config import Settings
 from app.database import Database
+from app.equipment.domain import EquipmentOperationalStatus
 from app.llm.configuration import configured_provider
+from app.llm.contracts import ReasoningEffort
 from app.llm.service import ModelService
+from app.operations.domain import (
+    IncidentSeverity,
+    IncidentStatus,
+    WorkOrderPriority,
+    WorkOrderStatus,
+)
 from app.queries.contracts import DeclinedPlan, Frozen, QueryContext, QueryPageRequest
 from app.queries.equipment import EquipmentQueryExecutor
 from app.queries.errors import QueryError
@@ -43,6 +52,8 @@ class CaseScore(Frozen):
     operation_id: UUID
     planning_operation_id: UUID | None = None
     returned_model_id: str | None = None
+    actual_plan: dict[str, Any] | None = None
+    scope_status: str = "not_required"
     actual_operation: str | None = None
     actual_decline_reason: str | None = None
     mismatched_plan_fields: tuple[str, ...] = ()
@@ -57,6 +68,8 @@ class CaseScore(Frozen):
 
 class EvaluationReport(Frozen):
     report_version: str = "3"
+    execution_mode: str = "legacy_automatic"
+    reasoning_effort: ReasoningEffort | None = None
     dataset_purpose: str
     implementation_sha256: str
     prompt_sha256: str
@@ -85,7 +98,21 @@ def _canonical(value: Any) -> Any:
                 return {"operator": "lt", "value": value["value"] + 1}
             if value["operator"] == "gte":
                 return {"operator": "gt", "value": value["value"] - 1}
-        return {key: _canonical(item) for key, item in value.items()}
+        # Only non-null attributes of already-selected rows: existence predicates are different.
+        domain_enums: dict[str, dict[str, type[StrEnum]]] = {
+            "incidents": {"statuses": IncidentStatus, "severities": IncidentSeverity},
+            "work_orders": {"statuses": WorkOrderStatus, "priorities": WorkOrderPriority},
+            "facility_equipment": {"unit_statuses": EquipmentOperationalStatus},
+        }
+        selection_enums = domain_enums.get(value.get("operation", ""), {})
+        return {
+            key: None
+            if key in selection_enums
+            and isinstance(item, list)
+            and set(item) == {member.value for member in selection_enums[key]}
+            else _canonical(item)
+            for key, item in value.items()
+        }
     if isinstance(value, list):
         return sorted(value)
     return value
@@ -140,6 +167,8 @@ def score_case(expected: ResolvedCase, actual: QueryOutcome, duration_ms: float)
         operation_id=actual.context.operation_id,
         planning_operation_id=actual.planning_operation_id,
         returned_model_id=actual.returned_model_id,
+        actual_plan=actual.plan.model_dump(mode="json"),
+        scope_status=actual.scope_status,
         actual_operation=actual.plan.operation,
         actual_decline_reason=actual.plan.reason if isinstance(actual.plan, DeclinedPlan) else None,
         mismatched_plan_fields=mismatched_fields,
@@ -188,8 +217,9 @@ def evaluate(
     manifest: Manifest,
     *,
     max_attempts: int,
+    reasoning_effort: ReasoningEffort | None = None,
 ) -> EvaluationReport:
-    """Expectations stay in the scorer; the service sees only question and trusted context."""
+    """Plan first; simulate exact-plan review locally, never teaching the model expected intent."""
     started = datetime.now(UTC)
     scores = []
     for fixture in dataset.cases:
@@ -198,6 +228,16 @@ def evaluate(
         tick = time.monotonic()
         try:
             outcome = service.ask(context, case.question, QueryPageRequest(limit=100))
+            # Synthetic reviewer simulation, AFTER planning: never send expectations to the model.
+            # Approve only a supported plan whose full intent matches the independent oracle.
+            if (
+                outcome.scope_status == "awaiting_confirmation"
+                and case.execution_allowed
+                and not isinstance(outcome.plan, DeclinedPlan)
+                and _canonical(outcome.plan.model_dump(mode="json"))
+                == _canonical(case.expected_plan.model_dump(mode="json"))
+            ):
+                outcome = service.confirm_scope(context, outcome, outcome.plan)
             score = score_case(case, outcome, (time.monotonic() - tick) * 1000)
         except Exception as error:
             score = CaseScore(
@@ -210,12 +250,19 @@ def evaluate(
             )
         scores.append(score)
         print(
-            json.dumps({"event": "evaluation_case", **score.model_dump(mode="json")}),
+            json.dumps(
+                {
+                    "event": "evaluation_case",
+                    **score.model_dump(mode="json", exclude={"actual_plan"}),
+                }
+            ),
             file=sys.stderr,
             flush=True,
         )
     passed = sum(score.passed for score in scores)
     return EvaluationReport(
+        execution_mode="scope_confirmation",
+        reasoning_effort=reasoning_effort,
         run_id=uuid4(),
         started_at=started,
         dataset_version=dataset.version,
@@ -301,6 +348,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 dataset,
                 manifest,
                 max_attempts=options.max_attempts,
+                reasoning_effort=settings.llm_reasoning_effort,
             )
         print(report.model_dump_json(indent=2))
         return 0 if report.failed == 0 else 1

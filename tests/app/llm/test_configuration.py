@@ -40,11 +40,17 @@ def test_configured_model_and_client_lifetime(monkeypatch, fail_inside):
 
     monkeypatch.setattr("app.llm.configuration.OpenAI", construct)
     monkeypatch.setenv("OPENAI_BASE_URL", "https://untrusted.invalid")
-    settings = Settings(_env_file=None, llm_model_id="chosen-model", llm_api_key="test-key")
+    settings = Settings(
+        _env_file=None,
+        llm_model_id="chosen-model",
+        llm_api_key="test-key",
+        llm_reasoning_effort="medium",
+    )
     assert "test-key" not in repr(settings)
     try:
         with configured_provider(settings) as provider:
             assert provider.model_id == "chosen-model"
+            assert provider.reasoning_effort == "medium"
             assert not clients[0].is_closed()
             if fail_inside:
                 raise RuntimeError("test")

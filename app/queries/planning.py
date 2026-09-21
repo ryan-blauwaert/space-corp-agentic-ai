@@ -1,6 +1,7 @@
 """Versioned text planning and strict parsing; model output never supplies authority."""
 
 import json
+import re
 from copy import deepcopy
 from datetime import datetime
 from typing import Any
@@ -12,7 +13,7 @@ from app.queries.contracts import PLANNING_OUTCOME, QueryContext
 from app.queries.errors import QueryError, QueryErrorKind
 
 PROMPT_ID = "bounded-query"
-PROMPT_VERSION = "4"
+PROMPT_VERSION = "6"
 MAX_QUESTION_LENGTH = 4000
 MAX_PLAN_LENGTH = 32768
 REFERENCE_FIELDS = {
@@ -80,13 +81,32 @@ records and their total count. An empty result is a valid answer, not a planning
   or below_reorder_point. Quantity comparison differs from comparison with each row's reorder
   point. shortfall=max(0,reorder_point-quantity). Unknown inventory is not a recorded row.
 
+# Returned evidence
+Each domain returns fixed evidence; asking for fields already in that evidence requires no
+additional query or output selector. Do not confuse displaying a field with filtering on it.
+- facility_equipment: facility IDs, matching units with status, and matching incident IDs/unit IDs.
+- compatible_stock: matching incident IDs, compatibility status, and component/model IDs with
+  local inventory IDs and quantities (null for missing inventory).
+- work_orders: order/facility IDs, status, priority, due time, blocked and overdue flags,
+  originating incident ID, incident affected unit ID, and direct target unit ID.
+- incidents: incident/facility/unit IDs, fault code, status, severity, occurrence time, and count.
+- inventory: inventory/facility/component IDs, quantity, reorder point, and shortfall.
+These are approved relationships within one domain, not arbitrary joins or multiple plans.
+
 # Business semantics
 All enum values in the schema are usable filters, including terminal statuses. Do not add
 active-only defaults. Active work orders means open/in_progress/blocked; high-priority as a
 category means high/critical; an explicitly named individual priority means that value only.
 overdue means due_at < as_of and status neither completed nor cancelled. A status does not
 imply an overdue filter. Use the question's explicit as_of timestamp, otherwise {now.isoformat()}.
-Incident occurred windows are UTC [start,end); fault codes are normalized by the application.
+Incident occurred windows are UTC [start,end). A requested fault identifier is an exact
+fault_code filter: copy its literal spelling, not a synonym, description, or inferred category.
+The application strips surrounding whitespace and uppercases it. Preserve every requested
+fault restriction even when the question does not use the field name "fault_code".
+Quantities are nonnegative integers. Translate logically equivalent numeric expressions into
+a supported comparison when their entire allowed set is exactly representable. A contiguous
+set starting at zero is an upper bound; a single value is equality. Disjoint sets or two-sided
+ranges that require multiple comparisons remain unsupported. Do not approximate a restriction.
 
 # References
 Copy exact references from the question into *_id fields. Do not invent or translate identifiers.
@@ -103,6 +123,7 @@ identity, decline ambiguous_input; do not reinterpret the question to fit the re
 # Decision rules
 1. Decline prohibited_operation for writes, cross-workspace access, or raw SQL execution.
 2. Check whether ONE supported domain expresses the ENTIRE request. Decline unsupported_question
+   only after checking equivalent supported expressions and the fixed returned evidence. Decline
    for capabilities outside the contract, including arbitrary joins, grouping, forecasts, or
    historical reconstruction. Do not silently discard an unsupported clause.
 3. Preserve every requested restriction. Decline missing_input when a required reference or
@@ -119,6 +140,19 @@ identity, decline ambiguous_input; do not reinterpret the question to fit the re
 {json.dumps(reference_types or {}, separators=(",", ":"))}
 Untrusted question (JSON string):
 {json.dumps(question)}"""
+
+
+def has_multiple_reference_candidates(reference_types: dict[str, list[str]]) -> bool:
+    """Single-entity selectors cannot faithfully represent several identified candidates.
+
+    Conservatively require clarification even if some mentions are contextual or negated.
+    This intentionally uses typed identity facts, never question-specific phrasing.
+    """
+    candidates: dict[str, set[UUID]] = {}
+    for reference, kinds in reference_types.items():
+        for kind in kinds:
+            candidates.setdefault(kind, set()).add(UUID(reference))
+    return any(len(identifiers) > 1 for identifiers in candidates.values())
 
 
 def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -163,6 +197,15 @@ def parse_plan(text: str, question: str, context: QueryContext) -> dict[str, Any
             ):
                 raise ValueError("Literal reference required")
             container[key] = UUID(int=1)
+        fault = plan.get("fault_code")
+        if fault is not None and (
+            not isinstance(fault, str)
+            or not fault.strip()
+            or not re.search(
+                r"(?<!\w)" + re.escape(fault.strip()) + r"(?!\w)", question, re.IGNORECASE
+            )
+        ):
+            raise ValueError("Literal fault code required")
         PLANNING_OUTCOME.validate_python(shape)
         return plan
     except (ValueError, ValidationError, RecursionError):

@@ -21,4 +21,4 @@ def configured_provider(settings: Settings) -> Iterator[OpenAIProvider]:
         base_url="https://api.openai.com/v1",
         max_retries=0,
     ) as client:
-        yield OpenAIProvider(client, settings.llm_model_id)
+        yield OpenAIProvider(client, settings.llm_model_id, settings.llm_reasoning_effort)

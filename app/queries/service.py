@@ -6,7 +6,7 @@ import time
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID, uuid4
 
 from pydantic import Field, ValidationError
@@ -16,11 +16,13 @@ from app.llm.contracts import ModelCallContext, ModelFinishReason, ModelRequest
 from app.llm.errors import ModelCallError
 from app.llm.service import ModelService
 from app.queries.contracts import (
+    QUERY_PLAN,
     DeclinedPlan,
     Frozen,
     PlanningOutcome,
     QueryContext,
     QueryPageRequest,
+    QueryPlan,
     QueryResponse,
 )
 from app.queries.equipment import EquipmentQueryExecutor
@@ -30,6 +32,7 @@ from app.queries.planning import (
     MAX_QUESTION_LENGTH,
     PROMPT_ID,
     PROMPT_VERSION,
+    has_multiple_reference_candidates,
     parse_plan,
     planning_prompt,
 )
@@ -43,6 +46,8 @@ class QueryOutcome(Frozen):
     planning_operation_id: UUID
     resolution_operation_id: UUID
     returned_model_id: str | None = None
+    scope_status: Literal["not_required", "awaiting_confirmation", "confirmed"] = "not_required"
+    page_request: QueryPageRequest = Field(default_factory=QueryPageRequest)
     plan: PlanningOutcome = Field(repr=False)
     response: QueryResponse | None = Field(default=None, repr=False)
 
@@ -132,6 +137,11 @@ class QueryService:
             if result.finish_reason != ModelFinishReason.COMPLETED:
                 raise QueryError(context, QueryErrorKind.MODEL_FAILURE)
             proposal = parse_plan(result.text, question, context)
+            if proposal["operation"] != "declined" and has_multiple_reference_candidates(
+                {reference: list(kinds) for reference, kinds in reference_types.items()}
+            ):
+                proposal = {"operation": "declined", "reason": "ambiguous_input"}
+                trace["reference_guard"] = "multiple_candidates"
             trace["operation"] = proposal["operation"]
             if proposal["operation"] == "declined":
                 trace["outcome"] = "declined"
@@ -140,22 +150,81 @@ class QueryService:
             trace["operation"] = plan.operation
             if isinstance(plan, DeclinedPlan):
                 trace["outcome"] = "declined"
-        response = None
-        if not isinstance(plan, DeclinedPlan):
-            with _trace(context, context.operation_id, "query_execution") as trace:
-                trace["operation"] = plan.operation
-                executor = (
-                    self.equipment
-                    if plan.operation in ("facility_equipment", "compatible_stock")
-                    else self.operations
-                )
-                response = executor.execute(context, plan, page)
-                trace.update(total=response.result.page.total, rows=len(response.result.page.rows))
-        return QueryOutcome(
+        outcome = QueryOutcome(
             context=context,
             planning_operation_id=planning_id,
             resolution_operation_id=resolution_id,
             returned_model_id=result.returned_model_id,
             plan=plan,
-            response=response,
+            page_request=page,
         )
+        if isinstance(plan, DeclinedPlan):
+            return outcome
+        if needs_scope_confirmation(plan):
+            with _trace(context, uuid4(), "query_scope") as trace:
+                trace.update(operation=plan.operation, outcome="awaiting_confirmation")
+            return outcome.model_copy(update={"scope_status": "awaiting_confirmation"})
+        return outcome.model_copy(update={"response": self._execute(context, plan, page)})
+
+    def confirm_scope(
+        self, context: QueryContext, proposal: QueryOutcome, approved_plan: QueryPlan
+    ) -> QueryOutcome:
+        """Trusted caller confirms the exact resolved plan; this is not a model tool.
+
+        No blanket allow flag, default workspace-wide permission, or second model call.
+        Authorization and reference visibility are still rechecked by the executor.
+        """
+        try:
+            context = QueryContext.model_validate(context.model_dump(warnings=False))
+            proposal = QueryOutcome.model_validate(proposal.model_dump(warnings=False))
+            approved_plan = QUERY_PLAN.validate_python(approved_plan.model_dump(warnings=False))
+            if (
+                context != proposal.context
+                or proposal.scope_status != "awaiting_confirmation"
+                or proposal.response is not None
+                or isinstance(proposal.plan, DeclinedPlan)
+                or approved_plan != proposal.plan
+            ):
+                raise ValueError("Approval must match the pending plan and caller context")
+        except (ValueError, ValidationError):
+            raise QueryError(context, QueryErrorKind.INVALID_PLAN) from None
+        response = self._execute(context, approved_plan, proposal.page_request, confirmed=True)
+        return proposal.model_copy(update={"scope_status": "confirmed", "response": response})
+
+    def _execute(
+        self,
+        context: QueryContext,
+        plan: QueryPlan,
+        page: QueryPageRequest,
+        *,
+        confirmed: bool = False,
+    ) -> QueryResponse:
+        with _trace(context, context.operation_id, "query_execution") as trace:
+            trace.update(operation=plan.operation, scope_confirmed=confirmed)
+            executor = (
+                self.equipment
+                if plan.operation in ("facility_equipment", "compatible_stock")
+                else self.operations
+            )
+            response = executor.execute(context, plan, page)
+            trace.update(total=response.result.page.total, rows=len(response.result.page.rows))
+            return response
+
+
+def needs_scope_confirmation(plan: QueryPlan) -> bool:
+    """Scope must be anchored to a specific facility/unit/incident or reviewed by the caller.
+
+    Catalog filters, facility types/locations, and status filters can cover several
+    facilities. They never imply permission to broaden a missing facility reference.
+    """
+    if plan.operation == "compatible_stock":
+        return False  # The executor derives one facility from the required unit.
+    if plan.facility.facility_id is not None:
+        return False
+    if plan.operation == "incidents" and plan.equipment_unit_id is not None:
+        return False
+    if plan.operation == "work_orders" and (
+        plan.target_equipment_unit_id is not None or plan.originating_incident_id is not None
+    ):
+        return False
+    return True

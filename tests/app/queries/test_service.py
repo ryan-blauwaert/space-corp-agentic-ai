@@ -113,6 +113,9 @@ def test_supported_fixtures_complete_model_to_database_path(query_data, case, ca
         ctx = context(workspace)
         with caplog.at_level(logging.INFO):
             outcome = subject.ask(ctx, expected.question, QueryPageRequest(limit=100))
+            if outcome.scope_status == "awaiting_confirmation":
+                assert outcome.response is None
+                outcome = subject.confirm_scope(ctx, outcome, expected.expected_plan)
         assert outcome.plan == expected.expected_plan
         assert outcome.response.result == expected.expected_result
         assert outcome.response.context == ctx
@@ -127,7 +130,9 @@ def test_supported_fixtures_complete_model_to_database_path(query_data, case, ca
             == 3
         )
         events = [json.loads(r.message) for r in caplog.records if r.name == "app.queries.service"]
-        assert [e["event"] for e in events[-3:]] == [
+        assert [
+            e["event"] for e in events if e["event"] not in ("query_grounding", "query_scope")
+        ] == [
             "query_planning",
             "query_resolution",
             "query_execution",
@@ -147,7 +152,8 @@ def test_execution_failure_has_safe_correlated_trace(caplog):
     subject.operations = Mock()
     subject.operations.execute.side_effect = QueryError(ctx, QueryErrorKind.DATABASE_UNAVAILABLE)
     with caplog.at_level(logging.INFO), pytest.raises(QueryError, match="database_unavailable"):
-        subject.ask(ctx, "private question")
+        proposal = subject.ask(ctx, "private question")
+        subject.confirm_scope(ctx, proposal, proposal.plan)
     events = [json.loads(r.message) for r in caplog.records if r.name == "app.queries.service"]
     assert events[-1]["event"] == "query_execution"
     assert events[-1]["operation_id"] == str(ctx.operation_id)
@@ -189,3 +195,99 @@ def test_grounding_failure_prevents_model_call_and_has_safe_trace(monkeypatch, c
     assert [event["event"] for event in events] == ["query_grounding"]
     assert events[0]["error_kind"] == "database_unavailable"
     assert "private question" not in caplog.text
+
+
+@pytest.mark.parametrize(
+    "proposal",
+    [
+        {"operation": "inventory", "below_reorder_point": True},
+        {"operation": "inventory", "facility": {"facility_type": "lunar_installation"}},
+        {"operation": "incidents", "fault_code": "BLOWER"},
+        {"operation": "facility_equipment", "unit_statuses": ["offline"]},
+        {"operation": "work_orders", "as_of": "2026-01-31T12:00:00Z"},
+    ],
+)
+def test_unanchored_proposal_never_executes_without_exact_plan_confirmation(proposal, caplog):
+    database = Mock(spec=Database)
+    subject, provider = service(database, json.dumps(proposal))
+    subject.operations = Mock()
+    subject.equipment = Mock()
+    with caplog.at_level(logging.INFO):
+        pending = subject.ask(
+            context(), "Records with BLOWER fault", QueryPageRequest(limit=7, offset=2)
+        )
+    assert pending.scope_status == "awaiting_confirmation"
+    assert pending.response is None
+    assert pending.page_request == QueryPageRequest(limit=7, offset=2)
+    subject.operations.execute.assert_not_called()
+    subject.equipment.execute.assert_not_called()
+    database.query_session.assert_not_called()
+    assert len(provider.requests) == 1
+    assert '"outcome":"awaiting_confirmation"' in caplog.text
+    assert "query_execution" not in caplog.text
+
+
+@pytest.mark.parametrize(
+    "fault", ["workspace", "request", "operation", "plan", "page", "not_pending", "declined"]
+)
+def test_scope_confirmation_rejects_changed_approval_or_context_before_execution(fault):
+    from app.queries.contracts import InventoryPlan
+
+    subject, provider = service(Mock(spec=Database), '{"operation":"inventory"}')
+    ctx = context()
+    pending = subject.ask(ctx, "Show stock")
+    approved = pending.plan
+    if fault in ("workspace", "request", "operation"):
+        ctx = ctx.model_copy(update={fault + "_id": uuid4()})
+    elif fault == "plan":
+        approved = InventoryPlan(operation="inventory", below_reorder_point=True)
+    elif fault == "page":
+        pending = pending.model_copy(
+            update={"page_request": QueryPageRequest.model_construct(limit=999)}
+        )
+    elif fault == "not_pending":
+        pending = pending.model_copy(update={"scope_status": "confirmed"})
+    else:
+        pending = pending.model_copy(
+            update={"plan": DeclinedPlan(operation="declined", reason="missing_input")}
+        )
+    subject.operations = Mock()
+    with pytest.raises(QueryError, match="invalid_plan"):
+        subject.confirm_scope(ctx, pending, approved)
+    subject.operations.execute.assert_not_called()
+    assert len(provider.requests) == 1
+
+
+@pytest.mark.parametrize(
+    "proposal,requires_review",
+    [
+        ({"operation": "inventory"}, True),
+        ({"operation": "incidents", "equipment_model_id": str(uuid4())}, True),
+        ({"operation": "inventory", "component_id": str(uuid4())}, True),
+        ({"operation": "inventory", "facility": {"location": "Hangar"}}, True),
+        ({"operation": "inventory", "facility": {"facility_id": str(uuid4())}}, False),
+        ({"operation": "incidents", "equipment_unit_id": str(uuid4())}, False),
+        ({"operation": "compatible_stock", "equipment_unit_id": str(uuid4())}, False),
+        (
+            {
+                "operation": "work_orders",
+                "as_of": "2026-01-31T12:00:00Z",
+                "originating_incident_id": str(uuid4()),
+            },
+            False,
+        ),
+        (
+            {
+                "operation": "work_orders",
+                "as_of": "2026-01-31T12:00:00Z",
+                "target_equipment_unit_id": str(uuid4()),
+            },
+            False,
+        ),
+    ],
+)
+def test_scope_gate_uses_typed_anchors_not_question_phrases(proposal, requires_review):
+    from app.queries.contracts import QUERY_PLAN
+    from app.queries.service import needs_scope_confirmation
+
+    assert needs_scope_confirmation(QUERY_PLAN.validate_python(proposal)) is requires_review

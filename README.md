@@ -87,22 +87,19 @@ No particular agent framework, workflow framework, vector database, or deploymen
 
 ## Current Status
 
-**Phase 2 — Minimum Viable Product; Waypoint 2.2 in progress**
+**Phase 2 — Minimum Viable Product; Waypoint 2.2 complete**
 
 The operational backend, versioned dataset, read-only API, PR checks, and controlled
-[LLM integration](docs/llm-integration.md) are implemented. Waypoint 2.2 unit 1
-provides bounded domain query contracts and evaluation fixtures. Q1–Q5 are canonical
-examples; approved filters can be combined to express additional legitimate questions.
-Unit 2 adds read-only workspace sessions with statement timeouts. Unit 3 implements
-facility-equipment and compatible-stock execution; unit 4 completes work-order,
-incident, and inventory execution. Unit 5 adds model-guided planning, exact scoped
-entity resolution, and query tracing through the internal `QueryService`. See the
-[query workflow and usage](docs/structured-queries.md#model-guided-query-workflow-unit-5).
-Unit 6 adds the [repeatable evaluation command](docs/structured-queries.md#repeatable-evaluation-unit-6); the prior 23/24 run is development evidence. The new
-[frozen evaluation process](docs/query-evaluation.md) separates development and
-candidate holdout data. Its first assessment passed the development targets but
-missed the holdout targets; Waypoint 2.2 remains in progress.
-See the [structured-query guide](docs/structured-queries.md) for capabilities and limits.
+[LLM integration](docs/llm-integration.md) are implemented. Bounded queries support
+facility equipment, compatible stock, work orders, incidents, and inventory through
+model planning, scoped entity resolution, read-only execution, and correlated tracing.
+Q1–Q5 are examples; approved filters can express additional legitimate questions.
+
+The [frozen assessment](docs/query-evaluation.md#luna-final-assessment--2026-09-21)
+passed all 144 cases using `gpt-5.6-luna` with medium reasoning. Unanchored plans
+require explicit caller confirmation before execution; the evaluator simulates this
+review. These synthetic pilot results do not guarantee model interpretation on unseen
+requests. See the [query guide](docs/structured-queries.md) for capabilities and limits.
 
 The [dataset guide](docs/dataset.md) covers bootstrap and refresh,
 [API documentation](docs/api.md) covers existing endpoints, and the

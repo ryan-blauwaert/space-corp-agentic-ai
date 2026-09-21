@@ -168,3 +168,15 @@ def test_candidate_holdout_is_new_wording_not_relaxed_expectations():
         assert original.model_dump(exclude={"key", "question"}) == new.model_dump(
             exclude={"key", "question"}
         )
+
+
+def test_frozen_assessment_rejects_unapproved_reasoning_setting(reports):
+    change(reports[0], lambda data: data.update(reasoning_effort="medium"))
+    with pytest.raises(ValueError):
+        assess(reports)
+
+
+def test_assessment_does_not_mix_automatic_and_reviewed_execution(reports):
+    change(reports[0], lambda data: data.update(execution_mode="scope_confirmation"))
+    with pytest.raises(ValueError):
+        assess(reports)

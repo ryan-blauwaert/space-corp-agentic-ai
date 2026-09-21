@@ -312,3 +312,38 @@ def test_verified_type_reaches_planner_but_wrong_type_never_executes(query_data,
     subject.operations.execute.assert_not_called()
     assert identifier not in caplog.text
     assert '"event":"query_grounding"' in caplog.text
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    "collection,keys,shared",
+    [
+        ("facilities", ("LUN-OPS-01", "MCC-OPS-01"), False),
+        ("units", ("U001", "U002"), False),
+        ("incidents", ("I001", "I002"), False),
+        ("models", ("M01", "M02"), True),
+        ("components", ("C01", "C02"), True),
+    ],
+)
+def test_multiple_scoped_candidates_cannot_be_silently_dropped(
+    query_data, collection, keys, shared
+):
+    database, _, manifest, workspaces, _, _ = query_data
+    identifiers = [
+        shared_id(manifest.catalog.version, collection, key)
+        if shared
+        else operational_id(workspaces[0], manifest.version, collection, key)
+        for key in keys
+    ]
+    question = "Records involving " + " or ".join(str(identifier) for identifier in identifiers)
+    subject, provider = service(database, '{"operation":"inventory"}')
+    subject.operations = Mock()
+    subject.equipment = Mock()
+    outcome = subject.ask(context(workspaces[0]), question)
+    assert outcome.plan == DeclinedPlan(operation="declined", reason="ambiguous_input")
+    assert outcome.response is None
+    assert len(provider.requests) == 1
+    subject.operations.execute.assert_not_called()
+    subject.equipment.execute.assert_not_called()
+    subject, _ = service(database, '{"operation":"declined","reason":"prohibited_operation"}')
+    assert subject.ask(context(workspaces[0]), question).plan.reason == "prohibited_operation"

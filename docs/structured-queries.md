@@ -1,18 +1,16 @@
 # Structured Operational Queries
 
 **Current evaluation policy:** [Query evaluation process](query-evaluation.md) is the
-source of truth for acceptance. Earlier run summaries below are development history;
-the old single-perfect-run gate is superseded by a frozen repeated development/holdout
-assessment. The first assessment completed but missed the holdout targets: supported
-query success was 52/54 on development and 34/54 on holdout; declines passed in both.
-See the evaluation process for the complete result. Prompt version 4 adds general capability
-guidance and scoped UUID type grounding; its model accuracy has not yet been assessed.
+source of truth for acceptance. Waypoint 2.2 is complete: the frozen Luna assessment
+passed all 144 cases (72 development, 72 fresh wording holdout) with medium reasoning,
+prompt 6, and scope confirmation. Earlier failures below remain development history.
+Broad plans require exact-plan caller review before execution; the evaluator simulates
+that review. Passing this synthetic pilot does not guarantee correct interpretation of
+unseen requests or establish autonomous reliability.
 
-Waypoint 2.2 unit 1 defines contracts and evaluation fixtures; unit 2 adds the
-read-only workspace session boundary. Unit 3 implements facility-equipment and
-compatible-stock execution; unit 4 adds work-order, incident, and inventory
-execution. Unit 5 adds model-guided planning, exact scoped entity resolution, and
-query tracing. Unit 6 adds the repeatable evaluation command; live acceptance scored 23/24, so the waypoint remains in progress.
+The implemented capability includes typed bounded contracts, read-only workspace
+sessions, all five domain executors, model planning, exact scoped entity resolution,
+correlated tracing, scope confirmation, and the repeatable evaluation command.
 Answer synthesis belongs to Waypoint 2.3. Q1–Q5 are canonical
 acceptance examples, not an exhaustive list of legitimate user questions.
 
@@ -377,7 +375,7 @@ decline responses, exact scoped references, ambiguous and unavailable references
 model failures, and correlated content-free traces. Ruff lint/format, mypy, and
 whitespace checks passed. One existing Starlette/AnyIO deprecation warning remains.
 No live model calls were made; these checks verify application behavior, not actual
-model interpretation or decline accuracy. The unit 6 runner now provides that measurement; live acceptance scored 23/24, so the waypoint remains in progress.
+model interpretation or decline accuracy. The unit 6 runner now provides that measurement; the initial live evaluation scored 23/24 and kept the waypoint open at that point.
 
 After unit 4, the full suite passed: 834 tests, no failures or skips, including
 70 additional tests for operational queries and the shared execution boundary.
@@ -402,13 +400,15 @@ planning accuracy or answer quality. Waypoint 2.2 remains incomplete.
 ## Model-guided query workflow (unit 5)
 
 `QueryService.ask(context, question, page)` returns a `QueryOutcome`: a validated
-plan plus `QueryResponse` evidence, or a `DeclinedPlan` with no response. It does not
+plan plus `QueryResponse` evidence, a `DeclinedPlan` with no response, or an unexecuted
+plan with `scope_status="awaiting_confirmation"`. Unanchored plans require exact-plan
+caller confirmation before execution. It does not
 write an answer or expose an HTTP endpoint. `QueryContext` must come from trusted
 caller authorization, never from model output. `page` remains caller-owned.
 
 The implementation consists of three small modules:
 
-- `app/queries/planning.py` owns the `bounded-query` version `3` prompt and strict
+- `app/queries/planning.py` owns the `bounded-query` version `6` prompt and strict
   JSON parser. Its schema is derived from the existing query contracts, widening
   UUID fields to literal reference strings only for the model proposal.
 - `app/queries/resolution.py` resolves exact references through fixed parameterized
@@ -546,7 +546,7 @@ The 19 runner tests cover scoring regressions, failure reporting, configuration 
 argument guards, logging cleanup, preflight drift/role/oracle rejection, and the full
 24-case workflow against PostgreSQL with a controlled provider. Ruff and mypy pass;
 one existing Starlette/AnyIO deprecation warning remains. Local read-only preflight
-also passes. Live acceptance scored 23/24; Waypoint 2.2 remains in progress until the failures are resolved and reverified.
+also passes. Initial live evaluation scored 23/24; the final guarded-workflow assessment is recorded in the evaluation guide.
 
 Run from the repository root with the seeded development workspace, restricted
 `SPACE_CORP_DATABASE_URL`, `SPACE_CORP_DEFAULT_WORKSPACE_ID`, and configured
@@ -761,8 +761,8 @@ execute. However, two previously passing cases failed:
 
 The command exited 1. No retries or additional runs were made. A single run cannot
 attribute these failures conclusively to the prompt edit rather than model
-variability. The latest configuration does not satisfy the full acceptance suite;
-Waypoint 2.2 remains in progress. Further live calls require fresh explicit approval.
+variability. That configuration did not satisfy the full acceptance suite;
+Waypoint 2.2 remained in progress at that point. Further live calls require fresh explicit approval.
 This run changed documentation only; it did not change code, fixtures, or scoring.
 
 
@@ -880,3 +880,92 @@ that a real model will decline less often or interpret novel language correctly.
 The original assessment and frozen protocol remain historical evidence. Version 4 has
 not had a live evaluation. Waypoint 2.2 remains open pending the new frozen assessment
 with fresh reviewed holdout questions and explicit live-call approval.
+
+### Evidence-aware planning: prompt version 5
+
+The planner now receives the fixed returned evidence for all five domains, alongside
+filter capabilities. Requesting an already-returned field is not an extra operation
+or a filter. Exact fault identifiers must be copied literally; a parser check rejects
+invented fault codes before resolution/execution. This check cannot detect every
+omitted restriction or establish that a mentioned code was used with the right intent.
+Quantity expressions may use any exactly equivalent supported integer comparison;
+disjoint or otherwise unrepresentable restrictions must still be declined.
+
+No fixture-specific routes, new query operations, model retries, or repair loops were
+added. Local synthetic evaluation reports now include `actual_plan` for successful
+planning/resolution outcomes, including declined plans. Routine evaluation events
+exclude that field; application telemetry remains content-free. Keep reports under
+ignored `.local/`: plan values can include supplied identifiers and filter values.
+Failed parsing/resolution still yields safe error categories without raw model output.
+
+The evaluator compares complete selections of a non-null row attribute's enum with
+an unrestricted selection as equivalent. This applies to incident status/severity,
+work-order status/priority, and equipment unit status. It does not apply to incident
+existence filters: requiring an incident of any status differs from not requiring one.
+Tests cover every supported equivalence against real database results, proper subsets,
+and preservation of relationship-existence constraints. Historical scores are retained.
+
+### Application-owned ambiguity boundary
+
+After parsing, an executable proposal is conservatively declined as `ambiguous_input`
+if scoped UUID grounding identifies multiple distinct candidates of any one entity
+kind. The current selectors are single-valued: the planner may not silently select
+one candidate or omit all of them. This applies to facilities, units, incidents,
+models, and components, with no question-specific matching. Existing declined plans
+retain their reason, so prohibited requests are not reclassified.
+
+Repeated spellings of the same UUID count as one identity; different entity kinds do
+not create this conflict. The guard does not execute evidence queries or add model
+calls, and its trace contains only `reference_guard=multiple_candidates`.
+
+This is deliberately conservative: a question that identifies multiple same-kind UUIDs
+only as context, negation, or an explicit preference may still be declined. Names/codes
+are not pre-grounded, so this is not a universal ambiguity detector. Multi-reference
+interaction and richer selection contracts remain outside this increment. Independent
+model interpretation assessment is still necessary.
+
+
+## Explicit execution scope
+
+`ask()` executes automatically only when the validated plan is anchored to an identified
+facility, equipment unit, or originating incident. A model or component ID, facility
+category, location, status, or absent filter can cover multiple facilities and therefore
+requires review. This is an execution boundary based on typed plans, not a natural-language
+classifier or a list of suspicious phrases.
+
+For an unanchored plan, `QueryOutcome.scope_status` is `awaiting_confirmation`, `response`
+is null, and the exact resolved `plan` and caller-owned `page_request` are returned for
+review. Scoped identity lookups may already have happened; evidence execution has not.
+The caller must clarify the intended scope with the user. If the plan expresses the
+intended broader query, a trusted caller can invoke
+`service.confirm_scope(context, proposal, approved_plan)` using the exact reviewed plan.
+If a facility is missing, obtain its identity and submit a corrected question instead.
+Never automatically confirm every returned proposal or set a blanket workspace-wide flag.
+
+Confirmation checks the request/operation/workspace context, pending state, complete
+plan equality, and pagination bounds. It makes no model call. The executor independently
+rechecks read-only access, workspace visibility, references, and catalog pins, using a
+new read transaction. Successful confirmation returns `scope_status="confirmed"` and
+evidence. A changed plan/context is `invalid_plan`; declined or already-completed
+outcomes cannot be confirmed. The boundary is internal and stateless, not a signed
+client approval token, persisted workflow, or new HTTP route. A trusted caller can
+repeat an approved read; there is no exactly-once or snapshot guarantee.
+
+This imposes deliberate friction on legitimate broad queries while model interpretation
+remains imperfect. It prevents an omitted facility scope from immediately producing broad
+evidence; it does not prove preservation of every filter in an otherwise anchored plan.
+The existing literal-reference, ambiguity, schema, and executor checks remain in force.
+
+The evaluator now reports `execution_mode="scope_confirmation"`. After planning, its
+synthetic reviewer confirms only supported proposals whose complete normalized intent
+matches the independent expected plan. Expectations are never sent to the planner.
+Incorrect pending proposals stay unexecuted and remain scored as interpretation failures;
+confirmation status is recorded per case. These results measure a guarded workflow with
+simulated review, not autonomous end-to-end question answering or real reviewer accuracy.
+
+This is a deliberately conservative pilot policy for broad reads. OpenAI's
+[safety guidance](https://developers.openai.com/api/docs/guides/agent-builder-safety)
+recommends structured data boundaries and explicit review of model-driven operations;
+its MCP-specific advice is not an assertion that every database product needs read
+approval. Here the observed scope-loss failure justifies a small internal confirmation
+boundary while keeping the existing deterministic executors and avoiding agent tooling.

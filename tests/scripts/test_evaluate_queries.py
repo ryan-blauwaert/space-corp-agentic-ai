@@ -130,7 +130,9 @@ def test_safe_query_error_category_is_retained():
 
 
 @pytest.mark.integration
-@pytest.mark.parametrize("fixture_name", ["queries-3.json", "queries-holdout-1.json"])
+@pytest.mark.parametrize(
+    "fixture_name", ["queries-3.json", "queries-holdout-1.json", "queries-holdout-2.json"]
+)
 def test_complete_runner_with_real_restricted_database(query_data, capsys, fixture_name):
     database, _, manifest, workspaces, _, _ = query_data
     dataset = load_evaluation(runner.DEFAULT_EVALUATION.with_name(fixture_name))
@@ -155,6 +157,8 @@ def test_complete_runner_with_real_restricted_database(query_data, capsys, fixtu
     captured = capsys.readouterr().err
     assert len(captured.splitlines()) == 24
     assert cases[0].question not in captured
+    assert all(c.actual_plan is not None for c in report.cases)
+    assert '"actual_plan"' not in captured
     assert str(workspace) not in captured
 
 
@@ -182,6 +186,7 @@ def cli(monkeypatch):
         default_workspace_id=uuid4(),
         llm_model_id="test-model",
         llm_api_key="SECRET",
+        llm_reasoning_effort="medium",
     )
     monkeypatch.setattr(runner, "Settings", lambda: settings)
     database = Mock()
@@ -209,6 +214,7 @@ def test_cli_success_and_failure_exit_codes(cli, capsys):
     preflight.assert_called_once()
     assert calls == ["test-model"]
     assert evaluate.call_args.kwargs["max_attempts"] == 1
+    assert evaluate.call_args.kwargs["reasoning_effort"] == "medium"
     database.dispose.assert_called_once()
     assert json.loads(capsys.readouterr().out)["passed"] == 24
     report.failed = 1
@@ -299,7 +305,7 @@ def test_safe_diagnostics_identify_wrong_decline_reason():
     assert score.mismatched_plan_fields == ("reason",)
 
 
-def test_diagnostics_expose_filter_names_without_reference_values():
+def test_local_plan_diagnostics_are_separate_from_content_free_event_fields():
     case, workspace = fixture_case()
     actual = outcome(case, workspace)
     plan = actual.plan.model_copy(update={"equipment_model_id": uuid4()})
@@ -307,7 +313,8 @@ def test_diagnostics_expose_filter_names_without_reference_values():
     assert score.mismatched_plan_fields == ("equipment_model_id",)
     assert score.actual_operation == "facility_equipment"
     assert score.actual_decline_reason is None
-    assert str(plan.equipment_model_id) not in score.model_dump_json()
+    assert score.actual_plan == plan.model_dump(mode="json")
+    assert str(plan.equipment_model_id) not in score.model_dump_json(exclude={"actual_plan"})
     assert str(workspace) not in score.model_dump_json()
     assert case.question not in score.model_dump_json()
 
@@ -333,3 +340,86 @@ def test_inclusive_integer_lower_bound_matches_strict_predecessor():
     assert runner._canonical({"quantity": {"operator": "gte", "value": 1}}) != runner._canonical(
         {"quantity": {"operator": "gt", "value": 1}}
     )
+
+
+@pytest.mark.parametrize(
+    "operation,field,enum_name",
+    [
+        ("incidents", "statuses", "IncidentStatus"),
+        ("incidents", "severities", "IncidentSeverity"),
+        ("work_orders", "statuses", "WorkOrderStatus"),
+        ("work_orders", "priorities", "WorkOrderPriority"),
+        ("facility_equipment", "unit_statuses", "EquipmentOperationalStatus"),
+    ],
+)
+def test_full_nonnullable_enum_selection_is_unrestricted_but_subset_is_not(
+    operation, field, enum_name
+):
+    values = [item.value for item in getattr(runner, enum_name)]
+    unrestricted = {"operation": operation, field: None}
+    assert runner._canonical({"operation": operation, field: values}) == unrestricted
+    assert runner._canonical({"operation": operation, field: values[:-1]}) != unrestricted
+
+
+def test_full_incident_status_existence_filter_cannot_be_dropped():
+    for operation in ("compatible_stock", "facility_equipment"):
+        assert runner._canonical(
+            {"operation": operation, "incident_statuses": list(runner.IncidentStatus)}
+        ) != {
+            "operation": operation,
+            "incident_statuses": None,
+        }
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    "operation,field,enum_name",
+    [
+        ("incidents", "statuses", "IncidentStatus"),
+        ("incidents", "severities", "IncidentSeverity"),
+        ("work_orders", "statuses", "WorkOrderStatus"),
+        ("work_orders", "priorities", "WorkOrderPriority"),
+        ("facility_equipment", "unit_statuses", "EquipmentOperationalStatus"),
+    ],
+)
+def test_full_enum_equivalence_matches_database_semantics(query_data, operation, field, enum_name):
+    from app.queries.contracts import QUERY_PLAN, QueryContext
+    from app.queries.operations import OperationsQueryExecutor
+
+    database, _, _, workspaces, _, _ = query_data
+    context = QueryContext(request_id=uuid4(), operation_id=uuid4(), workspace_id=workspaces[0])
+    proposal = {"operation": operation}
+    if operation == "work_orders":
+        proposal["as_of"] = "2026-01-31T12:00:00Z"
+    executor = (
+        runner.EquipmentQueryExecutor(database)
+        if operation == "facility_equipment"
+        else OperationsQueryExecutor(database)
+    )
+    expected = executor.execute(context, QUERY_PLAN.validate_python(proposal)).result
+    proposal[field] = [item.value for item in getattr(runner, enum_name)]
+    assert executor.execute(context, QUERY_PLAN.validate_python(proposal)).result == expected
+
+
+@pytest.mark.parametrize("expected_kind", ["supported", "declined"])
+def test_synthetic_reviewer_never_approves_wrong_pending_intent(expected_kind):
+    from app.queries.contracts import InventoryPlan
+
+    dataset = load_evaluation()
+    fixture = next(c for c in dataset.cases if c.kind == expected_kind)
+    dataset = dataset.model_copy(update={"cases": (fixture,)})
+    ctx = QueryContext(request_id=uuid4(), operation_id=uuid4(), workspace_id=uuid4())
+    pending = QueryOutcome(
+        context=ctx,
+        planning_operation_id=uuid4(),
+        resolution_operation_id=uuid4(),
+        plan=InventoryPlan(operation="inventory"),
+        scope_status="awaiting_confirmation",
+    )
+    service = Mock(model_id="test-model")
+    service.ask.return_value = pending
+    report = runner.evaluate(service, ctx.workspace_id, dataset, load_manifest(), max_attempts=1)
+    assert report.failed == 1
+    assert not report.cases[0].intent_match
+    assert report.cases[0].scope_status == "awaiting_confirmation"
+    service.confirm_scope.assert_not_called()

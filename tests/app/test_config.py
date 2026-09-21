@@ -127,3 +127,10 @@ def test_model_identifier_cannot_be_blank(monkeypatch: MonkeyPatch, model: str) 
     monkeypatch.setenv("SPACE_CORP_LLM_MODEL_ID", model)
     with pytest.raises(ValidationError):
         load_settings()
+
+
+def test_reasoning_effort_rejects_unknown_values():
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None, llm_reasoning_effort="unbounded")

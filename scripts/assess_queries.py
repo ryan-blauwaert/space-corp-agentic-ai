@@ -46,6 +46,8 @@ def assess(paths: list[Path], protocol_path: Path = DEFAULT_PROTOCOL) -> dict[st
         for run in runs:
             if (
                 run.report_version != "3"
+                or run.execution_mode != protocol.get("execution_mode", "legacy_automatic")
+                or run.reasoning_effort != protocol.get("reasoning_effort")
                 or run.implementation_sha256 != protocol["implementation_sha256"]
                 or run.model_id != protocol["model_id"]
                 or run.prompt_sha256 != protocol["prompt_sha256"]

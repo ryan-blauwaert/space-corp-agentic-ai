@@ -4,6 +4,21 @@ This process replaces tuning toward one perfect run of a repeatedly inspected su
 It separates deterministic execution tests, development feedback, and a frozen model
 assessment. No live calls were made while introducing it.
 
+## Current model configuration
+
+Use `gpt-5.6-luna` with `medium` reasoning for bounded queries and evaluations.
+These are the defaults in `.env.example` and the validated configuration for the final
+Waypoint 2.2 assessment. The provider remains configurable through
+`SPACE_CORP_LLM_MODEL_ID` and `SPACE_CORP_LLM_REASONING_EFFORT`; shell environment
+values override `.env`. Changing models is a deliberate configuration decision, not
+an automatic fallback. Live calls still require explicit approval.
+
+GPT-5.2 was tested during earlier troubleshooting and carried into the prepared
+`query-protocol-2.json`; it is not the project default. Frozen protocols retain their
+original configuration. For the completed Luna assessment, explicitly pass
+`--protocol data/evaluations/query-protocol-2-luna.json` to the offline assessor;
+its legacy default still points to the historical first protocol.
+
 ## Dataset roles
 
 - `data/evaluations/queries-3.json` is the **development regression set**. Its questions
@@ -125,7 +140,7 @@ real usage samples, latency/cost targets, and a larger repeated assessment. A fu
 interaction layer can clarify ambiguous references or provide typed-query fallback.
 None of those features, model changes, or additional infrastructure are implemented
 by this process update. The first assessment is recorded below; it did not meet the
-declared targets, so Waypoint 2.2 remains in progress.
+declared targets, so Waypoint 2.2 remained in progress at that point.
 
 
 ## Implementation verification
@@ -237,4 +252,173 @@ against changed source fingerprints; its saved assessment remains the historical
 Do not update its hashes to make it match new code. Define a new frozen protocol and
 fresh independently reviewed holdout before the next independent assessment. The old
 holdout can still be used as development regression data, not new acceptance evidence.
-Waypoint 2.2 remains in progress.
+Waypoint 2.2 remained in progress at that point.
+
+## Authorized iterative regression — prompt version 5
+
+The user authorized up to ten holdout runs, followed by a joint development/holdout
+check. All runs use the configured `gpt-5.6-luna`, one attempt per question, unchanged
+fixture questions and expectations. Reports and per-run ledgers are preserved under
+`.local/evaluations/guardrail-iteration-20260921/`. The final holdout check counts
+inside the ten-run ceiling. This is iterative regression work on inspected datasets,
+not a new independent acceptance protocol.
+
+The planner's descriptions now include returned evidence for every domain, exact
+fault-code semantics, and exactly representable integer restrictions. A deterministic
+literal-fault-code check rejects invented values. Reports additionally retain resolved
+`actual_plan` values for diagnosis; those values are excluded from routine event logs.
+Reports should remain in ignored local storage. No raw model responses are logged.
+
+The first run scored 23/24. Its sole mismatch explicitly selected every incident
+status and severity instead of leaving those dimensions unrestricted; returned evidence
+matched. The original report is preserved. The evaluator now recognizes full enum
+selection on non-null row attributes as equivalent to no restriction, with deterministic
+and database tests. Subsets remain distinct, and relationship-existence predicates are
+never erased. This changes semantic comparison, not fixtures or acceptance thresholds.
+
+Prompt version 6 additionally describes existing quantity operators mathematically and
+clarifies facility-type selection in the contracts. Both Luna revisions still sometimes
+declined a representable quantity request, so further prompt tuning stopped. GPT-5.2
+with its default reasoning setting scored 22/24; simply changing models was insufficient.
+A configurable `SPACE_CORP_LLM_REASONING_EFFORT` was then added to the existing provider
+and recorded in reports. GPT-5.2 with `medium` scored 24/24 on its first holdout run;
+the paired check below evaluates that exact setting without further prompt edits.
+
+The first GPT-5.2 medium paired check scored 23/24 development and 24/24 holdout.
+Development exposed an unsafe selection of one of two candidate units. This led to a
+general application-owned ambiguity check: executable plans with multiple distinct
+visible UUID candidates of the same entity kind now decline rather than silently
+choose or drop candidates. Tests cover all five entity kinds, duplicate spellings,
+different kinds, and retention of existing prohibited-operation declines. The query
+guide records its conservative behavior and names/codes coverage limitation.
+
+
+### Final recorded outcome
+
+All ten authorized holdout runs were used, including paired checks; four development
+runs were also performed. All 14 reports were retained: 336 model attempts, exactly
+one per question, no retries. Neither fixtures nor expected evidence were edited.
+The raw per-run sequence follows; scores from different configurations are not pooled
+into an accuracy claim.
+
+| Run | Dataset | Model / reasoning | Prompt | Score |
+| --- | --- | --- | --- | --- |
+| 1 | holdout | gpt-5.6-luna / default | 5 | 23/24 |
+| 2 | holdout | gpt-5.6-luna / default | 5 | 24/24 |
+| 3 | development | gpt-5.6-luna / default | 5 | 24/24 |
+| 4 | holdout | gpt-5.6-luna / default | 5 | 23/24 |
+| 5 | holdout | gpt-5.6-luna / default | 6 | 24/24 |
+| 6 | development | gpt-5.6-luna / default | 6 | 24/24 |
+| 7 | holdout | gpt-5.6-luna / default | 6 | 23/24 |
+| 8 | holdout | gpt-5.2 / default | 6 | 22/24 |
+| 9 | holdout | gpt-5.2 / medium | 6 | 24/24 |
+| 10 | development | gpt-5.2 / medium | 6 | 23/24 |
+| 11 | holdout | gpt-5.2 / medium | 6 | 24/24 |
+| 12 | holdout | gpt-5.2 / medium | 6 | 24/24 |
+| 13 | development | gpt-5.2 / medium | 6 | 23/24 |
+| 14 | holdout | gpt-5.2 / medium | 6 | 24/24 |
+
+Run 1's original mismatch was the semantically equivalent full-enum selection;
+its score was not overwritten. The evaluator correction applies starting with run 2.
+The final implementation (runs 12–14) passed holdout twice (24/24 each), but its final
+development run scored **23/24**: `missing-facility` produced an unrestricted inventory
+query instead of declining. It returned records for a broader scope than the user
+specified. This is an **unexpected execution**, not just a decline-category issue.
+The final paired result is therefore **47/48, not a successful resolution**.
+
+The multiple-UUID ambiguity guard addresses silent candidate selection, but does not
+prove preservation of a scope that has no identifiable reference. Literal fault checks
+also cannot prove that every requested filter was included. Passing controlled tests
+is not evidence that the model always interprets these requests correctly.
+
+Verification: **996 tests passed**, including required PostgreSQL integration tests,
+with no failures or skips. Ruff, formatting, mypy, and whitespace checks passed. One
+existing Starlette/AnyIO deprecation warning remains. No commits were created, no
+saved model setting was changed, and the ten-run authorization is exhausted.
+
+At this point Waypoint 2.2 remained in progress. Further work needed to address scope explicitly at the
+caller/contract boundary, so unresolved scope cannot silently become unrestricted
+execution, rather than accumulating phrase-specific prompt rules. That design and its
+coverage of legitimate workspace-wide queries need review before implementation. A
+new independent assessment still requires a fresh reviewed holdout and authorization;
+these inspected sets remain development regression material. Do not select only the
+passing runs or weaken the zero-unexpected-execution criterion.
+
+
+## Final scope-boundary assessment preparation
+
+The scope-confirmation boundary is now implemented and covered by controlled tests.
+It changes execution behavior without introducing new query capabilities: unanchored
+plans cannot produce evidence until the caller confirms the complete resolved plan.
+The evaluator simulates that review locally after planning and still scores incorrect
+proposals as failures. Model interpretation is not presumed correct because review
+prevented execution. Existing evidence and safety criteria are unchanged.
+
+`query-protocol-2.json` freezes the final source/prompt fingerprints, GPT-5.2 snapshot
+`gpt-5.2-2025-12-11`, medium reasoning, and `scope_confirmation` execution mode. It
+requires three runs each of `queries-3` and fresh `queries-holdout-2` (144 single-attempt
+calls). The same 95% supported-query, 90% decline-classification, and zero critical-error
+targets apply. Older automatic-execution reports cannot be mixed with this protocol.
+
+The new candidate holdout changes wording while retaining the independently authored
+expected plans/evidence. It was authored after the implementation was fixed and checked against the contracts
+and database oracle before any live calls.
+It is synthetic wording coverage authored with domain knowledge, not an independently
+collected user corpus. At preparation, user review and live-run approval were pending. No claim of
+production generalization or perfect interpretation follows from passing this pilot.
+
+The readable review copy is `.local/evaluations/scope-holdout-review.md`; the JSON
+fixture is authoritative. The prepared local runner is
+`.local/evaluations/run_scope_batch.py`, with immutable planned outputs under
+`.local/evaluations/protocol-2-batch-1/`. It runs all six slots once, retains failures,
+and assesses the complete batch; it never selects or replaces a favorable run.
+
+The prior ten-run permission was exhausted. The prepared batch required fresh approval;
+the user subsequently selected Luna, as recorded below. The GPT-5.2 batch remains unrun.
+Preserve every result and the documented review requirement; do not start another tuning
+loop or weaken thresholds implicitly.
+
+Final local verification for this revision: **1,021 tests passed**, no failures or skips,
+including the fresh fixture's restricted-database oracle checks. Lint, formatting, types,
+and whitespace checks passed. One existing Starlette/AnyIO warning remains.
+
+
+## Luna final assessment — 2026-09-21
+
+The user authorized running the assessment first with `gpt-5.6-luna`. Separate frozen
+`data/evaluations/query-protocol-2-luna.json` changes only the protocol identifier and
+model from the prepared GPT-5.2 protocol. Medium reasoning, prompt 6, source/dataset
+fingerprints, scope-confirmation mode, repetitions, and thresholds remain unchanged.
+The GPT-5.2 batch was not run. No prompt, implementation, or fixture edits were made
+during the Luna batch; no runs were replaced or selected after viewing scores.
+
+| Dataset | Run 1 | Run 2 | Run 3 | Supported | Declines |
+| --- | --- | --- | --- | --- | --- |
+| Development (`queries-3`) | 24/24 | 24/24 | 24/24 | 54/54 | 18/18 |
+| Fresh wording holdout (`queries-holdout-2`) | 24/24 | 24/24 | 24/24 | 54/54 | 18/18 |
+
+**The frozen assessment passed, closing Waypoint 2.2 for the guarded workflow.**
+Both datasets exceeded the 95% supported-query and 90% decline-classification targets,
+with zero incorrect queries, evidence mismatches, unexpected executions, execution
+errors, or unclassified failures. All 144 model calls completed in one attempt and
+returned `gpt-5.6-luna`. An initial runner import error occurred before any model calls;
+correcting the local import path did not consume or replace a scored run.
+
+Thirty cases required exact-plan confirmation, simulated by the evaluator only after
+the proposed plan matched the expected plan. The remaining 114 cases did not require
+confirmation (including declines). This validates the reviewed workflow, not autonomous
+interpretation. Production callers must supply real review or clarification and must
+not automatically approve broad plans. The holdout is synthetic wording coverage of
+existing intents, not an independent real-user corpus; anchored plans can still omit
+filters, and future model outputs can fail despite this passing batch. Broader independent
+user coverage and review usability remain future validation work, without changing the
+current query capabilities or claiming production readiness.
+
+The ignored local evidence directory is `.local/evaluations/protocol-2-luna-batch-1/`:
+`ledger.json` freezes six slots, `events.jsonl` records exits, six JSON reports and six
+trace files retain all observations, and `assessment.json` records the passing offline
+assessment. The committed protocol identifies exact source, prompt, and dataset hashes.
+Earlier failed reports and protocols remain intact. The batch permission is exhausted;
+any further live run needs fresh approval. No commits or saved model-setting changes
+were made. The preceding 1,021-test verification applies to this unchanged implementation;
+this assessment added only a protocol and documentation updates.

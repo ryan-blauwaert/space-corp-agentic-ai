@@ -1,10 +1,12 @@
 """Validated values crossing the application/provider boundary."""
 
 from enum import StrEnum
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
+
+ReasoningEffort = Literal["none", "minimal", "low", "medium", "high", "xhigh"]
 
 NonblankText = Annotated[str, Field(min_length=1, pattern=r"\S")]
 TokenCount = Annotated[int, Field(ge=0, strict=True)]

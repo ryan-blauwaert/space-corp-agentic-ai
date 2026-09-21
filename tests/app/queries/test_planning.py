@@ -74,3 +74,33 @@ def test_grounded_context_cannot_change_schema_or_question_boundary():
     assert prompt.endswith("Untrusted question (JSON string):\n" + json.dumps(question))
     assert json.dumps(planning_schema(), separators=(",", ":")) in prompt
     assert identifier not in planning_prompt("inventory", datetime(2026, 1, 1, tzinfo=UTC))
+
+
+@pytest.mark.parametrize(
+    "fault,question,valid",
+    [
+        ("  TEMP_42  ", "Incidents with temp_42 faults", True),
+        ("pressure-drop", "Find PRESSURE-DROP incidents", True),
+        ("TEMP", "Incidents with TEMP_42 faults", False),
+        ("invented", "Show incidents with TEMP_42 faults", False),
+        ("", "Show incidents", False),
+    ],
+)
+def test_fault_identifiers_must_be_literal_not_inferred(fault, question, valid):
+    text = json.dumps({"operation": "incidents", "fault_code": fault})
+    if valid:
+        assert parse_plan(text, question, context())["fault_code"] == fault
+    else:
+        with pytest.raises(QueryError, match="invalid_plan"):
+            parse_plan(text, question, context())
+
+
+def test_reference_candidate_guard_counts_identity_not_spelling_or_type_count():
+    from app.queries.planning import has_multiple_reference_candidates
+
+    first, second = uuid4(), uuid4()
+    assert not has_multiple_reference_candidates({str(first): ["unit"], first.hex: ["unit"]})
+    assert not has_multiple_reference_candidates({str(first): ["unit", "facility"]})
+    assert not has_multiple_reference_candidates({str(first): ["unit"], str(second): ["model"]})
+    assert not has_multiple_reference_candidates({str(first): [], str(second): []})
+    assert has_multiple_reference_candidates({str(first): ["unit"], str(second): ["unit"]})

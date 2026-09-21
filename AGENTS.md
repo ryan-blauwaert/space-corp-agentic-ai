@@ -4,15 +4,21 @@ This repository is a portfolio project for building a production-style agentic A
 
 ## Current Phase
 
-We are in Phase 2 — Minimum Viable Product, at Waypoint 2.2 — Structured Query Capability. Follow `docs/roadmap.md` for authoritative completion status. Bounded query contracts, read-only execution, model planning, scoped entity resolution, tracing, and the repeatable evaluation command are implemented. The prior 23/24 result is development evidence. Completion now requires the frozen repeated assessment described in `docs/query-evaluation.md`; the first assessment completed but missed the holdout targets. Prompt version 4 adds
-scoped UUID type grounding and general capability guidance; live accuracy is unverified. Preserve the frozen
-reports; any tuning based on held-out results requires a fresh reviewed holdout for the
-next independent assessment. Do not implement later-waypoint features speculatively.
+We are in Phase 2 — Minimum Viable Product. Waypoint 2.2 — Structured Query Capability
+is complete: the frozen Luna assessment passed all 144 cases across three development
+and three fresh wording-holdout runs. See `docs/roadmap.md` and `docs/query-evaluation.md`.
+The tested configuration is `gpt-5.6-luna`, medium reasoning, prompt 6, and
+`scope_confirmation` execution mode. Unanchored plans require exact-plan caller
+confirmation before evidence execution; simulated evaluation review is not autonomous
+accuracy. Preserve all assessment reports, including earlier failures. The live batch
+permission is exhausted; obtain fresh approval for any further live evaluation.
+Do not implement Waypoint 2.3 or later features until requested.
 
 ## Development Instructions
 
 - Make small, reviewable changes.
 - Describe roadmap progress by delivered capability and verification, not chat-specific numbered units of work.
+- Default to `gpt-5.6-luna` with medium reasoning for bounded queries and evaluations. Keep the provider configurable; discuss model changes before switching. Preserve historical frozen protocols rather than rewriting their model IDs.
 - Obtain explicit approval for each live evaluation run that sends fixture questions and query schemas to OpenAI. Approval applies to that single run only; do not infer permission for later runs.
 - Inspect the repository before editing.
 - Before editing, identify the files in scope; after editing, summarize the files changed and verification performed.

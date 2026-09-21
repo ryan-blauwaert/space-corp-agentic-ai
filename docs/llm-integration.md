@@ -308,5 +308,32 @@ or repair loop was added to model execution.
 Query prompt version 4 includes scoped type hints for UUIDs already present in the
 question. These are application-owned identity facts, not record contents or evidence;
 planning still uses one logical model call. The query guide documents the bounded
-pre-planning lookup, failure handling, and independent final validation. The revised
-prompt has not been assessed live; the previous frozen assessment remains historical.
+pre-planning lookup, failure handling, and independent final validation. The subsequent
+prompt-version-6 iterative assessment is recorded in the evaluation guide; its final
+paired check still failed scope preservation. The previous frozen assessment remains historical.
+
+### Configurable reasoning effort
+
+`SPACE_CORP_LLM_REASONING_EFFORT` optionally sets the Responses API reasoning effort
+(`none`, `minimal`, `low`, `medium`, `high`, or `xhigh`). Omit it to preserve the chosen
+model's default. Not every model supports every value; choose from that model's
+[documented capabilities](https://developers.openai.com/api/docs/models/gpt-5.2).
+For example, GPT-5.2 supports `medium` and defaults to `none` when unspecified.
+The adapter passes the setting without adding retries or changing request time/token
+bounds. Reasoning consumes the existing output-token budget and may increase latency
+and cost; an unsupported setting fails through normal model-error handling.
+
+Evaluation reports record `reasoning_effort`; frozen assessments compare it with the
+protocol's declared setting (omission means provider default). This keeps comparisons
+from silently mixing different reasoning configurations. This option adds no agent,
+repair loop, new dependency, or query-language capability. Query planning continues to
+make one logical model call.
+
+### Project model preference
+
+The local configuration template selects `gpt-5.6-luna` with `medium` reasoning for
+bounded queries and evaluations, matching the passing final Waypoint 2.2 assessment.
+The provider still accepts an explicit model override; no fallback model is selected
+on failure. GPT-5.2 appears in historical experiments and an unrun assessment protocol,
+not as the current recommendation. A configured model does not trigger calls at API
+startup or authorize further live evaluations.

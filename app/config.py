@@ -4,6 +4,8 @@ from uuid import UUID
 from pydantic import Field, PostgresDsn, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from app.llm.contracts import ReasoningEffort
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -20,4 +22,5 @@ class Settings(BaseSettings):
     default_workspace_id: UUID | None = None
 
     llm_model_id: str | None = Field(default=None, min_length=1, pattern=r"\S")
+    llm_reasoning_effort: ReasoningEffort | None = None
     llm_api_key: SecretStr | None = Field(default=None, repr=False)

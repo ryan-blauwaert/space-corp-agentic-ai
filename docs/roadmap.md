@@ -790,7 +790,8 @@ current language and its limits.
 2. Produce a bounded domain proposal with approved filters and literal entity references.
 3. Validate its shape, then resolve exact references within the authorized workspace and pinned catalog.
 4. Validate the resolved plan and construct a parameterized query deterministically.
-5. Execute within a workspace-scoped read-only transaction and resource limits.
+5. Require exact-plan caller confirmation for unanchored scope, then execute within a
+   workspace-scoped read-only transaction and resource limits.
 6. Return typed evidence with provenance.
 
 ### Safety Requirement
@@ -821,6 +822,8 @@ handling must remain deterministic application behavior.
 - a frozen development/holdout protocol measures repeated model outcomes against
   predeclared pilot targets, with all runs retained and no tuning on held-out results;
   see [query evaluation process](query-evaluation.md)
+- unanchored model proposals require explicit exact-plan caller confirmation before
+  evidence execution; evaluator-simulated review is distinguished from autonomous accuracy
 - generated queries are validated before execution
 - database access is read-only
 - invalid queries fail safely
@@ -837,7 +840,7 @@ Use deterministic checks for query results and prohibited operations. Phase 8 ex
 
 ### Status
 
-- [~] In progress — query execution implemented; the frozen assessment completed but missed the holdout targets.
+- [x] Complete — bounded query execution and the guarded workflow passed the frozen Luna assessment (144/144 cases).
 - Bounded facility-equipment, compatible-stock, work-order, incident, and inventory
   plans combine approved filters. Q1–Q5 remain examples, not an exhaustive use-case
   registry; authority and execution limits remain caller-owned.
@@ -852,7 +855,7 @@ Use deterministic checks for query results and prohibited operations. Phase 8 ex
   independently against `queries-3`: 12 canonical scenarios, six additional
   combinations, and six declined cases. The unchanged `demo-1` baseline is the
   oracle. Reports record model/prompt/dataset attribution and per-case outcomes.
-- Latest automated verification: 968 tests passed, no failures or skips, in 51.79 seconds.
+- Latest automated verification: 1,021 tests passed, no failures or skips, in 53.61 seconds.
   Ruff, formatting, mypy, and whitespace checks passed. One existing Starlette/AnyIO
   deprecation warning remains. Supported evidence is tested in two workspaces.
 - Local read-only preflight passes after restoring the existing catalog-pin EXECUTE
@@ -889,8 +892,33 @@ Use deterministic checks for query results and prohibited operations. Phase 8 ex
   See [structured-query notes](structured-queries.md) for scope and verification limits.
 - Prompt version 4 adds scoped UUID type grounding before planning and general
   capability/decline guidance. Scored fixtures and the historical protocol remain
-  unchanged. No live assessment of this revision has been run; completion still
-  requires a new frozen protocol and fresh reviewed holdout.
+  unchanged. Subsequent authorized iterative checks are recorded below; completion
+  still requires a new frozen protocol and fresh reviewed holdout.
+- Prompt version 6 clarifies returned evidence, exact fault identifiers, and existing
+  numeric filters. Deterministic checks reject invented fault codes and silent
+  selection among multiple grounded UUID candidates. Evaluation reports retain local
+  plan diagnostics and recognize tested full-enum equivalence. Reasoning effort is
+  configurable and attributed in reports; no saved model choice was changed.
+- The ten-run holdout allowance is exhausted, with all runs preserved. The final paired
+  check on GPT-5.2 with medium reasoning scored 23/24 development and 24/24 holdout.
+  An unidentified facility was silently dropped, causing broader inventory execution.
+  This violated the zero-unexpected-execution criterion and kept 2.2 open at that point.
+  The scope-confirmation boundary below addresses execution of unanchored proposals. See the full iterative record in the evaluation guide.
+- The explicit scope boundary is now implemented: unanchored plans return for review;
+  only exact-plan caller confirmation can execute them. No new HTTP endpoint, UI,
+  persisted workflow, or model repair loop is introduced. Frozen `query-protocol-2`
+  and fresh `queries-holdout-2` were prepared for final assessment. The user selected
+  Luna first, recorded separately as `query-protocol-2-luna`; the GPT-5.2 protocol
+  remains unrun. Earlier failures remain preserved.
+- The approved frozen Luna assessment passed all six scheduled runs: 72/72 development
+  and 72/72 fresh wording holdout, with 54/54 supported and 18/18 declined cases per
+  dataset. All 144 calls completed on the first attempt. Zero incorrect queries,
+  evidence mismatches, unexpected executions, or call errors were observed. The
+  assessor verified the fixed source, prompt, datasets, model, reasoning, and execution
+  mode against the protocol. Thirty cases used simulated exact-plan caller confirmation.
+  This closes 2.2 for the guarded synthetic-pilot workflow, not autonomous production
+  reliability. See the [final assessment](query-evaluation.md#luna-final-assessment--2026-09-21).
+  No later-waypoint work or additional live runs are authorized by this completion.
 
 ---
 
@@ -2197,15 +2225,16 @@ Current phase:
 
 Current waypoint:
 
-**Waypoint 2.2 — Structured Query Capability (in progress)**
+**Waypoint 2.2 — Structured Query Capability (complete, 2026-09-21)**
 
-Bounded query contracts, read-only execution for all five domains, model planning,
-exact scoped entity resolution, query tracing, and repeatable evaluations are
-implemented. Historical development evaluation scored 23/24; the completed-work
-over-decline remains documented. A frozen, repeated development/holdout assessment
-completed but missed the holdout targets; 2.2 remains in progress. Q1–Q5 remain acceptance examples alongside
-additional supported combinations. Do not begin Waypoint 2.3 answer synthesis or
-later-phase capabilities until their prerequisites are complete.
+Bounded contracts, all five read-only executors, scoped model planning, tracing,
+explicit scope confirmation, and repeatable evaluations are implemented. The frozen
+Luna assessment passed 144/144 cases across six runs; earlier failures remain in the
+assessment history. The verified workflow requires caller review for unanchored plans,
+simulated in evaluation. Q1–Q5 remain examples alongside additional supported filters.
+Changes remain uncommitted at the user's direction. Waypoint 2.3 answer synthesis is
+next and has not been started; begin it only when requested. Real-user coverage and
+confirmation usability remain future validation work.
 
 ---
 

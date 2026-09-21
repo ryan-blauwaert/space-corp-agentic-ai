@@ -64,7 +64,10 @@ class FacilityFilter(Frozen):
     """All supplied selectors intersect; location is an exact stored value."""
 
     facility_id: UUID | None = None
-    facility_type: FacilityType | None = None
+    facility_type: FacilityType | None = Field(
+        default=None,
+        description="Select all facilities of this type; no individual facility ID is needed.",
+    )
     location: str | None = Field(default=None, min_length=1, max_length=256, pattern=r"\S")
 
 
@@ -89,8 +92,14 @@ class TimeWindow(Frozen):
 
 
 class QuantityFilter(Frozen):
-    operator: Literal["lt", "lte", "eq", "gte", "gt"]
-    value: NonnegativeInt
+    operator: Literal["lt", "lte", "eq", "gte", "gt"] = Field(
+        description="Comparison against quantity_on_hand: lt means <, lte <=, eq =, gte >=, gt >. "
+        "Quantities are integers >= 0. Any complete set {0, ..., N} is exactly lte N "
+        "(equivalently lt N+1), including when expressed as alternatives in ordinary language."
+    )
+    value: NonnegativeInt = Field(
+        description="The integer bound, not a component count or reorder point."
+    )
 
 
 class FacilityEquipmentPlan(Frozen):
