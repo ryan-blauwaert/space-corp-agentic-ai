@@ -146,7 +146,7 @@ def test_migrations_apply(integration_migration_database_url: str) -> None:
                 text("SELECT version_num FROM alembic_version")
             ).scalar_one()
 
-        assert revision == "0010_baseline_pins"
+        assert revision == "0011_query_catalog_pin"
     finally:
         engine.dispose()
 

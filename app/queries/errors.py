@@ -11,6 +11,7 @@ class QueryErrorKind(StrEnum):
     MODEL_FAILURE = "model_failure"
     DATABASE_UNAVAILABLE = "database_unavailable"
     TIMEOUT = "timeout"
+    RESOURCE_LIMIT = "resource_limit"
 
 
 class QueryError(Exception):

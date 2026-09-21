@@ -1,8 +1,9 @@
 # Structured Operational Queries
 
 Waypoint 2.2 unit 1 defines contracts and evaluation fixtures; unit 2 adds the
-read-only workspace session boundary. Domain query executors, model planning,
-and answer synthesis are not yet implemented. Q1–Q5 are canonical
+read-only workspace session boundary. Unit 3 implements facility-equipment and
+compatible-stock execution. Other domain executors, model planning, and answer
+synthesis remain subsequent work. Q1–Q5 are canonical
 acceptance examples, not an exhaustive list of legitimate user questions.
 
 ## Decision: bounded domain queries
@@ -114,7 +115,7 @@ does not mean no matches. No general aggregation language is introduced.
   max(0, reorder point - quantity), so normal and excess stock have zero shortfall.
   Only recorded stock is queried here; absent inventory is not synthesized as zero.
 
-The future executor must check relationships, catalog pins, entity existence,
+Each executor must check relationships, catalog pins, entity existence,
 filter satisfaction, stable ordering, and complete nested evidence. Local shape
 validation alone cannot establish these facts or authorize a request. An unavailable
 or out-of-workspace explicit entity fails as `not_found`; a valid filtered query
@@ -141,7 +142,7 @@ must not be silently approximated by a different supported query. These are curr
 terminal outcomes, not a multi-turn clarification implementation.
 
 Errors remain `invalid_plan`, `not_found`, `model_failure`, `database_unavailable`,
-and `timeout`, with trusted correlation and fixed safe messages. Do not log raw
+`timeout`, and `resource_limit`, with trusted correlation and fixed safe messages. Do not log raw
 validation errors, prompts, plans, or results wholesale. Hiding fields in repr is
 only a precaution. Schema-valid plans can still be semantically wrong.
 
@@ -173,13 +174,93 @@ protection assumes the configured restricted role and trusted code that does not
 replace transaction settings or deliberately start another transaction. It does
 not authorize a supplied workspace, check workspace existence/catalog pins, or
 sandbox all PostgreSQL functions and temporary-table effects. The model never
-receives the session. Executor validation remains necessary; no new role, grant,
-configuration environment variable, or dependency is introduced.
+receives the session. Unit 2 introduced no new role, grant, environment variable,
+or dependency; unit 3 adds the scoped pin-function grant described below.
 
 Tests use the restricted application login and actual PostgreSQL to verify scoped
 reads, cross-workspace invisibility, rejected SQL/ORM writes, snapshot consistency,
 statement cancellation, setup/caller failures, early transaction closure, and
 restoration of pooled settings. Ordinary operational writes still succeed afterward.
+
+## Equipment execution (unit 3)
+
+`app/queries/equipment.py` exposes `EquipmentQueryExecutor.execute(context, plan, page)`.
+It revalidates input shapes before connecting and implements **all** documented
+filters for `facility_equipment` and `compatible_stock`. Other domain plans are
+rejected as `invalid_plan` until their executors exist. The caller must authorize
+the context; accepting a UUID is not user/session authorization.
+
+The executor opens `Database.query_session`, resolves the pinned release, and checks
+explicit Facility/unit/model identities. Missing, foreign-workspace, unpinned, or
+wrong-release inputs fail as `not_found`. Facility results include only units of
+models in the pinned release. The database's existing catalog-pin triggers enforce
+this consistency on writes. Compatibility uses the unit's exact model and own
+facility, preserving positive, zero, and unknown stock. An incident requirement is
+applied only when incident statuses are supplied.
+
+Queries use [SQLAlchemy SELECT expressions](https://docs.sqlalchemy.org/en/20/tutorial/data_select.html)
+with bound values and application-owned relationships. Facility matching uses an
+incident EXISTS predicate to avoid duplicate units/facilities. Pagination applies
+to distinct facilities or compatibility pairs, with separate totals in the same
+snapshot. Ordering is Facility code/ID, unit asset tag/ID, incident reference/ID,
+and component code/ID, matching the baseline oracle while adding stable tie-breakers.
+
+The default evidence budget is 1000, configurable by trusted code from 1 to 10000.
+For facilities it counts units plus incidents across the selected page; for stock
+it counts supporting incident IDs plus returned components. Fetches use a bounded
+sentinel row to detect excess nested evidence and return `resource_limit` rather
+than silently truncating it. Top-level pagination remains caller-owned. The two
+paths issue at most nine and seven statements respectively, including setup;
+each data statement uses the session's five-second timeout. This bounds database
+work without a model-driven query loop, but is not a wall-clock deadline for
+connection establishment or future multi-operation orchestration.
+
+Database statement cancellations map to `timeout`; other SQLAlchemy failures map
+to `database_unavailable`, with fixed messages and no SQL/parameters in the exposed
+error. Input validation failures are `invalid_plan`. No model call, HTTP endpoint,
+answer synthesis, query telemetry, or retry loop is added in this unit.
+
+### Catalog-pin access and local use
+
+The application role cannot read `workspaces` directly. Migration
+`0011_query_catalog_pin` adds `public.current_workspace_catalog_release()`, a no-argument
+read-only SQL function returning only the pin for `app.workspace_id`. It uses
+`SECURITY DEFINER`, a fixed `pg_catalog` search path, fully qualified table access,
+and revoked PUBLIC execution; provisioning grants execution to `space_corp_app`.
+This follows [PostgreSQL security-definer guidance](https://www.postgresql.org/docs/current/sql-createfunction.html#SQL-CREATEFUNCTION-SECURITY).
+No workspace listing or administrative write access is granted. Like RLS, it trusts
+the application's transaction workspace setting, not arbitrary model SQL.
+
+Before using unit 3 locally, migrate **both** development and test databases to
+head and rerun the provisioning script using the existing
+[local setup steps](local-postgresql.md). Migration alone does not grant function
+execution. The integration suite validates the migration and disposable-cluster
+provisioning; it does not upgrade your development database.
+
+After bootstrapping the documented dataset and configuring `.env`, a direct Python
+smoke check (no model call) is:
+
+```bash
+.venv/bin/python - <<'PYTHON'
+from uuid import uuid4
+from app.config import Settings
+from app.database import create_database
+from app.queries.contracts import QueryContext
+from app.queries.equipment import EquipmentQueryExecutor
+settings = Settings()
+assert settings.default_workspace_id is not None, "Configure the seeded workspace."
+database = create_database(settings)
+try:
+    context = QueryContext(request_id=uuid4(), operation_id=uuid4(),
+                           workspace_id=settings.default_workspace_id)
+    response = EquipmentQueryExecutor(database).execute(
+        context, {"operation": "facility_equipment",
+                  "facility": {"facility_type": "lunar_installation"}})
+    print(response.model_dump_json(indent=2))
+finally:
+    database.dispose()
+PYTHON
+```
 
 ## Versioned evaluation cases
 
@@ -210,22 +291,20 @@ allow symbolic fixture IDs; resolved execution contracts remain typed and closed
 
 ## Verification and remaining units
 
-After unit 2, the full suite passed: 724 tests, no failures or skips, including
-24 additional session-boundary tests. The 174 query contract/error/fixture tests
-remain passing. Ruff and mypy passed. One existing Starlette/AnyIO deprecation
-warning remains.
+After unit 3, the full suite passed: 764 tests, no failures or skips, including
+39 equipment-executor tests and coverage for the new safe error category. Ruff
+and mypy passed. One existing Starlette/AnyIO deprecation warning remains.
+Integration coverage includes exact canonical/extended evidence in two workspaces,
+filter intersections, resolved and omitted incident filters, paging, evidence
+overflow, invalid/foreign references, scoped function permissions, and migration
+downgrade/upgrade. Disposable-cluster provisioning tests verify the new grant.
 
 Unit tests cover canonical plan mappings, novel filter combinations, omitted-filter
 semantics, nested malformed/unsafe fields, domain enums, numeric/time boundaries,
 immutable evidence, normal/zero/unknown stock, broader work and incident results,
 fixture integrity, and workspace-dependent fixture identities.
 
-Remaining work stays in Waypoint 2.2: domain executors that
-honor every advertised filter; model planning and authorized entity resolution;
-tracing; and repeatable evaluation of both canonical and additional questions.
-Executor tests must verify filter intersections and join/count correctness, not just
-schema acceptance. Model evaluations must check unfamiliar combinations and silent
-question substitution as well as unsafe requests. There is no query runner yet, and
-unit tests do not prove model accuracy, authorization, or database enforcement.
-Waypoint 2.2 remains in progress; no answer synthesis or later-waypoint infrastructure
-is introduced by this rework.
+Remaining work stays in Waypoint 2.2: work-order, incident, and inventory executors;
+model planning and authorized entity resolution; query tracing; and repeatable
+model/query evaluations. Tests prove the two implemented domains' evidence and
+execution controls, not natural-language accuracy. Waypoint 2.2 remains incomplete.

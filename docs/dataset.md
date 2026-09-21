@@ -152,8 +152,10 @@ stock at its reorder point are scenario filters, not universal product restricti
 The [bounded query layer](structured-queries.md) represents them as explicit filters
 and supports additional combinations. Its `data/evaluations/queries-2.json` fixture
 references all 12 baseline scenarios and adds six supported variations plus six
-declined cases. The loader validates contracts and evidence references; model/query
-execution and the repeatable evaluation command remain subsequent Waypoint 2.2 work.
+declined cases. The loader validates contracts and evidence references. Unit 3 integration tests
+execute the facility-equipment and compatible-stock cases against the database;
+other domain execution, model planning, and the repeatable evaluation command
+remain subsequent Waypoint 2.2 work.
 The baseline manifest and its original expectations are unchanged.
 
 The reference SQL in `scripts/dataset_queries.py` is a fixed acceptance oracle,

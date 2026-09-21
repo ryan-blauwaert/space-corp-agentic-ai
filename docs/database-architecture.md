@@ -68,10 +68,20 @@ queries within the workspace's pinned catalog.
 The existing application role has limited write grants for operational use. Those
 grants do not by themselves make an AI query read-only. Unit 2 implements `Database.query_session()` with a read-only repeatable-read
 transaction, transaction-local workspace and statement timeout, and tests for
-connection reuse and failure cleanup. Total-operation/result bounds and domain
-executor validation remain subsequent Waypoint 2.2 requirements. Contract validation
+connection reuse and failure cleanup. Unit 3 adds bounded evidence and validated facility-equipment/compatible-stock
+execution. Other domains and total orchestration deadlines remain subsequent
+Waypoint 2.2 requirements. Contract validation
 alone proves none of those execution guarantees. Broader queries must retain distinct-record counts,
 unknown-versus-zero stock, and the independent work-order relationships below.
+
+Migration 0011 adds `public.current_workspace_catalog_release()`: a no-argument,
+security-definer read of only the transaction workspace's catalog pin. Its fixed
+`pg_catalog` search path and qualified table reference avoid caller-controlled
+object resolution; PUBLIC execution is revoked, and provisioning explicitly grants
+execution to the restricted application role. Direct workspace-table access remains
+denied. This enables query pin validation without workspace administration access;
+trusted code still authorizes the workspace setting. Migrate both local databases
+to head before rerunning provisioning. See [query usage](structured-queries.md).
 
 ## Database Roles
 

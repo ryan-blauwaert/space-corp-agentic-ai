@@ -39,6 +39,12 @@ psql -X -d postgres -f scripts/provision_postgresql_application_role.sql
 psql -d postgres -c '\password space_corp_app'
 ```
 
+Unit 3 of Waypoint 2.2 requires migration `0011_query_catalog_pin` in both databases
+and a provisioning rerun. This grants only execution of the scoped catalog-pin
+function; direct workspace-table access remains denied. Existing installations
+need no password reset if the login is already configured. The query integration
+tests migrate their test database, not the development database.
+
 The final command prompts for the application-role password without placing it in shell history or a tracked file. Store both local passwords outside the repository. A per-user `.pgpass` file with mode `0600`, or a password manager with shell environment injection, avoids committing credentials. Configure separate application and migration URLs with the explicit project driver:
 
 ```bash
