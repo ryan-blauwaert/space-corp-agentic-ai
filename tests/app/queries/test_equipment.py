@@ -4,18 +4,16 @@ from uuid import uuid4
 
 import pytest
 from psycopg.errors import QueryCanceled
-from sqlalchemy import delete, event, text
+from sqlalchemy import event, text
 from sqlalchemy.exc import OperationalError
 
 from app.database import Database
-from app.equipment.models import CatalogReleaseRecord, EquipmentModelRecord
 from app.queries.contracts import FacilityEquipmentPlan, QueryContext, QueryPageRequest
 from app.queries.equipment import EquipmentQueryExecutor
 from app.queries.errors import QueryError, QueryErrorKind
 from app.workspaces.models import WorkspaceRecord
-from scripts.dataset_manifest import load_manifest, operational_id, shared_id
+from scripts.dataset_manifest import operational_id, shared_id
 from scripts.query_evaluation_dataset import SupportedCase, load_evaluation, resolve_case
-from scripts.seed_dataset import OPERATIONAL, seed_workspace
 
 
 def context(workspace=None):
@@ -88,44 +86,9 @@ def test_database_errors_are_sanitized(original, kind):
 
 
 @pytest.fixture
-def seeded(migrated_database, integration_application_database_url):
-    owner, app = Database(migrated_database), Database(integration_application_database_url)
-    manifest = load_manifest()
-    workspaces = [uuid4(), uuid4()]
-    extra_release, extra_model = uuid4(), uuid4()
-    try:
-        with owner.session() as session:
-            session.execute(
-                text(
-                    "GRANT EXECUTE ON FUNCTION public.current_workspace_catalog_release() TO space_corp_app"
-                )
-            )
-            for workspace in workspaces:
-                seed_workspace(session, workspace, manifest)
-            session.add(CatalogReleaseRecord(id=extra_release, code=str(extra_release)))
-            session.flush()
-            session.add(
-                EquipmentModelRecord(
-                    id=extra_model,
-                    catalog_release_id=extra_release,
-                    code="M01",
-                    name="Other revision",
-                )
-            )
-        yield EquipmentQueryExecutor(app), owner, manifest, workspaces, extra_model
-    finally:
-        with owner.session() as session:
-            for record in reversed(OPERATIONAL):
-                session.execute(delete(record).where(record.workspace_id.in_(workspaces)))
-            session.execute(delete(WorkspaceRecord).where(WorkspaceRecord.id.in_(workspaces)))
-            session.execute(
-                delete(EquipmentModelRecord).where(EquipmentModelRecord.id == extra_model)
-            )
-            session.execute(
-                delete(CatalogReleaseRecord).where(CatalogReleaseRecord.id == extra_release)
-            )
-        app.dispose()
-        owner.dispose()
+def seeded(query_data):
+    app, owner, manifest, workspaces, extra_model, _ = query_data
+    return EquipmentQueryExecutor(app), owner, manifest, workspaces, extra_model
 
 
 CASES = [

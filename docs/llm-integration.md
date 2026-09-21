@@ -288,7 +288,8 @@ and network access. No live quota failure was induced, and arbitrary third-party
 logging is outside the service telemetry guarantee. Waypoint 2.2 now defines
 [bounded domain query contracts and fixtures](structured-queries.md); model planning
 has not been implemented. Unit 3 executes facility-equipment and compatible-stock
-plans directly; other domain execution remains subsequent work. The planner will select a domain and
+plans directly, and unit 4 implements the remaining three domains. Model-guided
+planning and the live model/query journey remain subsequent work. The planner will select a domain and
 combine approved typed filters, not choose from an exhaustive Q1–Q5 question list.
 The existing provider/service boundary remains responsible for model calls; query
 validation, workspace authority, and execution controls remain application-owned.

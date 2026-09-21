@@ -94,8 +94,9 @@ The operational backend, versioned dataset, read-only API, PR checks, and contro
 provides bounded domain query contracts and evaluation fixtures. Q1–Q5 are canonical
 examples; approved filters can be combined to express additional legitimate questions.
 Unit 2 adds read-only workspace sessions with statement timeouts. Unit 3 implements
-facility-equipment and compatible-stock execution. The other query domains and
-model planning remain subsequent work.
+facility-equipment and compatible-stock execution; unit 4 completes work-order,
+incident, and inventory execution. Model planning, query tracing, and the repeatable
+evaluation command remain subsequent work.
 See the [structured-query guide](docs/structured-queries.md) for capabilities and limits.
 
 The [dataset guide](docs/dataset.md) covers bootstrap and refresh,

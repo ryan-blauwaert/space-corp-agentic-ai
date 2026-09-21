@@ -2,8 +2,9 @@
 
 Waypoint 2.2 unit 1 defines contracts and evaluation fixtures; unit 2 adds the
 read-only workspace session boundary. Unit 3 implements facility-equipment and
-compatible-stock execution. Other domain executors, model planning, and answer
-synthesis remain subsequent work. Q1–Q5 are canonical
+compatible-stock execution; unit 4 adds work-order, incident, and inventory
+execution. All five bounded domains can now execute typed plans directly. Model
+planning and answer synthesis remain subsequent work. Q1–Q5 are canonical
 acceptance examples, not an exhaustive list of legitimate user questions.
 
 ## Decision: bounded domain queries
@@ -128,9 +129,9 @@ facility health, repair suitability, or absence of unrecorded stock.
 `QueryPageRequest` separately controls pagination (default 50, maximum 100).
 Neither is model-generated. The plan cannot choose workspace, catalog release,
 SQL, table/column names, arbitrary joins, pagination, or execution limits.
-Unit 2 implements read-only transactions and statement timeouts. Authorization,
-entity/catalog validation, total-operation and result bounds remain responsibilities
-for subsequent executor/orchestration units. Broad filters must
+Unit 2 implements read-only transactions and statement timeouts. Units 3–4 validate
+entity references/catalog pins and bound returned evidence. User/session authorization
+and total orchestration deadlines remain caller/later-orchestration responsibilities. Broad filters must
 never bypass those limits; excess nested evidence must fail explicitly rather than
 be silently truncated.
 
@@ -186,8 +187,9 @@ restoration of pooled settings. Ordinary operational writes still succeed afterw
 
 `app/queries/equipment.py` exposes `EquipmentQueryExecutor.execute(context, plan, page)`.
 It revalidates input shapes before connecting and implements **all** documented
-filters for `facility_equipment` and `compatible_stock`. Other domain plans are
-rejected as `invalid_plan` until their executors exist. The caller must authorize
+filters for `facility_equipment` and `compatible_stock`. Plans for the other three
+domains go to `OperationsQueryExecutor`; submitting them to the equipment executor
+returns `invalid_plan`. Neither executor interprets natural-language questions. The caller must authorize
 the context; accepting a UUID is not user/session authorization.
 
 The executor opens `Database.query_session`, resolves the pinned release, and checks
@@ -262,6 +264,70 @@ finally:
 PYTHON
 ```
 
+## Operational execution (unit 4)
+
+`app/queries/operations.py` exposes `OperationsQueryExecutor.execute(context, plan, page)`
+for `work_orders`, `incidents`, and `inventory`. It honors every filter listed in the
+query-language table, including unfiltered queries within the authorized workspace.
+It uses the existing schema, catalog-pin function, and read-only sessions; unit 4
+requires no additional migration, provisioning, dependency, endpoint, or role.
+
+Both executors use `app/queries/execution.py` for request revalidation, pinned
+workspace sessions, and safe database-error translation. The shared functions do
+not route domains or perform model planning. Their extraction preserves the unit 3
+public executor entry point and its evidence-budget behavior.
+
+- Work queries apply status/priority membership, exact originating incident and
+  target-unit filters independently, and facility selectors. Overdue filtering and
+  returned flags use the same explicit `as_of`: active status, a non-null due time,
+  and due time strictly before `as_of`. Completed/cancelled/unscheduled work is not
+  overdue. Left-joined incident evidence preserves facility-level work, missing
+  targets, and different incident-affected versus target units.
+- Incident queries combine facility/unit/exact-model, status, severity, normalized
+  fault, and half-open occurrence-window filters. An omitted model/unit filter
+  preserves facility-level incidents; omitted fault filters preserve unknown fault
+  classifications. Model filtering uses an EXISTS condition, with no work-order or
+  compatibility join that could multiply incidents. `count` and page total reflect
+  all matching distinct incidents, including when the selected page is empty.
+- Inventory queries combine facility, component, exact-model compatibility, all five
+  numeric comparison operators, and the below-reorder flag. Compatibility uses
+  EXISTS so a component compatible with multiple models does not duplicate stock.
+  The pinned catalog is enforced on components and explicit model references.
+  Only recorded rows appear; zero, equality, and surplus remain distinguishable,
+  with shortfall clamped at zero for equality/surplus.
+
+Explicit entity references are checked independently of other filters. Missing or
+foreign-workspace facilities/units/incidents, and missing or wrong-release catalog
+references, return `not_found` even if another filter would yield no records.
+Individually valid but incompatible filters produce an empty result. Existing
+workspace-scoped foreign keys and catalog-pin triggers preserve relationship
+integrity; the executor does not guess alternative entities or revisions.
+
+Work and incident pages order by reference code then UUID. Inventory pages order
+by Facility code, Component code, then inventory UUID. Each result uses a separate
+count and row query in the same snapshot, and materializes at most the caller's
+100-row page limit. These flat evidence results need no nested-evidence budget.
+Each path executes at most eight statements including setup and optional reference
+checks, with the existing five-second data-statement timeout. Connection time and
+future multi-operation orchestration still need their own deadline policy.
+
+For a direct smoke check, reuse the setup/context from the unit 3 example and call:
+
+```python
+from app.queries.operations import OperationsQueryExecutor
+response = OperationsQueryExecutor(database).execute(
+    context,
+    {"operation": "inventory",
+     "facility": {"facility_type": "lunar_installation"},
+     "quantity": {"operator": "lt", "value": 2}},
+)
+print(response.model_dump_json(indent=2))
+```
+
+This retrieves recorded low-stock rows at lunar installations without requiring
+that they also be below their reorder point. Model-generated plans, entity-name
+resolution, query tracing, and a standalone evaluation command remain later work.
+
 ## Versioned evaluation cases
 
 `data/evaluations/queries-2.json` replaces the unpublished `queries-1` contract fixture
@@ -291,20 +357,24 @@ allow symbolic fixture IDs; resolved execution contracts remain typed and closed
 
 ## Verification and remaining units
 
-After unit 3, the full suite passed: 764 tests, no failures or skips, including
-39 equipment-executor tests and coverage for the new safe error category. Ruff
-and mypy passed. One existing Starlette/AnyIO deprecation warning remains.
-Integration coverage includes exact canonical/extended evidence in two workspaces,
-filter intersections, resolved and omitted incident filters, paging, evidence
-overflow, invalid/foreign references, scoped function permissions, and migration
-downgrade/upgrade. Disposable-cluster provisioning tests verify the new grant.
+After unit 4, the full suite passed: 834 tests, no failures or skips, including
+70 additional tests for operational queries and the shared execution boundary.
+Ruff and mypy passed. One existing Starlette/AnyIO deprecation warning remains.
+Integration coverage includes every canonical/extended fixture case in two workspaces,
+all approved filters, boundary and contradictory conditions, independent work targets,
+null references, count/page correctness, compatibility deduplication, and foreign or
+wrong-release references. The existing equipment, session, migration, and provisioning
+checks remain passing. No live model calls were made.
 
 Unit tests cover canonical plan mappings, novel filter combinations, omitted-filter
 semantics, nested malformed/unsafe fields, domain enums, numeric/time boundaries,
 immutable evidence, normal/zero/unknown stock, broader work and incident results,
 fixture integrity, and workspace-dependent fixture identities.
 
-Remaining work stays in Waypoint 2.2: work-order, incident, and inventory executors;
-model planning and authorized entity resolution; query tracing; and repeatable
-model/query evaluations. Tests prove the two implemented domains' evidence and
-execution controls, not natural-language accuracy. Waypoint 2.2 remains incomplete.
+Remaining work stays in Waypoint 2.2: model planning and authorized entity resolution;
+query tracing; and repeatable model/query evaluations. All 18 supported fixture
+cases (12 canonical and six additional combinations) now run in automated tests
+against two isolated database copies. The six declined cases still require planner
+verification; validating their fixture shapes does not prove model behavior.
+No natural-language planning accuracy, answer quality, or live model/query journey
+is claimed. Waypoint 2.2 remains incomplete.

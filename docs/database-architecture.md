@@ -69,8 +69,9 @@ The existing application role has limited write grants for operational use. Thos
 grants do not by themselves make an AI query read-only. Unit 2 implements `Database.query_session()` with a read-only repeatable-read
 transaction, transaction-local workspace and statement timeout, and tests for
 connection reuse and failure cleanup. Unit 3 adds bounded evidence and validated facility-equipment/compatible-stock
-execution. Other domains and total orchestration deadlines remain subsequent
-Waypoint 2.2 requirements. Contract validation
+execution; unit 4 implements work-order, incident, and inventory queries using
+the same boundary. Every documented filter now has an executor; model planning,
+query tracing, and total orchestration deadlines remain subsequent requirements. Contract validation
 alone proves none of those execution guarantees. Broader queries must retain distinct-record counts,
 unknown-versus-zero stock, and the independent work-order relationships below.
 

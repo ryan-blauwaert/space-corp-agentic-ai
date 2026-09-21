@@ -2,9 +2,7 @@
 
 from uuid import UUID
 
-from pydantic import BaseModel, ValidationError
 from sqlalchemy import and_, func, select
-from sqlalchemy.exc import DBAPIError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.database import Database
@@ -20,7 +18,6 @@ from app.facilities.models import FacilityRecord
 from app.operations.domain import IncidentStatus
 from app.operations.models import IncidentRecord
 from app.queries.contracts import (
-    QUERY_PLAN,
     CompatibleStockEvidence,
     CompatibleStockPlan,
     CompatibleStockResult,
@@ -35,6 +32,7 @@ from app.queries.contracts import (
     UnitIncidentEvidence,
 )
 from app.queries.errors import QueryError, QueryErrorKind
+from app.queries.execution import pinned_query_session, validate_request
 
 
 class EquipmentQueryExecutor:
@@ -53,39 +51,16 @@ class EquipmentQueryExecutor:
     def execute(
         self, context: QueryContext, plan: object, page: QueryPageRequest | None = None
     ) -> QueryResponse:
-        # Revalidate even model_construct/model_copy inputs before opening a session.
-        try:
-            context = QueryContext.model_validate(context.model_dump(warnings=False))
-            plan = QUERY_PLAN.validate_python(
-                plan.model_dump(warnings=False) if isinstance(plan, BaseModel) else plan
-            )
-            page = QueryPageRequest.model_validate(
-                page.model_dump(warnings=False) if page is not None else {}
-            )
-        except ValidationError:
-            raise QueryError(context, QueryErrorKind.INVALID_PLAN) from None
+        context, plan, page = validate_request(context, plan, page)
         if not isinstance(plan, (FacilityEquipmentPlan, CompatibleStockPlan)):
             raise QueryError(context, QueryErrorKind.INVALID_PLAN)
-        try:
-            with self.database.query_session(context.workspace_id) as session:
-                release = session.scalar(select(func.public.current_workspace_catalog_release()))
-                if release is None:
-                    raise QueryError(context, QueryErrorKind.NOT_FOUND)
-                result = (
-                    self._facilities(session, context, release, plan, page)
-                    if isinstance(plan, FacilityEquipmentPlan)
-                    else self._stock(session, context, release, plan, page)
-                )
-                return QueryResponse(context=context, catalog_release_id=release, result=result)
-        except DBAPIError as error:
-            kind = (
-                QueryErrorKind.TIMEOUT
-                if getattr(error.orig, "sqlstate", None) == "57014"
-                else QueryErrorKind.DATABASE_UNAVAILABLE
+        with pinned_query_session(self.database, context) as (session, release):
+            result = (
+                self._facilities(session, context, release, plan, page)
+                if isinstance(plan, FacilityEquipmentPlan)
+                else self._stock(session, context, release, plan, page)
             )
-            raise QueryError(context, kind) from None
-        except SQLAlchemyError:
-            raise QueryError(context, QueryErrorKind.DATABASE_UNAVAILABLE) from None
+            return QueryResponse(context=context, catalog_release_id=release, result=result)
 
     def _check_size(self, size: int, context: QueryContext) -> None:
         if size > self.max_evidence:
