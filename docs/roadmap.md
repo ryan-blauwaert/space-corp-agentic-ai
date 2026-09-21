@@ -734,7 +734,16 @@ Phase 7 extends this foundation across capabilities and provides richer inspecti
 
 ### Status
 
-- [ ] Complete
+- [~] In progress — unit 1 contracts implemented.
+- Added validated model requests/results, caller-owned request/operation correlation,
+  model/prompt identifiers, optional token usage, explicit output-limit completion,
+  normalized error categories, and a one-attempt provider protocol under `app/llm/`.
+- Fake-provider tests cover contract validation and success/failure correlation
+  without SDKs, credentials, or network calls. See [integration notes](llm-integration.md).
+- Unit 1 verification: 412 tests passed, no failures or skips (42 contract/provider
+  tests); Ruff and mypy passed. One existing Starlette/AnyIO warning remains.
+- Provider implementation, retry/error mapping, emitted telemetry, smoke invocation,
+  and live acceptance remain unimplemented. This waypoint is not complete.
 
 ---
 
