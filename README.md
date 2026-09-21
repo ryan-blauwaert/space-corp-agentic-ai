@@ -287,3 +287,16 @@ python -m pip wheel --no-deps --wheel-dir dist .
 
 Dependency locking, formatting, linting, static typing, and required PR checks are
 documented in [the CI guide](docs/ci.md), including equivalent local commands.
+
+## Model Integration Smoke Check
+
+Configure `SPACE_CORP_LLM_MODEL_ID` and `SPACE_CORP_LLM_API_KEY` in your local
+`.env` or environment, then run from the repository root:
+
+```bash
+.venv/bin/python -m scripts.smoke_llm
+```
+
+This makes a real model call using a fixed test prompt and may incur provider
+charges. No database is required. See [model integration notes](docs/llm-integration.md)
+for bounds, exit codes, and safe telemetry output.

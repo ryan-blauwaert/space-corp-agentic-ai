@@ -171,7 +171,7 @@ class InventoryItemRepository(Protocol):
         """Update only the mutable stock values of workspace-owned inventory."""
 
 
-class SqlAlchemyCatalogRepository:
+class SqlAlchemyCatalogRepository(CatalogRepository):
     """SQLAlchemy implementation for shared catalog reference data."""
 
     def __init__(self, session: Session) -> None:
@@ -287,7 +287,7 @@ class SqlAlchemyCatalogRepository:
         self._session.flush()
 
 
-class SqlAlchemyEquipmentUnitRepository:
+class SqlAlchemyEquipmentUnitRepository(EquipmentUnitRepository):
     """SQLAlchemy implementation of workspace-scoped unit persistence."""
 
     def __init__(self, session: Session) -> None:
@@ -394,7 +394,7 @@ class SqlAlchemyEquipmentUnitRepository:
         return _equipment_unit_to_domain(record)
 
 
-class SqlAlchemyInventoryItemRepository:
+class SqlAlchemyInventoryItemRepository(InventoryItemRepository):
     """SQLAlchemy implementation of workspace-scoped inventory persistence."""
 
     def __init__(self, session: Session) -> None:

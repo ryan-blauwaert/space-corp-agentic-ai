@@ -734,7 +734,39 @@ Phase 7 extends this foundation across capabilities and provides richer inspecti
 
 ### Status
 
-- [ ] Complete
+- [x] Complete — controlled model integration and live acceptance verified.
+- Added validated model requests/results, caller-owned request/operation correlation,
+  model/prompt identifiers, optional token usage, explicit output-limit completion,
+  normalized error categories, and a one-attempt provider protocol under `app/llm/`.
+- Fake-provider tests cover contract validation and success/failure correlation
+  without SDKs, credentials, or network calls. See [integration notes](llm-integration.md).
+- Unit 1 verification: 412 tests passed, no failures or skips (42 contract/provider
+  tests); Ruff and mypy passed. One existing Starlette/AnyIO warning remains.
+- Unit 2 adds a configurable OpenAI Responses adapter, explicit output/timeout
+  bounds, disabled SDK retries, safe error mapping, and mocked transport tests.
+- Unit 2 verification: 454 tests passed, no failures or skips; Ruff, mypy,
+  and locked dependency installation passed. The existing warning remains.
+- Unit 3 adds a provider-independent execution service with bounded transient
+  retries, jittered backoff, and allowlisted JSON attempt/operation telemetry.
+  Tests cover correlation, timing, safe logs, and single-layer retry behavior.
+- Unit 3 verification: 481 tests passed, no failures or skips (27 new service
+  tests); Ruff and mypy passed. The existing warning remains.
+- Unit 4 adds an internal model smoke command with a fixed versioned prompt,
+  explicit call bounds, safe result summaries, and console telemetry setup.
+  Mocked HTTP tests verify the command through the provider and execution service.
+- Unit 4 verification: 506 tests passed, no failures or skips (25 command tests);
+  Ruff, mypy, and command help passed. The existing warning remains.
+- Unit 5 records user-supplied live successes with GPT-5 nano and GPT-5.6 Luna,
+  plus the earlier bounded 429 failure. All traces preserve request/operation IDs,
+  model/prompt identity, outcomes, timing, and safe metadata. See the live acceptance
+  tables in [integration notes](llm-integration.md).
+- Recognized billing/quota 429s now map to non-retryable `quota_exceeded`; temporary
+  throttling remains `rate_limit`. Mocked adapter/service/command tests verify the
+  distinction and immediate termination without logging provider messages.
+- Final verification: 526 tests passed, no failures or skips; Ruff and mypy passed.
+  One existing Starlette/AnyIO deprecation warning remains. No additional live calls
+  or deliberately induced billing failures were needed. The original 429's exact
+  cause remains unknown; answer quality is outside this waypoint's acceptance.
 
 ---
 

@@ -7,6 +7,8 @@ from app.config import Settings
 
 def clear_settings_environment(monkeypatch: MonkeyPatch) -> None:
     for variable_name in (
+        "SPACE_CORP_LLM_MODEL_ID",
+        "SPACE_CORP_LLM_API_KEY",
         "SPACE_CORP_ENVIRONMENT",
         "SPACE_CORP_APPLICATION_NAME",
         "SPACE_CORP_LOGGING_LEVEL",
@@ -30,6 +32,8 @@ def test_settings_use_development_defaults(monkeypatch: MonkeyPatch) -> None:
     assert settings.environment == "development"
     assert settings.application_name == "Agentic AI Operations Platform"
     assert settings.logging_level == "INFO"
+    assert settings.llm_model_id is None
+    assert settings.llm_api_key is None
     assert settings.database_url is None
     assert settings.migration_database_url is None
     assert settings.default_workspace_id is None
@@ -105,3 +109,21 @@ def test_settings_load_dotenv_file(tmp_path, monkeypatch: MonkeyPatch) -> None:
     assert settings.environment == "test"
     assert settings.application_name == "Dotenv Operations API"
     assert str(settings.default_workspace_id) == "11111111-1111-1111-1111-111111111111"
+
+
+def test_model_settings_load_explicit_environment(monkeypatch: MonkeyPatch) -> None:
+    clear_settings_environment(monkeypatch)
+    monkeypatch.setenv("SPACE_CORP_LLM_MODEL_ID", "chosen-model")
+    monkeypatch.setenv("SPACE_CORP_LLM_API_KEY", "test-secret")
+    settings = load_settings()
+    assert settings.llm_model_id == "chosen-model"
+    assert settings.llm_api_key.get_secret_value() == "test-secret"
+    assert "test-secret" not in repr(settings)
+
+
+@pytest.mark.parametrize("model", ["", "   "])
+def test_model_identifier_cannot_be_blank(monkeypatch: MonkeyPatch, model: str) -> None:
+    clear_settings_environment(monkeypatch)
+    monkeypatch.setenv("SPACE_CORP_LLM_MODEL_ID", model)
+    with pytest.raises(ValidationError):
+        load_settings()

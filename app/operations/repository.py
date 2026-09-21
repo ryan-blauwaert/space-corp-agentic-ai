@@ -113,7 +113,7 @@ class WorkOrderRepository(Protocol):
         """Update only the mutable lifecycle fields of a work order."""
 
 
-class SqlAlchemyIncidentRepository:
+class SqlAlchemyIncidentRepository(IncidentRepository):
     """SQLAlchemy implementation of workspace-scoped incident persistence."""
 
     def __init__(self, session: Session) -> None:
@@ -238,7 +238,7 @@ class SqlAlchemyIncidentRepository:
         return _incident_to_domain(record)
 
 
-class SqlAlchemyWorkOrderRepository:
+class SqlAlchemyWorkOrderRepository(WorkOrderRepository):
     """SQLAlchemy implementation of workspace-scoped work-order persistence."""
 
     def __init__(self, session: Session) -> None:
