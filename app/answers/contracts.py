@@ -3,7 +3,7 @@
 from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import Field, TypeAdapter, model_validator
+from pydantic import Field, StrictBool, StrictInt, StrictStr, TypeAdapter, model_validator
 
 from app.queries.contracts import DeclinedPlan, Frozen, QueryContext
 from app.queries.service import QueryOutcome
@@ -24,11 +24,25 @@ class RecordReference(Frozen):
     record_id: UUID
 
 
+class EvidenceClaim(Frozen):
+    """An exact scalar assertion about a path in the returned QueryResult JSON.
+
+    String segments select fields; nonnegative integer segments select list entries.
+    No expressions, attribute access, aggregation, or external lookups are supported.
+    """
+
+    path: tuple[StrictStr | Annotated[int, Field(strict=True, ge=0)], ...] = Field(
+        min_length=1, max_length=12
+    )
+    value: StrictStr | StrictInt | StrictBool | None
+
+
 class AnswerDraft(Frozen):
     """Untrusted model output. Valid schema and real IDs do not prove true prose."""
 
     text: AnswerText = Field(repr=False)
     references: tuple[RecordReference, ...] = Field(max_length=500)
+    claims: tuple[EvidenceClaim, ...] = Field(default=(), max_length=500, repr=False)
 
     @model_validator(mode="after")
     def unique_references(self) -> "AnswerDraft":

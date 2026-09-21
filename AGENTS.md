@@ -12,8 +12,12 @@ The tested configuration is `gpt-5.6-luna`, medium reasoning, prompt 6, and
 confirmation before evidence execution; simulated evaluation review is not autonomous
 accuracy. Preserve all assessment reports, including earlier failures. The live batch
 permission is exhausted; obtain fresh approval for any further live evaluation.
-Waypoint 2.3 is now active. Typed answer contracts and development expectations are
-implemented; synthesis and runtime grounding remain pending. Follow
+Waypoint 2.3 is now active. Typed answer contracts, development expectations, deterministic reference/explicit-claim
+checks, and cautious responses are implemented. The approved next work replaces model
+prose with selection from evidence-backed facts and application-rendered sentences.
+Do not deliver model-authored prose or preserve it as a fallback. Values, record
+associations, mandatory scope/coverage disclosures, and rendering remain application-owned;
+use domain evidence shapes, not Q1–Q5-specific templates. This replacement is pending. Follow
 `docs/answer-synthesis.md`. Do not implement later-waypoint features until requested.
 
 ## Development Instructions

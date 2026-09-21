@@ -927,6 +927,8 @@ Use deterministic checks for query results and prohibited operations. Phase 8 ex
 ### Capability
 
 Structured database results are converted into a useful natural-language answer.
+The model selects evidence-backed facts; application code renders the final sentences.
+Free-form model prose is not an approved delivery path.
 
 ### User Value
 
@@ -935,6 +937,9 @@ A user can ask an operational question conversationally instead of using an API 
 ### Completion Criteria
 
 - answer is based only on returned structured data
+- delivered sentences are rendered by application code from validated evidence facts;
+  model output cannot inject prose, replace values, or suppress mandatory scope/coverage
+  disclosures; rendering supports domain/filter combinations rather than Q1–Q5 templates
 - empty-result behavior is handled correctly
 - answer record identifiers are deterministically checked against returned evidence; unsupported references are rejected before delivery
 - evaluation measures unsupported factual claims, including plausible claims about valid records, against documented acceptance thresholds
@@ -948,22 +953,29 @@ These checks provide measurable grounding guarantees; they do not claim that a g
 
 ### Possible Framework Use
 
-LangChain output parsers or runnable composition may assist with answer formatting,
-but evidence selection, identifier checks, grounding decisions, and cautious
-fallbacks remain application-owned.
+No framework is required. Reuse the existing model integration for bounded fact
+selection and implement small typed domain renderers. Evidence values, sentence wording,
+identifier checks, scope disclosures, and cautious responses remain application-owned.
 
 ### Status
 
-- [~] In progress — typed answer contracts and versioned development expectations exist.
+- [~] In progress — answer contracts, development expectations, deterministic evidence
+  checks, and cautious responses exist.
 - Answer requests preserve query context, resolved scope, and typed evidence; output
   distinguishes answered and cautious states, including pending scope confirmation.
 - `answers-1` pins all 24 existing development questions and adds eight unsupported-claim
   challenges. Historical 2.2 datasets and protocols remain unchanged.
 - [Answer-synthesis guidance](answer-synthesis.md) defines empty/partial/unknown evidence
-  semantics and acceptance thresholds before live tests. Contracts do not yet enforce
-  runtime grounding; generation, validation, tracing, and live assessment remain pending.
-- Verification: 1,074 tests passed with no failures or skips, including 53 new tests
-  and required PostgreSQL integration. Lint, formatting, and types passed; one existing
+  semantics and acceptance thresholds before live tests.
+- Deterministic validation checks returned record membership, recognizable UUIDs in prose,
+  and exact explicit scalar claims. Cautious responses distinguish pending scope, missing
+  evidence, no matches, and empty pages. Partial answers receive a coverage notice.
+  Matching claims do not prove prose truth. The approved remaining plan replaces the
+  current free-prose draft path with evidence-fact selection and deterministic rendering;
+  this replacement, model selection, semantic evaluation, tracing, and live assessment
+  remain pending. See the [committable work plan](answer-synthesis.md#remaining-committable-work).
+- Verification: 1,143 tests passed with no failures or skips, including 69 new validation
+  tests and required PostgreSQL integration. Lint, formatting, and types passed; one existing
   Starlette/AnyIO warning remains. No live answer calls were made.
 
 ---
@@ -2242,8 +2254,11 @@ explicit scope confirmation, and repeatable evaluations are implemented. The fro
 Luna assessment passed 144/144 cases across six runs; earlier failures remain in the
 assessment history. The verified workflow requires caller review for unanchored plans,
 simulated in evaluation. Q1–Q5 remain examples alongside additional supported filters.
-Waypoint 2.2 was committed as `eb2fc19`. Waypoint 2.3 now has typed answer contracts
-and development expectations; runtime synthesis and grounding remain pending.
+Waypoint 2.2 was committed as `eb2fc19`. Waypoint 2.3 now has typed answer contracts,
+development expectations, deterministic evidence checks, and cautious responses;
+The approved next change replaces free-prose delivery with model-selected evidence
+facts and application-rendered sentences. Rendering, selection, and evaluation remain
+pending.
 Real-user coverage and confirmation usability remain future validation work.
 
 ---

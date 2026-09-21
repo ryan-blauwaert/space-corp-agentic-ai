@@ -102,8 +102,9 @@ review. These synthetic pilot results do not guarantee model interpretation on u
 requests. See the [query guide](docs/structured-queries.md) for capabilities and limits.
 
 Waypoint 2.2 is complete. [Answer synthesis](docs/answer-synthesis.md) now has typed
-contracts and development expectations; natural-language generation and runtime
-answer grounding are not implemented yet.
+contracts, development expectations, deterministic evidence checks, and cautious
+responses. The approved next step is model selection of evidence-backed facts with
+application-rendered sentences; this replacement and answer evaluation remain pending.
 
 The [dataset guide](docs/dataset.md) covers bootstrap and refresh,
 [API documentation](docs/api.md) covers existing endpoints, and the
