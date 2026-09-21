@@ -1,7 +1,7 @@
 from typing import Literal
 from uuid import UUID
 
-from pydantic import PostgresDsn
+from pydantic import Field, PostgresDsn, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -18,3 +18,6 @@ class Settings(BaseSettings):
     database_url: PostgresDsn | None = None
     migration_database_url: PostgresDsn | None = None
     default_workspace_id: UUID | None = None
+
+    llm_model_id: str | None = Field(default=None, min_length=1, pattern=r"\S")
+    llm_api_key: SecretStr | None = Field(default=None, repr=False)
