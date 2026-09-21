@@ -89,11 +89,11 @@ No particular agent framework, workflow framework, vector database, or deploymen
 
 **Phase 1 — Structured Operational Backend**
 
-Waypoint 1.4 is complete. Waypoint 1.5 adds the versioned operational dataset,
-frozen catalog/baseline publication, and independent workspace copies. See the
-[dataset guide](docs/dataset.md) for setup, bootstrap, refresh, validation, and
-Facility API smoke commands. The [roadmap](docs/roadmap.md) records acceptance
-and commit status. AI capabilities and new operational read APIs remain later work.
+The versioned operational dataset and core read-only API are implemented through
+Waypoint 1.6. See the [dataset guide](docs/dataset.md) for bootstrap and refresh,
+and [API documentation](docs/api.md) for endpoint usage and repeatable local
+verification. The [roadmap](docs/roadmap.md) records acceptance status.
+AI capabilities remain later work.
 
 ## Planned Capability Areas
 
@@ -192,7 +192,7 @@ Settings are loaded from environment variables and an ignored project-root `.env
 cp .env.example .env
 ```
 
-The application refuses to start until its database URL and default workspace ID are configured, and it checks database reachability during startup. This prevents a server that cannot serve Facility API requests from accepting traffic.
+The application refuses to start until its database URL and default workspace ID are configured, and it checks database reachability during startup. This prevents a server that cannot serve operational API requests from accepting traffic.
 
 | Environment variable | Default | Accepted values and purpose |
 | --- | --- | --- |
@@ -201,7 +201,7 @@ The application refuses to start until its database URL and default workspace ID
 | `SPACE_CORP_LOGGING_LEVEL` | `INFO` | `DEBUG`, `INFO`, `WARNING`, `ERROR`, or `CRITICAL`; validated and stored, but not yet applied to logger configuration. |
 | `SPACE_CORP_DATABASE_URL` | Unset (`None`) | A validated PostgreSQL URL used by application database resources. It should use the restricted application role and is required at startup. |
 | `SPACE_CORP_MIGRATION_DATABASE_URL` | Unset (`None`) | A validated PostgreSQL URL used only by Alembic schema migrations. It should use the schema-owner migration role. |
-| `SPACE_CORP_DEFAULT_WORKSPACE_ID` | Unset (`None`) | UUID of an existing workspace, selected by the server for local Facility API requests. Required at startup. This is not public multi-user authorization. |
+| `SPACE_CORP_DEFAULT_WORKSPACE_ID` | Unset (`None`) | UUID of an existing workspace, selected by the server for local operational API requests. Required at startup. This is not public multi-user authorization. |
 
 For example, start the API with a different application name:
 

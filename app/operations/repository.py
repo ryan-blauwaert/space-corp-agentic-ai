@@ -25,6 +25,17 @@ from app.operations.models import IncidentRecord, WorkOrderRecord
 class IncidentRepository(Protocol):
     """Persistence operations for workspace-owned operational incidents."""
 
+    def read_page(
+        self, workspace_id: UUID, *, limit: int = 50, offset: int = 0,
+        facility_id: UUID | None = None,
+        equipment_unit_id: UUID | None = None,
+        status: IncidentStatus | None = None,
+        fault_code: str | None = None,
+        occurred_from: datetime | None = None,
+        occurred_before: datetime | None = None,
+    ) -> tuple[list[Incident], int]:
+        """Return a filtered workspace page and its total before pagination."""
+
     def create(self, workspace_id: UUID, incident: NewIncident) -> Incident:
         """Create an incident owned by the supplied workspace."""
 
@@ -59,6 +70,14 @@ class IncidentRepository(Protocol):
 class WorkOrderRepository(Protocol):
     """Persistence operations for workspace-owned maintenance work."""
 
+    def read_page(
+        self, workspace_id: UUID, *, limit: int = 50, offset: int = 0,
+        facility_id: UUID | None = None,
+        status: WorkOrderStatus | None = None,
+        priority: WorkOrderPriority | None = None,
+    ) -> tuple[list[WorkOrder], int]:
+        """Return a filtered workspace page and its total before pagination."""
+
     def create(self, workspace_id: UUID, work_order: NewWorkOrder) -> WorkOrder:
         """Create a work order owned by the supplied workspace."""
 
@@ -85,6 +104,34 @@ class SqlAlchemyIncidentRepository:
 
     def __init__(self, session: Session) -> None:
         self._session = session
+
+    def read_page(
+        self, workspace_id: UUID, *, limit: int = 50, offset: int = 0,
+        facility_id: UUID | None = None,
+        equipment_unit_id: UUID | None = None,
+        status: IncidentStatus | None = None,
+        fault_code: str | None = None,
+        occurred_from: datetime | None = None,
+        occurred_before: datetime | None = None,
+    ) -> tuple[list[Incident], int]:
+        statement = select(IncidentRecord).where(IncidentRecord.workspace_id == workspace_id)
+        if facility_id is not None:
+            statement = statement.where(IncidentRecord.facility_id == facility_id)
+        if equipment_unit_id is not None:
+            statement = statement.where(IncidentRecord.equipment_unit_id == equipment_unit_id)
+        if status is not None:
+            statement = statement.where(IncidentRecord.status == status)
+        if fault_code is not None:
+            statement = statement.where(IncidentRecord.fault_code == fault_code)
+        if occurred_from is not None:
+            statement = statement.where(IncidentRecord.occurred_at >= occurred_from)
+        if occurred_before is not None:
+            statement = statement.where(IncidentRecord.occurred_at < occurred_before)
+        total = self._session.scalar(select(func.count()).select_from(statement.subquery())) or 0
+        records = self._session.scalars(
+            statement.order_by(IncidentRecord.occurred_at, IncidentRecord.id).limit(limit).offset(offset)
+        )
+        return [_incident_to_domain(record) for record in records], total
 
     def create(self, workspace_id: UUID, incident: NewIncident) -> Incident:
         record = IncidentRecord(
@@ -177,6 +224,25 @@ class SqlAlchemyWorkOrderRepository:
 
     def __init__(self, session: Session) -> None:
         self._session = session
+
+    def read_page(
+        self, workspace_id: UUID, *, limit: int = 50, offset: int = 0,
+        facility_id: UUID | None = None,
+        status: WorkOrderStatus | None = None,
+        priority: WorkOrderPriority | None = None,
+    ) -> tuple[list[WorkOrder], int]:
+        statement = select(WorkOrderRecord).where(WorkOrderRecord.workspace_id == workspace_id)
+        if facility_id is not None:
+            statement = statement.where(WorkOrderRecord.facility_id == facility_id)
+        if status is not None:
+            statement = statement.where(WorkOrderRecord.status == status)
+        if priority is not None:
+            statement = statement.where(WorkOrderRecord.priority == priority)
+        total = self._session.scalar(select(func.count()).select_from(statement.subquery())) or 0
+        records = self._session.scalars(
+            statement.order_by(WorkOrderRecord.reference_code, WorkOrderRecord.id).limit(limit).offset(offset)
+        )
+        return [_work_order_to_domain(record) for record in records], total
 
     def create(self, workspace_id: UUID, work_order: NewWorkOrder) -> WorkOrder:
         record = WorkOrderRecord(workspace_id=workspace_id, facility_id=work_order.facility_id, originating_incident_id=work_order.originating_incident_id, target_equipment_unit_id=work_order.target_equipment_unit_id, reference_code=work_order.reference_code, priority=work_order.priority.value, status=work_order.status.value, due_at=work_order.due_at, completed_at=work_order.completed_at)

@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from pathlib import Path
 from unittest.mock import Mock
 from uuid import uuid4
@@ -162,6 +163,7 @@ def test_migrations_match_persistence_models(
 
 
 @pytest.mark.integration
+@pytest.mark.usefixtures("preserve_application_grants")
 def test_component_catalog_migration_downgrades_and_reapplies(
     integration_migration_database_url: str,
 ) -> None:
@@ -189,6 +191,7 @@ def test_component_catalog_migration_downgrades_and_reapplies(
 
 
 @pytest.mark.integration
+@pytest.mark.usefixtures("preserve_application_grants")
 def test_inventory_migration_downgrades_and_reapplies(
     integration_migration_database_url: str,
 ) -> None:
@@ -398,6 +401,7 @@ def test_application_role_enforces_workspace_rls_and_resets_pooled_context(
 
 
 @pytest.mark.integration
+@pytest.mark.usefixtures("preserve_application_grants")
 def test_required_text_migration_rejects_existing_invalid_data_without_rewriting_it(
     integration_migration_database_url: str,
 ) -> None:
@@ -434,3 +438,39 @@ def test_required_text_migration_rejects_existing_invalid_data_without_rewriting
             session.execute(delete(WorkspaceRecord).where(WorkspaceRecord.id == workspace_id))
         database.dispose()
         command.upgrade(config, "head")
+
+
+@pytest.fixture
+def preserve_application_grants(
+    migrated_database: str, integration_application_database_url: str,
+) -> Iterator[None]:
+    """Round-trip migrations must not leave the shared test role unprovisioned."""
+    from sqlalchemy.engine import make_url
+
+    database = Database(migrated_database)
+    role = make_url(integration_application_database_url).username
+    quote = database.engine.dialect.identifier_preparer.quote_identifier
+    try:
+        with database.session() as session:
+            tables = session.execute(text("""
+                SELECT table_name, privilege_type, is_grantable
+                FROM information_schema.role_table_grants
+                WHERE table_schema = 'public' AND grantee = :role
+            """), {"role": role}).all()
+            columns = session.execute(text("""
+                SELECT table_name, column_name, privilege_type, is_grantable
+                FROM information_schema.column_privileges
+                WHERE table_schema = 'public' AND grantee = :role
+            """), {"role": role}).all()
+        yield
+    finally:
+        with database.session() as session:
+            for table, privilege, grantable in tables:
+                suffix = " WITH GRANT OPTION" if grantable == "YES" else ""
+                session.execute(text(f"GRANT {privilege} ON public.{quote(table)} TO {quote(role)}{suffix}"))
+            table_privileges = {(table, privilege) for table, privilege, _ in tables}
+            for table, column, privilege, grantable in columns:
+                if (table, privilege) not in table_privileges:
+                    suffix = " WITH GRANT OPTION" if grantable == "YES" else ""
+                    session.execute(text(f"GRANT {privilege} ({quote(column)}) ON public.{quote(table)} TO {quote(role)}{suffix}"))
+        database.dispose()

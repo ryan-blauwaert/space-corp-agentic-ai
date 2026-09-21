@@ -33,6 +33,23 @@ from app.equipment.models import (
 class CatalogRepository(Protocol):
     """Persistence operations for shared catalog reference data."""
 
+    def read_models_page(
+        self, *, catalog_release_id: UUID | None = None,
+        limit: int = 50, offset: int = 0,
+    ) -> tuple[list[EquipmentModel], int]:
+        """Return shared revisions, optionally restricted to one release."""
+
+    def read_components_page(
+        self, *, catalog_release_id: UUID | None = None,
+        limit: int = 50, offset: int = 0,
+    ) -> tuple[list[Component], int]:
+        """Return shared revisions, optionally restricted to one release."""
+
+    def read_compatible_components(
+        self, equipment_model_id: UUID, *, limit: int = 50, offset: int = 0,
+    ) -> tuple[list[Component], int]:
+        """Return compatible components for an exact shared model revision."""
+
     def create_release(self, release: NewCatalogRelease) -> CatalogRelease:
         """Create one catalog release identity."""
 
@@ -59,6 +76,14 @@ class CatalogRepository(Protocol):
 
 class EquipmentUnitRepository(Protocol):
     """Persistence operations for workspace-owned deployed equipment units."""
+
+    def read_page(
+        self, workspace_id: UUID, *, limit: int = 50, offset: int = 0,
+        facility_id: UUID | None = None,
+        equipment_model_id: UUID | None = None,
+        operational_status: EquipmentOperationalStatus | None = None,
+    ) -> tuple[list[EquipmentUnit], int]:
+        """Return a filtered workspace page and its total before pagination."""
 
     def create(self, workspace_id: UUID, equipment_unit: NewEquipmentUnit) -> EquipmentUnit:
         """Create a unit owned by the supplied workspace."""
@@ -92,6 +117,13 @@ class EquipmentUnitRepository(Protocol):
 
 class InventoryItemRepository(Protocol):
     """Persistence operations for workspace-owned Facility component stock."""
+
+    def read_page(
+        self, workspace_id: UUID, *, limit: int = 50, offset: int = 0,
+        facility_id: UUID | None = None,
+        component_id: UUID | None = None,
+    ) -> tuple[list[InventoryItem], int]:
+        """Return a filtered workspace page and its total before pagination."""
 
     def create(self, workspace_id: UUID, inventory_item: NewInventoryItem) -> InventoryItem:
         """Create inventory owned by the supplied workspace."""
@@ -130,6 +162,45 @@ class SqlAlchemyCatalogRepository:
 
     def __init__(self, session: Session) -> None:
         self._session = session
+
+    def read_models_page(
+        self, *, catalog_release_id: UUID | None = None,
+        limit: int = 50, offset: int = 0,
+    ) -> tuple[list[EquipmentModel], int]:
+        statement = select(EquipmentModelRecord)
+        if catalog_release_id is not None:
+            statement = statement.where(EquipmentModelRecord.catalog_release_id == catalog_release_id)
+        total = self._session.scalar(select(func.count()).select_from(statement.subquery())) or 0
+        records = self._session.scalars(
+            statement.order_by(EquipmentModelRecord.code, EquipmentModelRecord.id).limit(limit).offset(offset)
+        )
+        return [_equipment_model_to_domain(record) for record in records], total
+
+    def read_components_page(
+        self, *, catalog_release_id: UUID | None = None,
+        limit: int = 50, offset: int = 0,
+    ) -> tuple[list[Component], int]:
+        statement = select(ComponentRecord)
+        if catalog_release_id is not None:
+            statement = statement.where(ComponentRecord.catalog_release_id == catalog_release_id)
+        total = self._session.scalar(select(func.count()).select_from(statement.subquery())) or 0
+        records = self._session.scalars(
+            statement.order_by(ComponentRecord.code, ComponentRecord.id).limit(limit).offset(offset)
+        )
+        return [_component_to_domain(record) for record in records], total
+
+    def read_compatible_components(
+        self, equipment_model_id: UUID, *, limit: int = 50, offset: int = 0,
+    ) -> tuple[list[Component], int]:
+        statement = select(ComponentRecord).join(
+            equipment_model_components,
+            equipment_model_components.c.component_id == ComponentRecord.id,
+        ).where(equipment_model_components.c.equipment_model_id == equipment_model_id)
+        total = self._session.scalar(select(func.count()).select_from(statement.subquery())) or 0
+        records = self._session.scalars(
+            statement.order_by(ComponentRecord.code, ComponentRecord.id).limit(limit).offset(offset)
+        )
+        return [_component_to_domain(record) for record in records], total
 
     def create_release(self, release: NewCatalogRelease) -> CatalogRelease:
         record = CatalogReleaseRecord(code=release.code)
@@ -189,6 +260,25 @@ class SqlAlchemyEquipmentUnitRepository:
 
     def __init__(self, session: Session) -> None:
         self._session = session
+
+    def read_page(
+        self, workspace_id: UUID, *, limit: int = 50, offset: int = 0,
+        facility_id: UUID | None = None,
+        equipment_model_id: UUID | None = None,
+        operational_status: EquipmentOperationalStatus | None = None,
+    ) -> tuple[list[EquipmentUnit], int]:
+        statement = select(EquipmentUnitRecord).where(EquipmentUnitRecord.workspace_id == workspace_id)
+        if facility_id is not None:
+            statement = statement.where(EquipmentUnitRecord.facility_id == facility_id)
+        if equipment_model_id is not None:
+            statement = statement.where(EquipmentUnitRecord.equipment_model_id == equipment_model_id)
+        if operational_status is not None:
+            statement = statement.where(EquipmentUnitRecord.operational_status == operational_status)
+        total = self._session.scalar(select(func.count()).select_from(statement.subquery())) or 0
+        records = self._session.scalars(
+            statement.order_by(EquipmentUnitRecord.asset_tag, EquipmentUnitRecord.id).limit(limit).offset(offset)
+        )
+        return [_equipment_unit_to_domain(record) for record in records], total
 
     def create(self, workspace_id: UUID, equipment_unit: NewEquipmentUnit) -> EquipmentUnit:
         record = EquipmentUnitRecord(
@@ -267,6 +357,22 @@ class SqlAlchemyInventoryItemRepository:
 
     def __init__(self, session: Session) -> None:
         self._session = session
+
+    def read_page(
+        self, workspace_id: UUID, *, limit: int = 50, offset: int = 0,
+        facility_id: UUID | None = None,
+        component_id: UUID | None = None,
+    ) -> tuple[list[InventoryItem], int]:
+        statement = select(InventoryItemRecord).where(InventoryItemRecord.workspace_id == workspace_id)
+        if facility_id is not None:
+            statement = statement.where(InventoryItemRecord.facility_id == facility_id)
+        if component_id is not None:
+            statement = statement.where(InventoryItemRecord.component_id == component_id)
+        total = self._session.scalar(select(func.count()).select_from(statement.subquery())) or 0
+        records = self._session.scalars(
+            statement.order_by(InventoryItemRecord.id).limit(limit).offset(offset)
+        )
+        return [_inventory_item_to_domain(record) for record in records], total
 
     def create(
         self, workspace_id: UUID, inventory_item: NewInventoryItem

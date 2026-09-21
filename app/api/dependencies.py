@@ -14,7 +14,7 @@ def get_database(request: Request) -> Database:
     if database is None:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="The Facility API database is not configured.",
+            detail="The operational API database is not configured.",
         )
 
     return database

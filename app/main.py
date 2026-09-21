@@ -7,7 +7,7 @@ from sqlalchemy.exc import OperationalError
 from starlette.exceptions import HTTPException
 
 from app.api.errors import database_unavailable, http_problem
-from app.api.routes import facilities, health
+from app.api.routes import catalog, equipment_units, facilities, health, incidents, inventory_items, work_orders
 from app.config import Settings
 from app.database import Database, create_database
 
@@ -82,6 +82,11 @@ def create_app(
     application.add_exception_handler(OperationalError, database_unavailable)
     application.include_router(health.router)
     application.include_router(facilities.router)
+    application.include_router(equipment_units.router)
+    application.include_router(inventory_items.router)
+    application.include_router(incidents.router)
+    application.include_router(work_orders.router)
+    application.include_router(catalog.router)
 
     return application
 

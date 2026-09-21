@@ -551,7 +551,7 @@ Small endpoint-specific developer smoke fixtures may be introduced before this w
 
 ### Status
 
-- [~] In Progress — implementation verified; commit pending
+- [x] Complete
 - `data/baselines/demo-1.json` supplies 5 Facilities, 12 models, 36 Components,
   60 units, 179 stock rows, 60 Incidents, 60 WorkOrders, and 12 fixed Q1–Q5 cases.
 - `scripts/bootstrap_development.py` applies migrations and seeds/validates a
@@ -573,8 +573,8 @@ Small endpoint-specific developer smoke fixtures may be introduced before this w
   was created and validated. Restricted-role list/detail smoke requests returned
   200 with five Facilities. Q1–Q5 execution plans were inspected on this small
   dataset; this is not a production-scale performance benchmark.
-- No active acceptance coverage gap is known. Final completion bookkeeping awaits
-  committing this increment; no Waypoint 1.6 API or later capability is implemented.
+- No active acceptance coverage gap is known. The dataset increment is committed;
+  Waypoint 1.6 API acceptance is recorded below.
 
 ---
 
@@ -602,7 +602,30 @@ that support the later frontend and structured-query workflows.
 
 ### Status
 
-- [ ] Complete
+- [x] Complete
+- Added workspace-scoped list/detail reads for equipment units, inventory items,
+  incidents, and work orders, plus shared model/component lists and details and
+  paginated exact-model compatibility. Catalog lists optionally filter by release,
+  include unused definitions, and order by code then ID. Existing Facility behavior remains available.
+- Reused bounded limit/offset pagination, typed response/query models, and
+  problem responses. Filters are limited to the relationships, statuses,
+  classification, priority, and incident time bounds needed by Q1–Q5.
+- `docs/api.md` documents ownership, filtering, ordering, question semantics,
+  and repeatable requests using the existing baseline. OpenAPI remains generated.
+- Verification (2026-09-20): 362 tests passed, no failures or skips; one existing
+  Starlette/AnyIO deprecation warning. Route acceptance tests use the restricted
+  application role and independent seeded workspaces. Coverage includes exact
+  data, pagination and filtered totals, empty results, validation, unavailable
+  database responses, isolation, compatibility, release-filtered browsing across
+  multiple releases, and generated documentation.
+- The documented smoke requests returned 200 for every new endpoint against the
+  configured development dataset through a running API using `space_corp_app`.
+  `/docs`, `/redoc`, and `/openapi.json` also returned 200. API tests passed again
+  after the full suite, confirming migration tests retain application grants.
+- `git diff --check` passed. No active completion-criterion coverage gap is known;
+  concurrent pagination snapshots and production-scale load testing are outside
+  this increment. No migrations, dependencies, write endpoints, analytical answer
+  endpoints, or Waypoint 1.7 automation were added.
 
 ---
 

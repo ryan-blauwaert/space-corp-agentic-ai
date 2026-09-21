@@ -273,7 +273,7 @@ def test_database_failure_returns_safe_problem_response(path: str) -> None:
     with TestClient(application) as client:
         response = client.get(path)
     assert response.status_code == 503
-    assert response.json()["detail"] == "The Facility API database is unavailable."
+    assert response.json()["detail"] == "The operational API database is unavailable."
     assert "secret" not in response.text
     assert "private_data" not in response.text
 

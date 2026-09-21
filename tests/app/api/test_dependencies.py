@@ -32,7 +32,7 @@ def test_get_database_rejects_missing_configuration() -> None:
         get_database(make_request())
 
     assert error.value.status_code == 503
-    assert error.value.detail == "The Facility API database is not configured."
+    assert error.value.detail == "The operational API database is not configured."
 
 
 def test_get_default_workspace_id_returns_server_configuration() -> None:

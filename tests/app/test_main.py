@@ -108,3 +108,45 @@ def test_verify_database_connection_raises_clear_startup_error() -> None:
 
     with pytest.raises(ApplicationStartupError, match="database is unavailable"):
         _verify_database_connection(database)
+
+
+def test_operational_read_openapi_and_documentation_pages() -> None:
+    application = create_app(startup_settings(database_url=None), MagicMock())
+    with TestClient(application) as client:
+        for path in ("/docs", "/redoc", "/openapi.json"):
+            assert client.get(path).status_code == 200
+        schema = client.get("/openapi.json").json()
+    paths = {
+        "/equipment-models": "listEquipmentModels",
+        "/components": "listComponents",
+        "/equipment-units": "listEquipmentUnits",
+        "/equipment-units/{equipment_unit_id}": "getEquipmentUnit",
+        "/inventory-items": "listInventoryItems",
+        "/inventory-items/{inventory_item_id}": "getInventoryItem",
+        "/incidents": "listIncidents",
+        "/incidents/{incident_id}": "getIncident",
+        "/work-orders": "listWorkOrders",
+        "/work-orders/{work_order_id}": "getWorkOrder",
+        "/equipment-models/{equipment_model_id}": "getEquipmentModel",
+        "/components/{component_id}": "getComponent",
+        "/equipment-models/{equipment_model_id}/components": "listCompatibleComponents",
+    }
+    for path, operation_id in paths.items():
+        assert set(schema["paths"][path]) == {"get"}
+        operation = schema["paths"][path]["get"]
+        assert operation["operationId"] == operation_id
+        assert operation["tags"] == [path.split("/")[1]]
+        assert "$ref" in operation["responses"]["200"]["content"]["application/json"]["schema"]
+        assert "422" in operation["responses"]
+        for code in (["404", "503"] if "{" in path else ["503"]):
+            assert set(operation["responses"][code]["content"]) == {"application/problem+json"}
+        parameters = {p["name"]: p["schema"] for p in operation["parameters"]}
+        assert "workspace_id" not in parameters
+        if path in ("/equipment-models", "/components"):
+            assert "catalog_release_id" in parameters
+            assert "404" not in operation["responses"]
+        if "{" not in path or path.endswith("/components"):
+            assert parameters["limit"]["maximum"] == 100
+            assert parameters["limit"]["minimum"] == 1
+            assert parameters["offset"]["minimum"] == 0
+    assert set(schema["paths"]) == set(paths) | {"/health", "/facilities", "/facilities/{facility_id}"}
