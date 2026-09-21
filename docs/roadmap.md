@@ -734,7 +734,7 @@ Phase 7 extends this foundation across capabilities and provides richer inspecti
 
 ### Status
 
-- [~] In progress — units 1–2 contracts and configured provider implemented.
+- [~] In progress — units 1–3 contracts, provider, and controlled execution implemented.
 - Added validated model requests/results, caller-owned request/operation correlation,
   model/prompt identifiers, optional token usage, explicit output-limit completion,
   normalized error categories, and a one-attempt provider protocol under `app/llm/`.
@@ -746,8 +746,13 @@ Phase 7 extends this foundation across capabilities and provides richer inspecti
   bounds, disabled SDK retries, safe error mapping, and mocked transport tests.
 - Unit 2 verification: 454 tests passed, no failures or skips; Ruff, mypy,
   and locked dependency installation passed. The existing warning remains.
-- Retry orchestration, emitted telemetry, smoke invocation,
-  and live acceptance remain unimplemented. This waypoint is not complete.
+- Unit 3 adds a provider-independent execution service with bounded transient
+  retries, jittered backoff, and allowlisted JSON attempt/operation telemetry.
+  Tests cover correlation, timing, safe logs, and single-layer retry behavior.
+- Unit 3 verification: 481 tests passed, no failures or skips (27 new service
+  tests); Ruff and mypy passed. The existing warning remains.
+- Smoke invocation, entry-point logging setup, and live acceptance remain
+  unimplemented. This waypoint is not complete.
 
 ---
 
