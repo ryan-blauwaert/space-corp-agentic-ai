@@ -19,13 +19,15 @@ def test_dataset_covers_baseline_and_declined_questions_without_mutating_baselin
     before = DEFAULT_MANIFEST.read_bytes()
     baseline = load_manifest()
     dataset = load_evaluation()
-    assert dataset.version == "queries-1"
+    assert dataset.version == "queries-2"
     assert dataset.baseline_version == "demo-1"
     supported = [case for case in dataset.cases if isinstance(case, SupportedCase)]
     declined = [case for case in dataset.cases if isinstance(case, DeclinedCase)]
-    assert len(supported) == 12
+    assert len(supported) == 18
     assert len(declined) == 6
-    assert {case.scenario_key for case in supported} == {s.key for s in baseline.scenarios}
+    assert {case.scenario_key for case in supported if case.scenario_key is not None} == {
+        s.key for s in baseline.scenarios
+    }
     assert set(dataset.prohibited_behaviors) == {
         "writes",
         "cross_workspace_reads",
@@ -124,3 +126,72 @@ def test_baseline_content_change_rejected_even_with_same_version():
     changed = type(load_manifest()).model_validate(data)
     with pytest.raises(ValueError, match="digest mismatch"):
         load_evaluation(manifest=changed)
+
+
+def test_canonical_examples_use_explicit_filters_not_implicit_question_rules():
+    cases = {
+        case.key: resolve_case(case, load_manifest(), UUID(int=1))
+        for case in load_evaluation().cases
+    }
+    q1 = cases["q1-positive-unrelated-and-deduplicated"].expected_plan
+    assert set(q1.unit_statuses) == {"degraded", "offline"}
+    assert set(q1.incident_statuses) == {"open", "investigating"}
+    q2 = cases["q2-stock-zero-and-unknown"].expected_plan
+    assert set(q2.incident_statuses) == {"open", "investigating"}
+    q3 = cases["q3-active-boundaries-and-distinct-targets"].expected_plan
+    assert set(q3.statuses) == {"open", "in_progress", "blocked"}
+    assert set(q3.priorities) == {"high", "critical"}
+    q4 = cases["q4-same-fault-time-boundaries-and-distinct-incidents"]
+    assert q4.expected_plan.fault_code == "AIRFLOW"
+    assert q4.expected_result.count >= 2
+    assert cases["q5-shortfall-and-equality"].expected_plan.below_reorder_point is True
+
+
+def test_authored_variations_have_distinct_evidence_and_no_canonical_gate():
+    baseline = load_manifest()
+    cases = {c.key: resolve_case(c, baseline, UUID(int=1)) for c in load_evaluation().cases}
+    assert cases["lunar-stock-threshold"].expected_plan.quantity.value == 2
+    assert cases["lunar-stock-threshold"].expected_result.page.rows[0].quantity_on_hand == 0
+    assert cases["stock-at-reorder-point"].expected_result.page.rows[0].shortfall == 0
+    assert cases["completed-work"].expected_result.page.rows[0].status == "completed"
+    assert cases["resolved-unit-incidents"].expected_plan.occurred is None
+    assert cases["resolved-unit-incidents"].expected_result.page.rows[0].status == "resolved"
+    assert cases["offline-equipment-without-incident"].expected_plan.incident_statuses is None
+    assert cases["compatibility-without-incident"].expected_plan.incident_statuses is None
+    assert cases["compatibility-without-incident"].expected_result.status == "matched"
+    assert cases["compatibility-without-incident"].expected_result.incident_ids == ()
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        "both-evidence",
+        "neither-evidence",
+        "invalid-plan",
+        "unknown-plan-reference",
+        "unknown-evidence-reference",
+        "wrong-result",
+        "invalid-result",
+    ],
+)
+def test_authored_plan_and_result_templates_are_validated(tmp_path, change):
+    data = json.loads(DEFAULT_EVALUATION.read_text())
+    case = next(c for c in data["cases"] if c["key"] == "lunar-stock-threshold")
+    if change == "both-evidence":
+        case["scenario_key"] = "q5-empty"
+    elif change == "neither-evidence":
+        del case["expected_result"]
+    elif change == "invalid-plan":
+        case["expected_plan"]["sql"] = "SELECT 1"
+    elif change == "unknown-plan-reference":
+        case["expected_plan"]["component_id"] = "@components:UNKNOWN"
+    elif change == "unknown-evidence-reference":
+        case["expected_result"]["page"]["rows"][0]["inventory_id"] = "@inventory:UNKNOWN"
+    elif change == "wrong-result":
+        case["expected_result"] = {"operation": "work_orders", "page": {"rows": [], "total": 0}}
+    else:
+        case["expected_result"]["page"]["rows"][0]["shortfall"] = -1
+    path = tmp_path / "bad.json"
+    path.write_text(json.dumps(data))
+    with pytest.raises(ValueError):
+        load_evaluation(path)

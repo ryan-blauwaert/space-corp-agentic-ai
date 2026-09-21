@@ -147,6 +147,15 @@ expected answers are authored in the manifest, not generated from query results.
 | Q4 | Two matching incidents despite multiple originating work orders, different fault and unknown classification excluded, start boundary included, end and pre-window events excluded, single occurrence and no matches. |
 | Q5 | Positive shortfall, zero-stock shortfall, equality excluded, absent inventory excluded, no shortages. |
 
+Q1–Q5 specify these baseline examples only. Exclusions such as completed work or
+stock at its reorder point are scenario filters, not universal product restrictions.
+The [bounded query layer](structured-queries.md) represents them as explicit filters
+and supports additional combinations. Its `data/evaluations/queries-2.json` fixture
+references all 12 baseline scenarios and adds six supported variations plus six
+declined cases. The loader validates contracts and evidence references; model/query
+execution and the repeatable evaluation command remain subsequent Waypoint 2.2 work.
+The baseline manifest and its original expectations are unchanged.
+
 The reference SQL in `scripts/dataset_queries.py` is a fixed acceptance oracle,
 not natural-language execution or a public query endpoint. Two-workspace tests
 run the same cases against disjoint IDs, edit and refresh one copy, and verify

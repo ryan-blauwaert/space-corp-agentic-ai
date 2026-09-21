@@ -4,7 +4,7 @@ This repository is a portfolio project for building a production-style agentic A
 
 ## Current Phase
 
-We are in Phase 1 — Structured Operational Backend. Follow the current waypoint and completion status in `docs/roadmap.md`. Do not implement AI features yet.
+We are in Phase 2 — Minimum Viable Product, at Waypoint 2.2 — Structured Query Capability. Follow `docs/roadmap.md` for authoritative completion status. Unit 1 defines bounded query contracts and evaluation fixtures; planning and execution remain subsequent work. Do not implement later-waypoint AI features speculatively.
 
 ## Development Instructions
 
@@ -21,6 +21,16 @@ We are in Phase 1 — Structured Operational Backend. Follow the current waypoin
 - Do not introduce dependencies without explaining why.
 - Work only on the active roadmap waypoint unless the task explicitly expands scope. Do not implement future-waypoint architecture speculatively.
 - When all completion criteria for a waypoint have been verified, update its status to complete in the same change; do not mark it complete when required checks are skipped or unverified.
+
+## Structured Query Guidance
+
+- Treat Q1–Q5 as canonical acceptance examples, not an exhaustive intended-use list or production operation registry.
+- Use the bounded domain contracts in `app/queries/contracts.py`; [structured-query notes](docs/structured-queries.md) define their semantics and current limits.
+- Support combinations of approved typed filters. Do not add one hardcoded operation per natural-language question or silently apply canonical-example filters to broader requests.
+- Keep workspace, catalog pins, authorization, pagination, execution limits, and read-only enforcement outside model control. Schema validation alone is not authorization or proof of correctness.
+- Distinguish unsupported capability, prohibited behavior, missing input, and ambiguity. Never silently substitute a different question or guess entity identities.
+- Preserve canonical baseline evidence and add versioned cases for novel combinations, filter boundaries, and unsafe requests. Unit 1 schema tests do not prove query execution or model accuracy.
+- Document and test any extension of the query language within the active waypoint; arbitrary SQL, arbitrary joins, grouped analytics, and multi-query planning are not implicitly authorized by the flexibility goal.
 
 ## Python Environment
 

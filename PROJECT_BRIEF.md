@@ -121,7 +121,19 @@ The system should eventually demonstrate the following capabilities:
 
 Users should be able to ask natural-language questions that require querying relational data.
 
-The system should safely translate user intent into validated structured queries rather than allowing unrestricted model-generated SQL execution.
+The system should translate user intent into bounded domain queries: approved typed
+filters and relationships that application code validates and executes using
+parameterized SQL. Q1–Q5 are canonical acceptance examples, not the full set of
+intended use cases. Users should be able to ask new combinations of supported
+conditions without requiring an operation for each question.
+
+Flexibility does not expand authority. Workspace selection, catalog pins,
+authorization, read-only enforcement, and execution/resource limits stay outside
+model control. Unsupported questions are capability gaps, distinct from prohibited
+requests; ambiguity must not be resolved by guessing or silently changing the question.
+See [the query design](docs/structured-queries.md) for the current bounded language.
+Arbitrary SQL, arbitrary joins, and general analytical expressions are not part of
+the initial implementation.
 
 ### Retrieval-Augmented Generation
 
@@ -271,6 +283,11 @@ This should remain functional even if the original application process no longer
 Evaluation is a first-class component of the project rather than an afterthought.
 
 A gold evaluation dataset should include more than question-and-answer pairs.
+Structured-query evaluation must preserve canonical scenarios while testing novel
+combinations of approved filters, exact evidence, empty results, ambiguous and
+unsupported inputs, and prohibited operations. Acceptance examples must not become
+an exhaustive list of permitted questions. Test semantic intent as well as schema
+validity so a safe but different query cannot count as a correct answer.
 
 Evaluation cases may contain:
 
@@ -428,23 +445,16 @@ The initial codebase may begin as a small modular application. Capabilities shou
 
 ## Current Scope
 
-The current phase is Phase 1 — Structured Operational Backend. Typed configuration, PostgreSQL persistence, workspace isolation, and the read-only Facility API are implemented. See `docs/roadmap.md` for authoritative completion status and the next waypoint.
+The current phase is Phase 2 — Minimum Viable Product. The structured backend,
+versioned baseline, core read-only APIs, PR checks, and controlled LLM integration
+are implemented. Waypoint 2.2 is in progress: bounded query contracts and versioned
+evaluation fixtures exist; query planning, read-only execution, tracing, and the
+repeatable query evaluation command remain to be implemented. See
+[the roadmap](docs/roadmap.md) for authoritative completion status.
 
-Current priorities are to preserve the tested foundation, keep interfaces explicit, and introduce further structured data only through the roadmap's small, reviewable increments.
-
-The following are explicitly out of scope for the initial foundation phase:
-
-- multi-agent orchestration
-- RAG
-- vector databases
-- MCP
-- authentication
-- durable workflow orchestration
-- human approval workflows
-- distributed microservice deployment
-- production infrastructure
-- advanced observability
-- automated AI evaluation
-- CI/CD deployment gates
-
-These capabilities will be added in later milestones after the foundational application is stable.
+Current priorities are to implement the documented query capabilities incrementally,
+preserve canonical evidence, and verify new filter combinations without relaxing
+workspace or execution controls. Answer synthesis and frontend work belong to the
+following waypoints. Agents, RAG, vector databases, MCP, authentication, durable
+workflows, advanced evaluation infrastructure, and deployment gates remain later
+work; the initial query evaluation harness is required within Waypoint 2.2.

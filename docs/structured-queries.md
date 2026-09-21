@@ -1,142 +1,192 @@
 # Structured Operational Queries
 
-Waypoint 2.2 is in progress. Unit 1 defines contracts and evaluation fixtures only.
-It performs no model calls, database reads/writes, or query execution. The remaining
-units add read-only sessions, Q1–Q5 execution, model planning, tracing, and evaluation.
+Waypoint 2.2 unit 1 defines contracts and evaluation fixtures. It does not yet
+perform model calls, database queries, or answer synthesis. Q1–Q5 are canonical
+acceptance examples, not an exhaustive list of legitimate user questions.
 
-## Scope and design
+## Decision: bounded domain queries
 
-The model will propose one canonical operation and its typed inputs. Application
-code will validate that proposal and construct a fixed parameterized query. Plans
-have no SQL, table names, joins, arbitrary predicates, workspace selection, or
-pagination controls. This deliberately supports Q1–Q5 rather than general SQL.
-The illustrative roadmap question about lunar locations and a custom stock threshold
-is outside this initial set and must be declined until an explicit extension exists.
+The model proposes a domain query and typed filters. Application code will validate
+it, authorize the referenced entities, and construct parameterized SQL using approved
+relationships. Novel combinations of supported filters do not require a new question
+identifier, prompt example, or executor branch for every natural-language question.
 
-Contracts use the existing Pydantic dependency. String-tagged
+This is a small application-owned semantic surface rather than arbitrary SQL or a
+new query framework. Semantic models are an established way to describe approved
+business concepts and relationships; see [Snowflake's semantic view overview](https://docs.snowflake.com/en/user-guide/views-semantic/overview).
+Our narrower implementation uses existing Pydantic
 [discriminated unions](https://docs.pydantic.dev/latest/concepts/unions/#discriminated-unions)
-select exactly one operation schema and reject unknown fields. No dependency or
-framework is added. Validating a schema is not authorization, entity existence
-checking, or proof that an answer matches a question.
+and domain enums, with no new dependencies. A general expression tree, arbitrary
+joins, grouped analytics, multi-query planning, and forecasting remain unsupported.
+These are capability limits, not a claim that all other questions are unsafe.
 
-## Plans and caller context
+## Query language
 
-`app/queries/contracts.py` defines frozen values with unknown fields forbidden:
+`app/queries/contracts.py` defines immutable plans with unknown fields forbidden at
+every level. `operation` selects an evidence domain, never a Q1–Q5 identifier.
 
-| Operation | Typed inputs | Fixed meaning |
+| Operation / plan | Approved filters | Result grain |
 | --- | --- | --- |
-| Q1 | Optional `facility_id` | Degraded/offline units with unresolved incidents on the same unit; group evidence by Facility |
-| Q2 | `equipment_unit_id` | Exact-model compatible components and local stock, requiring an unresolved incident |
-| Q3 | `facility_id`, `as_of` | Active high/critical-priority work with blocked/overdue flags |
-| Q4 | `equipment_model_id`, `fault_code`, `window_start`, `as_of` | Distinct same-fault incidents within the half-open time window |
-| Q5 | `facility_id` | Recorded inventory strictly below its reorder point |
+| `facility_equipment` / `FacilityEquipmentPlan` | Facility, exact model revision, unit statuses, related incident statuses | Facilities containing matching units, with unit/incident evidence |
+| `compatible_stock` / `CompatibleStockPlan` | Required unit; optional incident statuses | Exact-model compatible components with local stock, including unknown stock |
+| `work_orders` / `WorkOrdersPlan` | Facility, statuses, priorities, target unit, originating incident, overdue flag; required `as_of` | Distinct work orders |
+| `incidents` / `IncidentsPlan` | Facility, unit, exact model revision, statuses, severities, fault code, occurrence window | Distinct incidents |
+| `inventory` / `InventoryPlan` | Facility, component, compatible model revision, quantity comparison, below-reorder flag | Recorded inventory items |
 
-Identifiers are UUIDs. Plans refer to an exact model revision, not a family name.
-Time inputs must be timezone-aware; accepted instants normalize to UTC. Q4 requires
-`window_start < as_of`. Fault codes normalize by stripping whitespace and uppercasing,
-with the domain's nonblank/64-character bound. Plans do not change the canonical
-status, priority, recurrence, or shortage definitions.
+Facility filters support ID, facility type, and exact stored location. Supplied
+filters combine with AND; a status/priority/severity list means membership in ANY
+listed value. Lists are nonempty, bounded to 20 entries, and deduplicated. Omitted
+or null filters impose no constraint. No hidden degraded/unresolved/high-priority/
+shortage defaults remain. `{}` facility selection means the trusted workspace's
+facilities, never all workspaces. Explicitly ambiguous language such as “the facility”
+still requires clarification; it must not silently become an unfiltered query.
 
-`QUERY_PLAN` validates executable plan shapes. `PLANNING_OUTCOME` also accepts
-`operation: declined` with one of four fixed reasons: `unsupported_question`,
-`prohibited_operation`, `missing_input`, or `ambiguous_input`. A declined outcome
-cannot validate as an executable plan. Declines do not authorize partial execution,
-and no multi-turn clarification workflow is implemented here.
+Quantity comparisons are `lt`, `lte`, `eq`, `gte`, or `gt` against a strict
+nonnegative integer. `below_reorder_point: true` means quantity < reorder point;
+false means quantity >= reorder point. These filters can intersect. Contradictory
+but well-formed filters return no matches rather than silently removing a condition.
 
-`QueryContext` is supplied by trusted application code and holds `request_id`,
-`operation_id`, and `workspace_id`. Later orchestration will share the request UUID
-with the 2.1 model call and use separate operation IDs for planning and execution.
-The model cannot override this context. Trusted callers must still authorize it;
-constructing the context itself grants no access.
+Occurrence windows are timezone-aware, UTC-normalized, start-inclusive/end-exclusive,
+and require start < end. Fault codes are trimmed and uppercased. UUIDs identify exact
+entities/revisions; names require later authorized resolution, not guessed IDs.
+Work-order `as_of` is explicit so evidence and overdue filtering use the same instant.
+Interactive orchestration may supply a single captured server instant when appropriate;
+evaluation cases pin time. Overdue means an active order with due_at < as_of;
+completed/cancelled and unscheduled orders are never overdue. Blocked means status=blocked.
 
-`QueryPageRequest` is separate caller-owned input, using the existing default of
-50 rows and maximum of 100, with a nonnegative offset. Values must be integers,
-not booleans or strings. This adds no endpoint or generic pagination service.
-Missing required inputs must not silently select an arbitrary entity. Defaulting
-an interactive `as_of` to one server-captured instant belongs to later orchestration;
-evaluation questions always specify the baseline's fixed instants.
+For example, this plan can express a new combination of location, compatibility,
+and a user-selected threshold without adding Q6:
 
-## Structured evidence and errors
+```json
+{
+  "operation": "inventory",
+  "facility": {"facility_type": "lunar_installation"},
+  "compatible_model_id": "00000000-0000-0000-0000-000000000001",
+  "quantity": {"operator": "lt", "value": 2}
+}
+```
 
-`QueryResponse` carries trusted context, the resolved catalog-release ID, and a
-discriminated result. Each result contains a typed `EvidencePage` with immutable
-row tuples, limit, offset, and total. The total describes all matching top-level
-records before pagination. An empty page at a later offset does not mean no matches.
-Nested Q1 evidence is not silently discarded to meet the top-level Facility limit;
-execution and resource-bound behavior will be tested in the executor units.
+The UUID is illustrative and must resolve in the pinned catalog before execution.
+“Thermal control units” in the roadmap example must be resolved to an actual modeled
+component or compatibility relationship; the planner cannot invent a classification
+or equate unrecorded inventory with zero.
 
-- Q1 preserves distinct units and supporting incidents at each Facility. Local
-  validation rejects duplicate unit/incident identities and unrelated unit evidence.
-- Q2 preserves model/component compatibility pairs, incident IDs, inventory IDs,
-  and quantities. Missing inventory has both ID and quantity null; recorded zero
-  remains zero. `no_unresolved_incident`, `no_compatibility`, and `matched` are
-  separate outcomes; a later empty page may still have `matched` status.
-- Q3 labels originating incident, incident-affected unit, and work-target unit
-  separately. Different units and absent targets remain valid. Unscheduled work
-  cannot be overdue, and the blocked flag must agree with status.
-- Q4's `count` equals the full distinct-incident total, not page length. `repeated`
-  is true exactly when that total is at least two. Empty and single-occurrence
-  results remain successful query outcomes.
-- Q5 validates positive shortfall as reorder point minus recorded quantity.
-  Equality and above-threshold stock cannot appear as shortage evidence.
+## Canonical examples remain acceptance requirements
 
-Empty results describe matching records only, not facility health, repair suitability,
-or unrecorded inventory. An unavailable/out-of-workspace input must instead fail as
-`not_found`. The executor will validate database relationships, ownership, catalog
-pins, date comparisons, and stable ordering; local result validation cannot prove
-those facts from IDs alone.
+| Scenario | Explicit query meaning |
+| --- | --- |
+| Q1 | Facility equipment with degraded/offline units and open/investigating incidents on those same units |
+| Q2 | Compatible local stock for a unit, requiring open/investigating incident evidence |
+| Q3 | Work orders with open/in_progress/blocked statuses and high/critical priorities, with time-based flags |
+| Q4 | Incidents for an exact model and fault within the fixed occurrence window; count >= 2 establishes recurrence |
+| Q5 | Recorded inventory below its reorder point at the selected facility |
 
-`app/queries/errors.py` defines `invalid_plan`, `not_found`, `model_failure`,
-`database_unavailable`, and `timeout` errors with caller correlation and fixed
-messages. Declined plans are explicit outcomes, not database errors. Mapping
-validation/provider/database failures into these categories is later work. Raw
-Pydantic errors can include input; never log them, prompts, plans, or results
-wholesale. Hiding result fields in representations is only a precaution.
+The evaluation fixture now authors these plans explicitly. Business meaning is not
+embedded in question identifiers in production contracts. The unchanged baseline
+reference SQL remains an independent oracle for canonical scenarios.
 
-## Versioned evaluation fixture
+## Evidence and interpretation
 
-`data/evaluations/queries-1.json` references `demo-1` and `demo-catalog-1`, with a
-SHA-256 of the validated baseline's canonical JSON using the existing dataset digest
-function. The original baseline is unchanged. The fixture includes:
+Results use the same domain operation tags as plans. Each contains a typed evidence
+page with rows, total, limit, and offset. Total counts the complete matching result
+grain, not the current page: facilities for `facility_equipment`, components for
+`compatible_stock`, and distinct records for the other domains. A later empty page
+does not mean no matches. No general aggregation language is introduced.
 
-- 12 natural-language cases referencing every existing canonical scenario, including
-  its authored inputs and exact expected evidence.
-- Six declined cases covering missing inputs, ambiguity, unsupported forecasting,
-  write requests, cross-workspace reads, and raw-SQL injection.
-- Four global prohibited behaviors: writes, cross-workspace reads, raw SQL execution,
-  and unvalidated execution. Every case must satisfy these prohibitions. Declined
-  cases additionally prohibit operational query execution.
+- Facility equipment results contain distinct units and incidents referencing only
+  those units. Without an incident-status filter, units without incidents are allowed
+  and linked incidents of any status may appear. With the filter, each returned unit
+  must have a matching incident and only matching incidents are included.
+- Compatible stock always uses the selected unit's exact model and own facility.
+  When incident statuses are supplied, `incident_ids` contains the matching evidence;
+  no match yields `no_incident_match` and no stock rows. Without the filter, no incident
+  prerequisite applies and `incident_ids` is empty. `no_compatibility` means no catalog
+  compatibility pairs; `matched` means pairs exist, even if stock is zero or unknown.
+  Missing inventory has both ID and quantity null; recorded zero stays zero.
+- Work-order evidence preserves originating incident, incident-affected unit, and
+  independent target unit. Broader status/priority results are valid.
+- Incident evidence includes facility, nullable unit, fault, status, severity, and
+  occurrence time. `count` equals the distinct-incident total. A count across mixed
+  faults/models is not automatically evidence of same-fault recurrence; Q4 supplies
+  the required filters. The old universal `repeated` flag has been removed.
+- Inventory evidence includes facility and component IDs. Shortfall is
+  max(0, reorder point - quantity), so normal and excess stock have zero shortfall.
+  Only recorded stock is queried here; absent inventory is not synthesized as zero.
 
-`scripts/query_evaluation_dataset.py` loads and validates fixture identity, digest,
-coverage, unique case keys, decline categories, and evidence references. It resolves
-`@collection:key` references into deterministic workspace/catalog UUIDs using the
-existing baseline identity functions. The same substitutions render question text.
-`ResolvedCase` holds the expected typed plan, typed result, and whether execution is
-allowed. Supported cases use a first page of 100 for complete baseline evidence.
+The future executor must check relationships, catalog pins, entity existence,
+filter satisfaction, stable ordering, and complete nested evidence. Local shape
+validation alone cannot establish these facts or authorize a request. An unavailable
+or out-of-workspace explicit entity fails as `not_found`; a valid filtered query
+with no matching records succeeds with empty evidence. Empty results do not prove
+facility health, repair suitability, or absence of unrecorded stock.
 
-Expected plans come from authored scenario inputs; expected rows come from authored
-scenario evidence, never executor output. The only result adaptation wraps existing
-rows with pagination metadata and the operation tag. These references avoid a second
-copy of the expected operational records. Shared catalog IDs remain the same across
-workspaces; operational IDs change. Fixture expectations must never be sent to the
-model as planning context.
+## Trusted execution boundary
 
-This loader is not an evaluation runner and does not report model accuracy. Proving
-that unsafe requests are declined and prohibited operations never execute requires
-the later planner/executor tests and repeatable evaluation command.
+`QueryContext` holds caller-supplied request, operation, and workspace IDs.
+`QueryPageRequest` separately controls pagination (default 50, maximum 100).
+Neither is model-generated. The plan cannot choose workspace, catalog release,
+SQL, table/column names, arbitrary joins, pagination, or execution limits.
+Authorization, read-only transactions, timeouts, and result/resource bounds remain
+application/database responsibilities for subsequent units. Broad filters must
+never bypass those limits; excess nested evidence must fail explicitly rather than
+be silently truncated.
 
-## Unit 1 verification and remaining work
+`QUERY_PLAN` accepts executable shapes. `PLANNING_OUTCOME` additionally accepts
+`declined` with `unsupported_question`, `prohibited_operation`, `missing_input`, or
+`ambiguous_input`. Unsupported combinations are capability gaps; prohibited requests
+violate policy. Missing/ambiguous inputs must not be guessed, and unsupported requests
+must not be silently approximated by a different supported query. These are currently
+terminal outcomes, not a multi-turn clarification implementation.
 
-Tests mirror the new application and script modules. They cover plan variants,
-rejected extra fields, required inputs, UUIDs, UTC/time boundaries, immutable values,
-pagination bounds, Q1–Q5 evidence semantics, correlation/error messages, all fixture
-cases, cross-workspace fixture identities, digest mismatches, and invalid references.
+Errors remain `invalid_plan`, `not_found`, `model_failure`, `database_unavailable`,
+and `timeout`, with trusted correlation and fixed safe messages. Do not log raw
+validation errors, prompts, plans, or results wholesale. Hiding fields in repr is
+only a precaution. Schema-valid plans can still be semantically wrong.
 
-Verification: 647 tests passed with no failures or skips, including 121 new contract
-and fixture tests. Ruff and mypy passed. One existing Starlette/AnyIO deprecation
-warning remains.
+## Versioned evaluation cases
 
-Read-only enforcement, entity authorization, natural-language planning accuracy,
-database result correctness, query tracing, and evaluation reporting are deliberately
-unverified in this unit. Existing canonical SQL acceptance remains a baseline oracle,
-not the new production query workflow. Waypoint 2.2 remains incomplete.
+`data/evaluations/queries-2.json` replaces the unpublished `queries-1` contract fixture
+with a new version because plan/result shapes changed. Git retains the original.
+The baseline `demo-1`, its digest, and `demo-catalog-1` are unchanged.
+
+The fixture contains 12 canonical cases, six additional supported combinations,
+and six declined cases. Additional cases cover lunar custom stock thresholds,
+stock at the reorder point, completed work, resolved incidents without a fault/time
+restriction, offline equipment without incidents, and compatibility without an
+incident prerequisite. They demonstrate generalization across all five domains.
+
+Supported cases author an expected plan plus either a baseline scenario reference
+or an explicit result. The loader resolves `@collection:key` references and validates
+both against the production contracts, including matching operation tags. Baseline
+adaptation adds record provenance from the baseline and preserves canonical record
+sets; it never obtains expectations from a query executor. Q4 recurrence is checked
+against the baseline count and represented by the incident count in the new result.
+Additional expected rows are authored in the fixture. Never send fixture expectations
+to the model as context.
+
+All cases prohibit writes, cross-workspace reads, raw SQL execution, and unvalidated
+execution. Shared catalog IDs stay stable across workspaces while operational IDs
+change. Dataset identity, digest, coverage, reference validity, and exclusive evidence
+sources are checked before model/database work. Template dictionaries exist only to
+allow symbolic fixture IDs; resolved execution contracts remain typed and closed.
+
+## Verification and remaining units
+
+The full suite passed: 700 tests, no failures or skips, including 174 query
+contract/error/fixture tests. Ruff and mypy passed. One existing Starlette/AnyIO
+deprecation warning remains.
+
+Unit tests cover canonical plan mappings, novel filter combinations, omitted-filter
+semantics, nested malformed/unsafe fields, domain enums, numeric/time boundaries,
+immutable evidence, normal/zero/unknown stock, broader work and incident results,
+fixture integrity, and workspace-dependent fixture identities.
+
+Remaining work stays in Waypoint 2.2: read-only query sessions; domain executors that
+honor every advertised filter; model planning and authorized entity resolution;
+tracing; and repeatable evaluation of both canonical and additional questions.
+Executor tests must verify filter intersections and join/count correctness, not just
+schema acceptance. Model evaluations must check unfamiliar combinations and silent
+question substitution as well as unsafe requests. There is no query runner yet, and
+unit tests do not prove model accuracy, authorization, or database enforcement.
+Waypoint 2.2 remains in progress; no answer synthesis or later-waypoint infrastructure
+is introduced by this rework.

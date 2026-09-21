@@ -774,7 +774,11 @@ Phase 7 extends this foundation across capabilities and provides richer inspecti
 
 ### Capability
 
-A natural-language question can be translated into a safe structured query workflow.
+A natural-language question can be translated into a bounded domain query that
+combines approved typed filters and relationships. Q1–Q5 are canonical acceptance
+examples; supported combinations can answer additional questions without introducing
+an operation per question. See [the query design](structured-queries.md) for the
+current language and its limits.
 
 ### Example
 
@@ -782,16 +786,20 @@ A natural-language question can be translated into a safe structured query workf
 
 ### Recommended Flow
 
-User question  
-→ schema/context selection  
-→ structured query plan  
-→ validated query  
-→ database execution  
-→ structured result
+1. Receive the user question and trusted request context.
+2. Resolve referenced entities within the authorized workspace and pinned catalog.
+3. Produce a bounded domain plan with approved filters.
+4. Validate the plan and construct a parameterized query deterministically.
+5. Execute within a workspace-scoped read-only transaction and resource limits.
+6. Return typed evidence with provenance.
 
 ### Safety Requirement
 
-The model must not receive unrestricted database execution capability.
+The model must not receive unrestricted database execution capability. Workspace,
+catalog pins, authorization, pagination, and resource limits remain caller-owned.
+Distinguish unsupported capability from prohibited behavior and missing/ambiguous
+inputs; never silently answer a different question. Schema validity alone is not
+authorization, semantic correctness, or read-only enforcement.
 
 ### Architectural Value
 
@@ -805,14 +813,19 @@ handling must remain deterministic application behavior.
 
 ### Completion Criteria
 
-- the Q1–Q5 canonical scenarios are supported, or an explicitly documented
-  superset is supported; each scenario produces a validated structured query,
-  correct records, and the required prohibited-behavior result
+- Q1–Q5 are canonical acceptance examples, not an exhaustive intended-use list;
+  bounded domain queries support their scenarios and documented combinations of
+  approved filters without one operation per question
+- each canonical scenario and additional evaluation case produces a validated
+  structured query, correct records, and the required prohibited-behavior result
 - generated queries are validated before execution
 - database access is read-only
 - invalid queries fail safely
 - query execution is traced
-- automated tests cover supported and unsafe cases
+- automated tests cover canonical examples, new filter combinations, nested invalid
+  inputs, unsafe cases, and filter/join/count boundaries
+- every advertised filter is implemented and tested; evaluation checks intent and
+  records so silent question substitution cannot pass as correct
 - a small versioned evaluation dataset records questions, expected records, and prohibited behavior against the versioned synthetic baseline
 - a repeatable evaluation command reports case-level results and aggregate outcomes, with dataset, model, and prompt versions recorded
 - query operations share the request correlation introduced in Waypoint 2.1
@@ -821,17 +834,18 @@ Use deterministic checks for query results and prohibited operations. Phase 8 ex
 
 ### Status
 
-- [~] In progress — unit 1 query contracts and versioned evaluation cases implemented.
-- Added typed Q1–Q5 plans/results, caller-owned workspace/correlation/page inputs,
-  explicit declined-planning outcomes, and safe query error categories.
-- Added `queries-1` with questions referencing all 12 `demo-1` scenarios and six
-  declined cases. The loader validates baseline/catalog identity, digest, scenario
-  coverage, and typed expected evidence without model or database calls.
-- Unit 1 verification: 647 tests passed, no failures or skips (121 new contract
-  and fixture tests); Ruff and mypy passed. One existing deprecation warning remains.
-- See [structured-query notes](structured-queries.md) for scope, validation limits,
-  and prohibited behaviors. Read-only sessions, execution, planning, tracing, and
-  the repeatable evaluation command remain unimplemented.
+- [~] In progress — unit 1 reworked around bounded domain query contracts.
+- Replaced Q1–Q5 operation tags with facility equipment, compatible stock, work
+  order, incident, and inventory queries whose approved filters can be combined.
+  Workspace/correlation/page controls remain caller-owned; no SQL is model-supplied.
+- Added `queries-2`: 12 canonical scenarios, six additional supported combinations,
+  and six declined cases. The unchanged `demo-1` baseline remains the canonical oracle.
+- Unit 1 rework verified: 700 tests passed with no failures or skips, including
+  174 query contract/error/fixture tests. Ruff and mypy passed; one existing
+  Starlette/AnyIO deprecation warning remains.
+- See [structured-query notes](structured-queries.md) for semantics and boundaries.
+  Read-only sessions, executors for all advertised filters, planning, tracing, and
+  repeatable evaluation remain unimplemented. Unit 1 validation does not complete 2.2.
 
 ---
 
@@ -853,7 +867,9 @@ A user can ask an operational question conversationally instead of using an API 
 - evaluation measures unsupported factual claims, including plausible claims about valid records, against documented acceptance thresholds
 - unsupported or insufficient evidence produces a defined cautious response
 - request trace links user query, database query, results, and final answer
-- the evaluation baseline from Waypoint 2.2 includes expected answer facts, empty-result cases, and unsupported-claim cases
+- the evaluation baseline from Waypoint 2.2 includes expected answer facts for both
+  canonical examples and additional filter combinations, empty-result cases, and
+  unsupported-claim cases; broader results must not inherit canonical-only claims
 
 These checks provide measurable grounding guarantees; they do not claim that a generative model can never invent a fact. Publish known limitations alongside evaluation results.
 
@@ -2132,13 +2148,17 @@ Adds:
 
 Current phase:
 
-**Phase 1 — Structured Operational Backend**
+**Phase 2 — Minimum Viable Product**
 
-Current recommended waypoint:
+Current waypoint:
 
-**Waypoint 1.5 — Synthetic Structured Dataset**
+**Waypoint 2.2 — Structured Query Capability (in progress)**
 
-The project should not begin implementing later phases until the current waypoint is complete.
+Unit 1 defines bounded domain query contracts and evaluation fixtures. Subsequent
+units implement read-only execution, all documented filters, model planning,
+tracing, and repeatable evaluations. Q1–Q5 remain acceptance examples alongside
+additional supported combinations. Do not begin Waypoint 2.3 answer synthesis or
+later-phase capabilities until their prerequisites are complete.
 
 ---
 

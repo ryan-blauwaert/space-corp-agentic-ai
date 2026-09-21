@@ -56,6 +56,22 @@ Authorization, repository scoping, and [PostgreSQL row security](https://www.pos
 protect operational access; composite foreign keys protect relationship integrity.
 Shared catalog readability never permits cross-workspace operational aggregation.
 
+## Bounded Query Execution Boundary
+
+Waypoint 2.2 uses [bounded domain query contracts](structured-queries.md), with
+Q1–Q5 as canonical examples rather than an operation allowlist. Additional approved
+filters do not change database ownership or authorization. The model cannot select
+a workspace, catalog release, SQL text, table name, or arbitrary join. Trusted code
+must validate entity references and compile approved relationships into parameterized
+queries within the workspace's pinned catalog.
+
+The existing application role has limited write grants for operational use. Those
+grants do not by themselves make an AI query read-only. Read-only transaction
+handling, execution timeouts, resource bounds, and connection-reuse tests remain
+explicit Waypoint 2.2 executor requirements. Contract validation alone proves none
+of those execution guarantees. Broader queries must retain distinct-record counts,
+unknown-versus-zero stock, and the independent work-order relationships below.
+
 ## Database Roles
 
 The migration role and the application role have different responsibilities:

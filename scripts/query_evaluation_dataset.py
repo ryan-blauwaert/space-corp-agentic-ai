@@ -17,7 +17,7 @@ from app.queries.contracts import (
 )
 from scripts.dataset_manifest import Key, Manifest, digest, load_manifest, operational_id, shared_id
 
-DEFAULT_EVALUATION = Path(__file__).resolve().parents[1] / "data/evaluations/queries-1.json"
+DEFAULT_EVALUATION = Path(__file__).resolve().parents[1] / "data/evaluations/queries-2.json"
 _REFERENCE = re.compile(r"@[a-z_]+:[A-Za-z0-9_-]+")
 
 
@@ -25,7 +25,15 @@ class SupportedCase(Frozen):
     key: Key
     kind: Literal["supported"]
     question: str = Field(min_length=1, pattern=r"\S")
-    scenario_key: Key
+    expected_plan: dict[str, object]
+    scenario_key: Key | None = None
+    expected_result: dict[str, object] | None = None
+
+    @model_validator(mode="after")
+    def one_evidence_source(self) -> "SupportedCase":
+        if (self.scenario_key is None) == (self.expected_result is None):
+            raise ValueError("Provide a baseline scenario or authored result, exclusively")
+        return self
 
 
 class DeclinedCase(Frozen):
@@ -111,41 +119,56 @@ def resolve_case(case: EvaluationCase, manifest: Manifest, workspace: UUID) -> R
             expected_result=None,
             execution_allowed=False,
         )
-    scenario = next((s for s in manifest.scenarios if s.key == case.scenario_key), None)
-    if scenario is None:
-        raise ValueError("Unknown baseline scenario")
-    plan: dict[str, object] = {"operation": scenario.question}
-    for source, target, collection in (
-        ("facility", "facility_id", "facilities"),
-        ("unit", "equipment_unit_id", "units"),
-        ("model", "equipment_model_id", "models"),
-    ):
-        if source in scenario.inputs:
-            plan[target] = _reference(
-                f"@{collection}:{scenario.inputs[source]}", manifest, workspace
-            )
-    if scenario.question in ("Q3", "Q4"):
-        plan["as_of"] = manifest.as_of
-    if scenario.question == "Q4":
-        plan.update(window_start=manifest.window_start, fault_code=scenario.inputs["fault_code"])
-    expected = dict(scenario.expected)
-    rows = expected.pop("rows")
-    if not isinstance(rows, list):
-        raise ValueError("Scenario rows must be a list")
-    expected.update(
-        operation=scenario.question,
-        page={
-            "rows": rows,
-            "total": len(rows),
-            "limit": 100,
-            "offset": 0,
-        },
-    )
+    plan = QUERY_PLAN.validate_python(_resolve(case.expected_plan, manifest, workspace))
+    if case.scenario_key is None:
+        expected = case.expected_result
+    else:
+        scenario = next((s for s in manifest.scenarios if s.key == case.scenario_key), None)
+        if scenario is None:
+            raise ValueError("Unknown baseline scenario")
+        expected = dict(scenario.expected)
+        rows = expected.pop("rows")
+        if not isinstance(rows, list):
+            raise ValueError("Scenario rows must be a list")
+        # Adapt baseline evidence to domain result shapes without deriving matching records.
+        if scenario.question == "Q2" and expected["status"] == "no_unresolved_incident":
+            expected["status"] = "no_incident_match"
+        if scenario.question == "Q4":
+            count = expected["count"]
+            if not isinstance(count, int) or expected.pop("repeated") != (count >= 2):
+                raise ValueError("Invalid canonical recurrence expectation")
+        adapted = []
+        for original in rows:
+            row = dict(original)
+            if scenario.question in ("Q3", "Q4", "Q5"):
+                collection, identity = {
+                    "Q3": (manifest.work_orders, "work_order_id"),
+                    "Q4": (manifest.incidents, "incident_id"),
+                    "Q5": (manifest.inventory, "inventory_id"),
+                }[scenario.question]
+                key = row[identity].split(":", 1)[1]
+                record = next(item for item in collection if item.key == key)
+                row["facility_id"] = f"@facilities:{record.model_dump()['facility']}"
+                if scenario.question == "Q4":
+                    incident = next(item for item in manifest.incidents if item.key == key)
+                    row.update(
+                        status=incident.status,
+                        severity=incident.severity,
+                        fault_code=incident.fault_code,
+                    )
+            adapted.append(row)
+        expected.update(
+            operation=plan.operation,
+            page={"rows": adapted, "total": len(rows), "limit": 100, "offset": 0},
+        )
+    result = QUERY_RESULT.validate_python(_resolve(expected, manifest, workspace))
+    if plan.operation != result.operation:
+        raise ValueError("Expected plan and result operations must agree")
     return ResolvedCase(
         key=case.key,
         question=question,
-        expected_plan=QUERY_PLAN.validate_python(plan),
-        expected_result=QUERY_RESULT.validate_python(_resolve(expected, manifest, workspace)),
+        expected_plan=plan,
+        expected_result=result,
         execution_allowed=True,
     )
 
@@ -162,7 +185,9 @@ def load_evaluation(
     ):
         raise ValueError("Evaluation baseline version, catalog, or digest mismatch")
     supported = [case for case in dataset.cases if isinstance(case, SupportedCase)]
-    if {case.scenario_key for case in supported} != {s.key for s in baseline.scenarios}:
+    if {case.scenario_key for case in supported if case.scenario_key is not None} != {
+        s.key for s in baseline.scenarios
+    }:
         raise ValueError("Evaluation must cover every baseline scenario")
     if {case.expected.reason for case in dataset.cases if isinstance(case, DeclinedCase)} != {
         "unsupported_question",

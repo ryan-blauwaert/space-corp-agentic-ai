@@ -285,5 +285,9 @@ and mypy passed. One existing Starlette/AnyIO deprecation warning remains.
 This verifies the Waypoint 2.1 integration criteria, not model answer quality or
 performance across workloads. Automated tests remain independent of credentials
 and network access. No live quota failure was induced, and arbitrary third-party
-logging is outside the service telemetry guarantee. Query generation remains
-Waypoint 2.2 work and has not been implemented.
+logging is outside the service telemetry guarantee. Waypoint 2.2 now defines
+[bounded domain query contracts and fixtures](structured-queries.md); model planning
+and query execution have not been implemented. The planner will select a domain and
+combine approved typed filters, not choose from an exhaustive Q1–Q5 question list.
+The existing provider/service boundary remains responsible for model calls; query
+validation, workspace authority, and execution controls remain application-owned.

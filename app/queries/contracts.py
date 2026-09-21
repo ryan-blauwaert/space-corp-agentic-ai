@@ -15,7 +15,15 @@ from pydantic import (
     model_validator,
 )
 
-QuestionId = Literal["Q1", "Q2", "Q3", "Q4", "Q5"]
+from app.equipment.domain import EquipmentOperationalStatus
+from app.facilities.domain import FacilityType
+from app.operations.domain import (
+    IncidentSeverity,
+    IncidentStatus,
+    WorkOrderPriority,
+    WorkOrderStatus,
+)
+
 NonnegativeInt = Annotated[int, Field(ge=0, strict=True)]
 
 
@@ -52,47 +60,86 @@ class QueryPageRequest(Frozen):
     offset: NonnegativeInt = 0
 
 
-class FacilityConditionPlan(Frozen):
-    operation: Literal["Q1"]
+class FacilityFilter(Frozen):
+    """All supplied selectors intersect; location is an exact stored value."""
+
     facility_id: UUID | None = None
+    facility_type: FacilityType | None = None
+    location: str | None = Field(default=None, min_length=1, max_length=256, pattern=r"\S")
 
 
-class CompatibleStockPlan(Frozen):
-    operation: Literal["Q2"]
-    equipment_unit_id: UUID
+T = TypeVar("T")
+
+Selection = Annotated[
+    tuple[T, ...],
+    Field(min_length=1, max_length=20),
+    AfterValidator(lambda v: tuple(dict.fromkeys(v))),
+]
 
 
-class PriorityWorkPlan(Frozen):
-    operation: Literal["Q3"]
-    facility_id: UUID
-    as_of: UtcInstant
-
-
-class FaultRecurrencePlan(Frozen):
-    operation: Literal["Q4"]
-    equipment_model_id: UUID
-    fault_code: FaultCode
-    window_start: UtcInstant
-    as_of: UtcInstant
+class TimeWindow(Frozen):
+    start: UtcInstant
+    end: UtcInstant
 
     @model_validator(mode="after")
-    def valid_window(self) -> "FaultRecurrencePlan":
-        if self.window_start >= self.as_of:
-            raise ValueError("window_start must precede as_of")
+    def valid_window(self) -> "TimeWindow":
+        if self.start >= self.end:
+            raise ValueError("start must precede end")
         return self
 
 
-class StockShortfallPlan(Frozen):
-    operation: Literal["Q5"]
-    facility_id: UUID
+class QuantityFilter(Frozen):
+    operator: Literal["lt", "lte", "eq", "gte", "gt"]
+    value: NonnegativeInt
+
+
+class FacilityEquipmentPlan(Frozen):
+    operation: Literal["facility_equipment"]
+    facility: FacilityFilter = Field(default_factory=FacilityFilter)
+    equipment_model_id: UUID | None = None
+    unit_statuses: Selection[EquipmentOperationalStatus] | None = None
+    incident_statuses: Selection[IncidentStatus] | None = None
+
+
+class CompatibleStockPlan(Frozen):
+    operation: Literal["compatible_stock"]
+    equipment_unit_id: UUID
+    incident_statuses: Selection[IncidentStatus] | None = None
+
+
+class WorkOrdersPlan(Frozen):
+    operation: Literal["work_orders"]
+    facility: FacilityFilter = Field(default_factory=FacilityFilter)
+    statuses: Selection[WorkOrderStatus] | None = None
+    priorities: Selection[WorkOrderPriority] | None = None
+    target_equipment_unit_id: UUID | None = None
+    originating_incident_id: UUID | None = None
+    as_of: UtcInstant
+    overdue: Annotated[bool, Field(strict=True)] | None = None
+
+
+class IncidentsPlan(Frozen):
+    operation: Literal["incidents"]
+    facility: FacilityFilter = Field(default_factory=FacilityFilter)
+    equipment_unit_id: UUID | None = None
+    equipment_model_id: UUID | None = None
+    statuses: Selection[IncidentStatus] | None = None
+    severities: Selection[IncidentSeverity] | None = None
+    fault_code: FaultCode | None = None
+    occurred: TimeWindow | None = None
+
+
+class InventoryPlan(Frozen):
+    operation: Literal["inventory"]
+    facility: FacilityFilter = Field(default_factory=FacilityFilter)
+    component_id: UUID | None = None
+    compatible_model_id: UUID | None = None
+    quantity: QuantityFilter | None = None
+    below_reorder_point: Annotated[bool, Field(strict=True)] | None = None
 
 
 QueryPlan = Annotated[
-    FacilityConditionPlan
-    | CompatibleStockPlan
-    | PriorityWorkPlan
-    | FaultRecurrencePlan
-    | StockShortfallPlan,
+    FacilityEquipmentPlan | CompatibleStockPlan | WorkOrdersPlan | IncidentsPlan | InventoryPlan,
     Field(discriminator="operation"),
 ]
 QUERY_PLAN = TypeAdapter[QueryPlan](QueryPlan)
@@ -108,18 +155,15 @@ class DeclinedPlan(Frozen):
 
 
 PlanningOutcome = Annotated[
-    FacilityConditionPlan
+    FacilityEquipmentPlan
     | CompatibleStockPlan
-    | PriorityWorkPlan
-    | FaultRecurrencePlan
-    | StockShortfallPlan
+    | WorkOrdersPlan
+    | IncidentsPlan
+    | InventoryPlan
     | DeclinedPlan,
     Field(discriminator="operation"),
 ]
 PLANNING_OUTCOME = TypeAdapter[PlanningOutcome](PlanningOutcome)
-
-
-T = TypeVar("T")
 
 
 class EvidencePage(QueryPageRequest, Generic[T]):
@@ -133,27 +177,29 @@ class EvidencePage(QueryPageRequest, Generic[T]):
         return self
 
 
-class UnitCondition(Frozen):
+class UnitEvidence(Frozen):
     unit_id: UUID
-    operational_status: Literal["degraded", "offline"]
+    operational_status: EquipmentOperationalStatus
 
 
-class UnresolvedIncident(Frozen):
+class UnitIncidentEvidence(Frozen):
     incident_id: UUID
     equipment_unit_id: UUID
-    status: Literal["open", "investigating"]
+    status: IncidentStatus
 
 
-class FacilityConditionEvidence(Frozen):
+class FacilityEquipmentEvidence(Frozen):
     facility_id: UUID
-    units: tuple[UnitCondition, ...] = Field(min_length=1)
-    incidents: tuple[UnresolvedIncident, ...] = Field(min_length=1)
+    units: tuple[UnitEvidence, ...] = Field(min_length=1)
+    incidents: tuple[UnitIncidentEvidence, ...]
 
     @model_validator(mode="after")
-    def matching_units(self) -> "FacilityConditionEvidence":
+    def matching_units(self) -> "FacilityEquipmentEvidence":
         units = {unit.unit_id for unit in self.units}
-        if len(units) != len(self.units) or units != {i.equipment_unit_id for i in self.incidents}:
-            raise ValueError("Each distinct unit must have matching incident evidence")
+        if len(units) != len(self.units) or not {
+            i.equipment_unit_id for i in self.incidents
+        }.issubset(units):
+            raise ValueError("Incident evidence must refer to distinct listed units")
         if len({i.incident_id for i in self.incidents}) != len(self.incidents):
             raise ValueError("Incident evidence must be distinct")
         return self
@@ -172,10 +218,11 @@ class CompatibleStockEvidence(Frozen):
         return self
 
 
-class PriorityWorkEvidence(Frozen):
+class WorkOrderEvidence(Frozen):
     work_order_id: UUID
-    status: Literal["open", "in_progress", "blocked"]
-    priority: Literal["high", "critical"]
+    facility_id: UUID
+    status: WorkOrderStatus
+    priority: WorkOrderPriority
     due_at: UtcInstant | None
     overdue: Annotated[bool, Field(strict=True)]
     blocked: Annotated[bool, Field(strict=True)]
@@ -184,43 +231,49 @@ class PriorityWorkEvidence(Frozen):
     target_equipment_unit_id: UUID | None
 
     @model_validator(mode="after")
-    def consistent_flags(self) -> "PriorityWorkEvidence":
-        if self.blocked != (self.status == "blocked") or (self.due_at is None and self.overdue):
+    def consistent_flags(self) -> "WorkOrderEvidence":
+        if self.blocked != (self.status == "blocked") or (
+            self.overdue and (self.due_at is None or self.status in ("completed", "cancelled"))
+        ):
             raise ValueError("Inconsistent work-order flags")
         if self.originating_incident_id is None and self.incident_equipment_unit_id is not None:
             raise ValueError("Affected unit requires an originating incident")
         return self
 
 
-class FaultOccurrenceEvidence(Frozen):
+class IncidentEvidence(Frozen):
     incident_id: UUID
-    unit_id: UUID
+    status: IncidentStatus
+    severity: IncidentSeverity
+    fault_code: FaultCode | None
+    unit_id: UUID | None
     facility_id: UUID
     occurred_at: UtcInstant
 
 
-class StockShortfallEvidence(Frozen):
+class InventoryEvidence(Frozen):
     inventory_id: UUID
+    facility_id: UUID
     component_id: UUID
     quantity_on_hand: NonnegativeInt
     reorder_point: NonnegativeInt
-    shortfall: int = Field(gt=0, strict=True)
+    shortfall: NonnegativeInt
 
     @model_validator(mode="after")
-    def correct_shortfall(self) -> "StockShortfallEvidence":
-        if self.shortfall != self.reorder_point - self.quantity_on_hand:
-            raise ValueError("Shortfall must equal reorder point minus quantity")
+    def correct_shortfall(self) -> "InventoryEvidence":
+        if self.shortfall != max(0, self.reorder_point - self.quantity_on_hand):
+            raise ValueError("Shortfall must equal max(0, reorder point minus quantity)")
         return self
 
 
-class FacilityConditionResult(Frozen):
-    operation: Literal["Q1"]
-    page: EvidencePage[FacilityConditionEvidence]
+class FacilityEquipmentResult(Frozen):
+    operation: Literal["facility_equipment"]
+    page: EvidencePage[FacilityEquipmentEvidence]
 
 
 class CompatibleStockResult(Frozen):
-    operation: Literal["Q2"]
-    status: Literal["matched", "no_unresolved_incident", "no_compatibility"]
+    operation: Literal["compatible_stock"]
+    status: Literal["matched", "no_incident_match", "no_compatibility"]
     incident_ids: tuple[UUID, ...]
     page: EvidencePage[CompatibleStockEvidence]
 
@@ -228,44 +281,43 @@ class CompatibleStockResult(Frozen):
     def consistent_evidence(self) -> "CompatibleStockResult":
         if len(set(self.incident_ids)) != len(self.incident_ids):
             raise ValueError("Incident evidence must be distinct")
-        if (self.status == "no_unresolved_incident") != (not self.incident_ids):
+        if self.status == "no_incident_match" and self.incident_ids:
             raise ValueError("Status must agree with supporting incidents")
         if (self.status == "matched") != (self.page.total > 0):
             raise ValueError("Status must agree with compatibility count")
         return self
 
 
-class PriorityWorkResult(Frozen):
-    operation: Literal["Q3"]
-    page: EvidencePage[PriorityWorkEvidence]
+class WorkOrdersResult(Frozen):
+    operation: Literal["work_orders"]
+    page: EvidencePage[WorkOrderEvidence]
 
 
-class FaultRecurrenceResult(Frozen):
-    operation: Literal["Q4"]
+class IncidentsResult(Frozen):
+    operation: Literal["incidents"]
     count: NonnegativeInt
-    repeated: Annotated[bool, Field(strict=True)]
-    page: EvidencePage[FaultOccurrenceEvidence]
+    page: EvidencePage[IncidentEvidence]
 
     @model_validator(mode="after")
-    def correct_count(self) -> "FaultRecurrenceResult":
-        if self.count != self.page.total or self.repeated != (self.count >= 2):
-            raise ValueError("Recurrence uses the total distinct incident count, not page length")
+    def correct_count(self) -> "IncidentsResult":
+        if self.count != self.page.total:
+            raise ValueError("Count uses the total distinct incidents, not page length")
         if len({row.incident_id for row in self.page.rows}) != len(self.page.rows):
             raise ValueError("Incident evidence must be distinct")
         return self
 
 
-class StockShortfallResult(Frozen):
-    operation: Literal["Q5"]
-    page: EvidencePage[StockShortfallEvidence]
+class InventoryResult(Frozen):
+    operation: Literal["inventory"]
+    page: EvidencePage[InventoryEvidence]
 
 
 QueryResult = Annotated[
-    FacilityConditionResult
+    FacilityEquipmentResult
     | CompatibleStockResult
-    | PriorityWorkResult
-    | FaultRecurrenceResult
-    | StockShortfallResult,
+    | WorkOrdersResult
+    | IncidentsResult
+    | InventoryResult,
     Field(discriminator="operation"),
 ]
 QUERY_RESULT = TypeAdapter[QueryResult](QueryResult)
