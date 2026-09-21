@@ -4,11 +4,22 @@ This repository is a portfolio project for building a production-style agentic A
 
 ## Current Phase
 
-We are in Phase 1 — Structured Operational Backend. Follow the current waypoint and completion status in `docs/roadmap.md`. Do not implement AI features yet.
+We are in Phase 2 — Minimum Viable Product. Waypoint 2.2 — Structured Query Capability
+is complete: the frozen Luna assessment passed all 144 cases across three development
+and three fresh wording-holdout runs. See `docs/roadmap.md` and `docs/query-evaluation.md`.
+The tested configuration is `gpt-5.6-luna`, medium reasoning, prompt 6, and
+`scope_confirmation` execution mode. Unanchored plans require exact-plan caller
+confirmation before evidence execution; simulated evaluation review is not autonomous
+accuracy. Preserve all assessment reports, including earlier failures. The live batch
+permission is exhausted; obtain fresh approval for any further live evaluation.
+Do not implement Waypoint 2.3 or later features until requested.
 
 ## Development Instructions
 
 - Make small, reviewable changes.
+- Describe roadmap progress by delivered capability and verification, not chat-specific numbered units of work.
+- Default to `gpt-5.6-luna` with medium reasoning for bounded queries and evaluations. Keep the provider configurable; discuss model changes before switching. Preserve historical frozen protocols rather than rewriting their model IDs.
+- Obtain explicit approval for each live evaluation run that sends fixture questions and query schemas to OpenAI. Approval applies to that single run only; do not infer permission for later runs.
 - Inspect the repository before editing.
 - Before editing, identify the files in scope; after editing, summarize the files changed and verification performed.
 - Run the relevant test suite and report failures, skips, and any remaining coverage gaps.
@@ -21,6 +32,17 @@ We are in Phase 1 — Structured Operational Backend. Follow the current waypoin
 - Do not introduce dependencies without explaining why.
 - Work only on the active roadmap waypoint unless the task explicitly expands scope. Do not implement future-waypoint architecture speculatively.
 - When all completion criteria for a waypoint have been verified, update its status to complete in the same change; do not mark it complete when required checks are skipped or unverified.
+
+## Structured Query Guidance
+
+- Treat `queries-3` as development data, not independent acceptance evidence. Freeze the prompt/model/protocol before holdout runs; never tune on holdout results while retaining that set as held out. Preserve every planned run and report. Follow `docs/query-evaluation.md`; do not infer a live-call authorization from process work.
+- Treat Q1–Q5 as canonical acceptance examples, not an exhaustive intended-use list or production operation registry.
+- Use the bounded domain contracts in `app/queries/contracts.py`; [structured-query notes](docs/structured-queries.md) define their semantics and current limits.
+- Support combinations of approved typed filters. Do not add one hardcoded operation per natural-language question or silently apply canonical-example filters to broader requests.
+- Keep workspace, catalog pins, authorization, pagination, execution limits, and read-only enforcement outside model control. Schema validation alone is not authorization or proof of correctness.
+- Distinguish unsupported capability, prohibited behavior, missing input, and ambiguity. Never silently substitute a different question or guess entity identities.
+- Preserve canonical baseline evidence and add versioned cases for novel combinations, filter boundaries, and unsafe requests. Unit 1 schema tests do not prove query execution or model accuracy.
+- Document and test any extension of the query language within the active waypoint; arbitrary SQL, arbitrary joins, grouped analytics, and multi-query planning are not implicitly authorized by the flexibility goal.
 
 ## Python Environment
 

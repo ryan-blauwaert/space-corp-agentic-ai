@@ -146,7 +146,7 @@ def test_migrations_apply(integration_migration_database_url: str) -> None:
                 text("SELECT version_num FROM alembic_version")
             ).scalar_one()
 
-        assert revision == "0010_baseline_pins"
+        assert revision == "0011_query_catalog_pin"
     finally:
         engine.dispose()
 
@@ -490,3 +490,247 @@ def preserve_application_grants(
                         )
                     )
         database.dispose()
+
+
+@pytest.mark.parametrize("workspace", [None, "", "not-a-uuid", str(uuid4()), 1])
+def test_query_session_requires_trusted_uuid_before_connecting(workspace):
+    database = Database("postgresql://localhost/space_corp_test")
+    database.session_factory = Mock()
+    try:
+        with pytest.raises(ValueError, match="workspace UUID"):
+            with database.query_session(workspace):
+                pytest.fail("Invalid context must not yield a session")
+        database.session_factory.assert_not_called()
+    finally:
+        database.dispose()
+
+
+@pytest.mark.parametrize("timeout", [0, -1, 60001, True, "100", 1.5, None])
+def test_query_session_rejects_disabled_or_unbounded_timeout_before_connecting(timeout):
+    database = Database("postgresql://localhost/space_corp_test")
+    database.session_factory = Mock()
+    try:
+        with pytest.raises(ValueError, match="Statement timeout"):
+            with database.query_session(uuid4(), statement_timeout_ms=timeout):
+                pytest.fail("Invalid timeout must not yield a session")
+        database.session_factory.assert_not_called()
+    finally:
+        database.dispose()
+
+
+@pytest.fixture
+def query_databases(migrated_database, integration_application_database_url):
+    """Two real workspaces; the query connection uses the restricted login."""
+    application = Database(integration_application_database_url)
+    owner = Database(migrated_database)
+    workspaces = [uuid4(), uuid4()]
+    facilities = [uuid4(), uuid4()]
+    try:
+        with owner.session() as session:
+            session.add_all([WorkspaceRecord(id=id_) for id_ in workspaces])
+        with owner.session() as session:
+            for workspace, facility in zip(workspaces, facilities, strict=True):
+                session.add(
+                    FacilityRecord(
+                        id=facility,
+                        workspace_id=workspace,
+                        code="SAME-CODE",
+                        name="Original",
+                        facility_type="lunar_installation",
+                        location="Moon",
+                        operational_status="operational",
+                    )
+                )
+        yield application, owner, workspaces, facilities
+    finally:
+        with owner.session() as session:
+            session.execute(
+                delete(FacilityRecord).where(FacilityRecord.workspace_id.in_(workspaces))
+            )
+            session.execute(delete(WorkspaceRecord).where(WorkspaceRecord.id.in_(workspaces)))
+        application.dispose()
+        owner.dispose()
+
+
+def query_settings(session):
+    return session.execute(
+        text(
+            "SELECT pg_backend_pid(), current_setting('transaction_read_only'), current_setting('statement_timeout'), current_setting('app.workspace_id', true), current_setting('transaction_isolation')"
+        )
+    ).one()
+
+
+@pytest.mark.integration
+def test_query_session_scopes_reads_and_resets_successful_pooled_connection(query_databases):
+    application, _, workspaces, facilities = query_databases
+    with application.session() as session:
+        baseline = query_settings(session)
+    pids = []
+    for workspace, facility in zip(workspaces, facilities, strict=True):
+        with application.query_session(workspace) as session:
+            pid, read_only, timeout, scope, isolation = query_settings(session)
+            pids.append(pid)
+            assert (read_only, timeout, scope, isolation) == (
+                "on",
+                "5s",
+                str(workspace),
+                "repeatable read",
+            )
+            assert session.scalar(text("SELECT current_user")) == "space_corp_app"
+            assert session.scalars(select(FacilityRecord.id)).all() == [facility]
+            assert session.get(FacilityRecord, facilities[1 - facilities.index(facility)]) is None
+    with application.session() as session:
+        after = query_settings(session)
+        assert after[:3] == baseline[:3]
+        assert after[3] in (None, "")
+        assert after[4] == baseline[4]
+        assert session.scalars(select(FacilityRecord.id)).all() == []
+    assert pids == [baseline[0], baseline[0]]
+    # Ordinary operational writes retain their existing grants after query use.
+    with application.workspace_session(workspaces[0]) as session:
+        session.execute(
+            update(FacilityRecord).where(FacilityRecord.id == facilities[0]).values(name="Allowed")
+        )
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("write", ["insert", "update", "delete", "orm-flush", "orm-commit"])
+def test_query_session_rejects_writes_and_recovers_connection(query_databases, write):
+    from sqlalchemy.exc import DBAPIError
+
+    application, owner, workspaces, facilities = query_databases
+    with application.session() as session:
+        before = query_settings(session)
+    with pytest.raises(DBAPIError) as error:
+        with application.query_session(workspaces[0]) as session:
+            if write == "insert":
+                session.execute(
+                    text(
+                        "INSERT INTO facilities (id, workspace_id, code, name, facility_type, location, operational_status) VALUES (:id, :workspace, 'NEW', 'New', 'lunar_installation', 'Moon', 'operational')"
+                    ),
+                    {"id": uuid4(), "workspace": workspaces[0]},
+                )
+            elif write == "update":
+                session.execute(
+                    update(FacilityRecord)
+                    .where(FacilityRecord.id == facilities[0])
+                    .values(name="Forbidden")
+                )
+            elif write == "delete":
+                session.execute(delete(FacilityRecord).where(FacilityRecord.id == facilities[0]))
+            else:
+                session.get(FacilityRecord, facilities[0]).name = "Forbidden"
+                if write == "orm-flush":
+                    session.flush()
+                # orm-commit exercises the context manager's implicit flush.
+    assert error.value.orig.sqlstate == "25006"
+    with application.session() as session:
+        after = query_settings(session)
+        assert after[:3] == before[:3]
+        assert after[3] in (None, "")
+        assert after[4] == before[4]
+    with owner.session() as session:
+        assert session.get(FacilityRecord, facilities[0]).name == "Original"
+        assert (
+            len(
+                session.scalars(
+                    select(FacilityRecord).where(FacilityRecord.workspace_id.in_(workspaces))
+                ).all()
+            )
+            == 2
+        )
+
+
+@pytest.mark.integration
+def test_query_session_timeout_rolls_back_and_connection_can_be_reused(query_databases):
+    from sqlalchemy.exc import DBAPIError
+
+    application, _, workspaces, facilities = query_databases
+    with application.session() as session:
+        before = query_settings(session)
+    with pytest.raises(DBAPIError) as error:
+        with application.query_session(workspaces[0], statement_timeout_ms=25) as session:
+            session.execute(text("SELECT pg_sleep(1)"))
+    assert error.value.orig.sqlstate == "57014"
+    with application.session() as session:
+        after = query_settings(session)
+        assert after[:3] == before[:3]
+        assert after[3] in (None, "")
+    with application.query_session(workspaces[1]) as session:
+        assert session.scalars(select(FacilityRecord.id)).all() == [facilities[1]]
+
+
+@pytest.mark.integration
+def test_query_session_python_exception_cleans_up_and_closed_session_cannot_autobegin(
+    query_databases,
+):
+    from sqlalchemy.exc import InvalidRequestError
+
+    application, _, workspaces, _ = query_databases
+    with application.session() as session:
+        before = query_settings(session)
+    with pytest.raises(RuntimeError, match="caller failure"):
+        with application.query_session(workspaces[0]) as query:
+            raise RuntimeError("caller failure")
+    with pytest.raises(InvalidRequestError, match="autobegin|Autobegin"):
+        query.execute(text("SELECT 1"))
+    with application.session() as session:
+        after = query_settings(session)
+        assert after[:3] == before[:3]
+        assert after[3] in (None, "")
+
+
+@pytest.mark.integration
+def test_query_session_count_and_records_share_snapshot(query_databases):
+    application, owner, workspaces, facilities = query_databases
+    with application.query_session(workspaces[0]) as session:
+        assert session.scalar(select(FacilityRecord.name)) == "Original"
+        with owner.session() as writer:
+            writer.execute(
+                update(FacilityRecord)
+                .where(FacilityRecord.id == facilities[0])
+                .values(name="Changed")
+            )
+        assert session.scalar(select(FacilityRecord.name)) == "Original"
+    with application.query_session(workspaces[0]) as session:
+        assert session.scalar(select(FacilityRecord.name)) == "Changed"
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("finish", ["commit", "rollback"])
+def test_query_session_cannot_silently_restart_after_early_end(query_databases, finish):
+    from sqlalchemy.exc import InvalidRequestError
+
+    application, _, workspaces, _ = query_databases
+    with application.query_session(workspaces[0]) as session:
+        getattr(session, finish)()
+        with pytest.raises(InvalidRequestError):
+            session.execute(text("SELECT 1"))
+    with pytest.raises(InvalidRequestError):
+        session.execute(text("SELECT 1"))
+
+
+@pytest.mark.integration
+def test_query_session_setup_failure_does_not_yield_or_leak_settings(query_databases):
+    from sqlalchemy import event
+
+    application, _, workspaces, _ = query_databases
+    with application.session() as session:
+        before = query_settings(session)
+
+    def fail_setup(connection, cursor, statement, parameters, context, executemany):
+        if "set_config" in statement:
+            raise RuntimeError("setup failed")
+
+    event.listen(application.engine, "before_cursor_execute", fail_setup)
+    try:
+        with pytest.raises(RuntimeError, match="setup failed"):
+            with application.query_session(workspaces[0]):
+                pytest.fail("Failed setup must not expose the session")
+    finally:
+        event.remove(application.engine, "before_cursor_execute", fail_setup)
+    with application.session() as session:
+        after = query_settings(session)
+        assert after[:3] == before[:3]
+        assert after[3] in (None, "")
+        assert after[4] == before[4]

@@ -80,6 +80,7 @@ ALTER DEFAULT PRIVILEGES FOR ROLE space_corp IN SCHEMA public
 ALTER DEFAULT PRIVILEGES FOR ROLE space_corp IN SCHEMA public
     REVOKE ALL PRIVILEGES ON SEQUENCES FROM PUBLIC, space_corp_app;
 GRANT USAGE ON SCHEMA public TO space_corp_app;
+GRANT EXECUTE ON FUNCTION public.current_workspace_catalog_release() TO space_corp_app;
 GRANT SELECT, INSERT ON TABLE public.facilities TO space_corp_app;
 GRANT UPDATE (name, location, operational_status, updated_at)
     ON TABLE public.facilities TO space_corp_app;
@@ -153,6 +154,7 @@ ALTER DEFAULT PRIVILEGES FOR ROLE space_corp IN SCHEMA public
 ALTER DEFAULT PRIVILEGES FOR ROLE space_corp IN SCHEMA public
     REVOKE ALL PRIVILEGES ON SEQUENCES FROM PUBLIC, space_corp_app;
 GRANT USAGE ON SCHEMA public TO space_corp_app;
+GRANT EXECUTE ON FUNCTION public.current_workspace_catalog_release() TO space_corp_app;
 GRANT SELECT, INSERT ON TABLE public.facilities TO space_corp_app;
 GRANT UPDATE (name, location, operational_status, updated_at)
     ON TABLE public.facilities TO space_corp_app;

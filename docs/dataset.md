@@ -147,6 +147,29 @@ expected answers are authored in the manifest, not generated from query results.
 | Q4 | Two matching incidents despite multiple originating work orders, different fault and unknown classification excluded, start boundary included, end and pre-window events excluded, single occurrence and no matches. |
 | Q5 | Positive shortfall, zero-stock shortfall, equality excluded, absent inventory excluded, no shortages. |
 
+Q1–Q5 specify these baseline examples only. Exclusions such as completed work or
+stock at its reorder point are scenario filters, not universal product restrictions.
+The [bounded query layer](structured-queries.md) represents them as explicit filters
+and supports additional combinations. Its `data/evaluations/queries-3.json` fixture
+references all 12 baseline scenarios and adds six supported variations plus six
+declined cases. The loader validates contracts and evidence references. Unit 3 integration tests
+execute the facility-equipment and compatible-stock cases against the database;
+unit 4 adds work-order, incident, and inventory execution. All 18 supported cases
+now have database evidence checks in two workspaces. Unit 5 also runs these cases
+through the planning workflow with controlled model responses, and verifies that
+all six decline responses prevent evidence execution. These are application checks,
+not live model accuracy measurements. Unit 6 adds `python -m scripts.evaluate_queries`, which checks exact workspace
+rows, catalog pin, and expected evidence before calling the configured model.
+It scores intent, evidence, and decline/execution behavior for all 24 cases.
+Live acceptance scored 23/24; a completed-work over-decline remains; see the [evaluation guide](structured-queries.md#repeatable-evaluation-unit-6).
+The baseline manifest and its original expectations are unchanged. `queries-3`
+clarifies eight compatibility, work-order, and recurrence questions without changing
+any expected plan, record, decline, or case count. All six decline questions are
+unchanged. `queries-2` is retained to reproduce the original 17/24 live result;
+the revised wording scored 23/24 with prompt version 1. A subsequent approved
+prompt-version-2 run scored 22/24: missing-facility passed, while completed-work and
+ambiguous-unit failed. See the evaluation guide for the preserved run history.
+
 The reference SQL in `scripts/dataset_queries.py` is a fixed acceptance oracle,
 not natural-language execution or a public query endpoint. Two-workspace tests
 run the same cases against disjoint IDs, edit and refresh one copy, and verify
@@ -189,3 +212,22 @@ returned 200. Q1–Q5 `EXPLAIN ANALYZE` checks returned the expected row counts 
 the small local dataset. Index tuning under realistic load and concurrent
 publication stress testing are not claimed by this acceptance run. One existing
 Starlette/AnyIO deprecation warning remains.
+
+
+## Development versus holdout evaluation
+
+`queries-3` is explicitly development regression data. Its default `purpose` metadata
+is `development`; no historical fixture file was rewritten. The new
+`queries-holdout-1.json` is labeled `holdout_candidate` and preserves expected
+plans/evidence while introducing 24 new question wordings. It is a wording holdout,
+not independently collected production data or coverage of new business concepts.
+Prompt version 3 was not changed during its creation. New purpose metadata changes
+the canonical dataset fingerprint used by report format 3; historical report digests
+remain historical. See [the evaluation process](query-evaluation.md) for frozen
+configuration, protocol targets, contamination rules, and explicit live-call approval.
+
+The first frozen assessment completed: development supported queries passed 52/54,
+while candidate holdout supported queries passed 34/54. Expected declines passed
+18/18 in each dataset. See [the preserved assessment](query-evaluation.md#first-frozen-assessment--2026-09-21)
+for failure details and an entity-type ambiguity concern in the holdout recurrence
+wording. No fixture was changed or excluded after the assessment.

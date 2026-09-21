@@ -27,9 +27,18 @@ The model must:
 
 ## Canonical Operational Questions
 
-The following questions define the initial query requirements. Future structured
-query evaluation, answer synthesis, and frontend journeys should reuse them as
-early deterministic scenarios.
+The following questions are canonical acceptance examples, not an exhaustive list
+of intended use cases. Their exact meanings and evidence remain regression
+requirements. Structured-query evaluation, answer synthesis, and frontend journeys
+should also support documented combinations of approved filters beyond these examples.
+The [bounded query design](structured-queries.md) defines current domain operations,
+filter semantics, and limits; Q1–Q5 identifiers belong to scenarios, not production
+query operation tags.
+
+The restrictions in each row apply to that scenario, not every query over the same
+entities. For example, compatibility queries need not require an incident, work
+queries can include completed or low-priority orders, and stock queries can use a
+user-selected quantity threshold. Canonical filters must be explicit in the plan.
 
 | ID | Question | Inputs and exact meaning | Evidence and empty-result behavior |
 | --- | --- | --- | --- |
@@ -39,7 +48,7 @@ early deterministic scenarios.
 | Q4 | Has the same reported fault recurred for this equipment model within this workspace and time window? | Trusted workspace, exact EquipmentModel revision, normalized `fault_code`, `window_start`, and `as_of`. Count distinct incidents on units of that model with the same code and `window_start <= occurred_at < as_of`, regardless of current incident status. Repeated means at least two incidents. | Return the count and incident/unit/Facility IDs and occurrence times. One incident is not recurrence; zero means no recorded matches. Missing fault classification is unknown and is excluded, not treated as another occurrence of the requested fault. |
 | Q5 | Which recorded component stocks are below their reorder points at this facility? | Trusted workspace and Facility ID. Select InventoryItems where `quantity_on_hand < reorder_point`; equality does not qualify. | Return component and inventory IDs, quantity, reorder point, and shortfall. No matches means no recorded stock is below its threshold. It makes no claim about components without inventory records. |
 
-All five questions operate within one authorized workspace. “Across facilities”
+All bounded operational queries, including these five examples, operate within one authorized workspace. “Across facilities”
 never means across reviewers' copies of the world. Facility/unit inputs outside
 that workspace follow the existing not-found contract; unavailable inputs are
 not silently interpreted as an empty successful query.
@@ -353,7 +362,7 @@ remain deliberately deferred.
 
 ## Planned Query Paths and Indexes
 
-Indexes are driven by the canonical questions rather than added generically.
+Indexes are driven by measured bounded-query access paths, initially represented by the canonical examples, rather than added generically.
 
 | Query path | Planned index or constraint |
 | --- | --- |
@@ -365,8 +374,8 @@ Indexes are driven by the canonical questions rather than added generically.
 | Repeated faults by model and time | EquipmentUnit model lookup joined to Incident through the scoped unit relationship, with `(workspace_id, equipment_unit_id, fault_code, occurred_at)` as the initial Incident index candidate |
 | Below-reorder stock | Start with the existing workspace/Facility inventory access path and filter quantity against reorder point; avoid an additional index until realistic data demonstrates a need |
 
-Confirm index usefulness with representative Q1–Q5 queries and query plans as
-data arrives; avoid indexes already provided by unique constraints. The later
+Confirm index usefulness with representative canonical and additional supported
+filter combinations and their query plans as data arrives; avoid indexes already provided by unique constraints. The later
 structured-query layer must use validated query shapes and bounded
 results. These indexes support that layer but do not authorize arbitrary SQL.
 
@@ -380,8 +389,9 @@ results. These indexes support that layer but do not authorize arbitrary SQL.
 - **Waypoint 1.6:** adds read-only APIs over these records, with pagination,
   filtering, standard problem responses, and developer smoke requests. Work-order
   evidence distinguishes originating incidents, affected units, and target units.
-- **Waypoints 2.2–2.4:** use the canonical questions for safe structured-query
-  evaluation, grounded answer evidence, and frontend journeys.
+- **Waypoints 2.2–2.4:** implement bounded domain queries, evaluate both canonical
+  examples and novel approved filter combinations, ground answers in their evidence,
+  and expose frontend journeys without treating the examples as a question allowlist.
 - **Waypoints 2.5–2.6:** create server-authorized reviewer workspaces from the
   baseline. Reviewer edits affect workspace-owned operational records only;
   shared reference records remain unchanged. Reset replaces the workspace rather
@@ -409,7 +419,8 @@ The implementation slices must add automated coverage for:
 
 | Requirement | Required success and edge cases |
 | --- | --- |
-| Q1–Q5 semantics | Expected evidence IDs; no matches; unrelated incidents; join duplication; same fault versus different faults; recurrence threshold; missing classification; inclusive window start/exclusive end; due-time equality; blocked-and-overdue; completed/cancelled exclusion; zero versus absent stock; equality at reorder point. |
+| Q1–Q5 canonical scenario semantics | Expected evidence IDs; no matches; unrelated incidents; join duplication; same fault versus different faults; recurrence threshold; missing classification; inclusive window start/exclusive end; due-time equality; blocked-and-overdue; completed/cancelled exclusion; zero versus absent stock; equality at reorder point. |
+| Bounded query combinations (Waypoint 2.2) | Additional supported filters and intersections; omitted-filter behavior; broader status/priority evidence; numeric thresholds; malformed or unauthorized inputs; exact record/count correctness without silent question substitution. Contract tests alone do not establish execution or planning accuracy. |
 | Ownership and references | Two workspaces with matching human codes; rejected cross-workspace and cross-Facility links; all four WorkOrder reference combinations; allowed different incident-affected/work-target units at one Facility; no implicit target fallback; denied application writes to shared catalog rows; nonexistent release and mixed-release compatibility rejected. |
 | Historical meaning and permissions | Approved updates succeed as the restricted role; direct SQL identity/model/Facility/reference updates fail even for unreferenced records; DELETE/TRUNCATE fail; old broad grants are removed; controlled owner repair remains possible without breaking constraints; occurrence time differs from seed insertion time; terminal timestamps remain consistent with status. |
 | Waypoint 1.5 baseline contract | Repeated seed is stable; two workspace copies have disjoint operational UUIDs; foreign keys remap correctly; published catalog rewrites are rejected; old workspaces retain their release after a new baseline is published. |

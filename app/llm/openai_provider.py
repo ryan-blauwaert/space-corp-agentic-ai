@@ -6,11 +6,18 @@ from openai import (
     APIStatusError,
     APITimeoutError,
     OpenAI,
+    omit,
 )
 from openai.types.responses import Response
 from pydantic import ValidationError
 
-from app.llm.contracts import ModelFinishReason, ModelRequest, ModelResponse, TokenUsage
+from app.llm.contracts import (
+    ModelFinishReason,
+    ModelRequest,
+    ModelResponse,
+    ReasoningEffort,
+    TokenUsage,
+)
 from app.llm.errors import ModelCallError, ModelErrorKind
 from app.llm.provider import ModelProvider
 
@@ -26,9 +33,12 @@ _QUOTA_CODES = (
 class OpenAIProvider(ModelProvider):
     """The caller owns the injected client and must close it after use."""
 
-    def __init__(self, client: OpenAI, model_id: str) -> None:
+    def __init__(
+        self, client: OpenAI, model_id: str, reasoning_effort: ReasoningEffort | None = None
+    ) -> None:
         self._client = client
         self.model_id = model_id
+        self.reasoning_effort = reasoning_effort
 
     def generate(self, request: ModelRequest) -> ModelResponse:
         if request.context.model_id != self.model_id:
@@ -41,6 +51,9 @@ class OpenAIProvider(ModelProvider):
                 input=request.prompt,
                 max_output_tokens=request.max_output_tokens,
                 store=False,
+                reasoning={"effort": self.reasoning_effort}
+                if self.reasoning_effort is not None
+                else omit,
             )
         except APITimeoutError:
             raise ModelCallError(request.context, ModelErrorKind.TIMEOUT) from None

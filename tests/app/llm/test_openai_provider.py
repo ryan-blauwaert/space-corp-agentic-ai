@@ -246,3 +246,18 @@ def test_429_uses_structured_quota_identifiers(request_value, details, kind):
     assert str(caught.value) == f"Model call failed: {kind}."
     assert caught.value.__suppress_context__
     assert len(calls) == 1
+
+
+@pytest.mark.parametrize("effort", ["none", "low", "medium", "high"])
+def test_configured_reasoning_preserves_existing_call_bounds(request_value, effort):
+    def handler(request):
+        body = json.loads(request.content)
+        assert body["reasoning"] == {"effort": effort}
+        assert body["max_output_tokens"] == request_value.max_output_tokens
+        assert body["store"] is False
+        return httpx.Response(200, json=payload())
+
+    with OpenAI(
+        api_key="test-key", http_client=httpx.Client(transport=httpx.MockTransport(handler))
+    ) as client:
+        OpenAIProvider(client, "test-model", effort).generate(request_value)

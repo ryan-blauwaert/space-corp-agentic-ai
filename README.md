@@ -87,20 +87,30 @@ No particular agent framework, workflow framework, vector database, or deploymen
 
 ## Current Status
 
-**Phase 1 — Structured Operational Backend**
+**Phase 2 — Minimum Viable Product; Waypoint 2.2 complete**
 
-The versioned operational dataset and core read-only API are implemented through
-Waypoint 1.6. Waypoint 1.7 adds required PR quality and database-backed test checks;
-see the [CI guide](docs/ci.md) for local reproduction. See the [dataset guide](docs/dataset.md) for bootstrap and refresh,
-and [API documentation](docs/api.md) for endpoint usage and repeatable local
-verification. The [roadmap](docs/roadmap.md) records acceptance status.
-AI capabilities remain later work.
+The operational backend, versioned dataset, read-only API, PR checks, and controlled
+[LLM integration](docs/llm-integration.md) are implemented. Bounded queries support
+facility equipment, compatible stock, work orders, incidents, and inventory through
+model planning, scoped entity resolution, read-only execution, and correlated tracing.
+Q1–Q5 are examples; approved filters can express additional legitimate questions.
+
+The [frozen assessment](docs/query-evaluation.md#luna-final-assessment--2026-09-21)
+passed all 144 cases using `gpt-5.6-luna` with medium reasoning. Unanchored plans
+require explicit caller confirmation before execution; the evaluator simulates this
+review. These synthetic pilot results do not guarantee model interpretation on unseen
+requests. See the [query guide](docs/structured-queries.md) for capabilities and limits.
+
+The [dataset guide](docs/dataset.md) covers bootstrap and refresh,
+[API documentation](docs/api.md) covers existing endpoints, and the
+[CI guide](docs/ci.md) covers local checks. The [roadmap](docs/roadmap.md) records
+acceptance status and sequencing.
 
 ## Planned Capability Areas
 
 ### Structured Data
 
-Natural-language requests over relational operational data, with controlled and validated query execution.
+Natural-language requests over relational operational data using combinations of approved typed filters, with application-controlled validation and execution. Canonical questions illustrate supported behavior without exhausting it.
 
 ### Retrieval-Augmented Generation
 

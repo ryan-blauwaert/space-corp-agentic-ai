@@ -740,23 +740,23 @@ Phase 7 extends this foundation across capabilities and provides richer inspecti
   normalized error categories, and a one-attempt provider protocol under `app/llm/`.
 - Fake-provider tests cover contract validation and success/failure correlation
   without SDKs, credentials, or network calls. See [integration notes](llm-integration.md).
-- Unit 1 verification: 412 tests passed, no failures or skips (42 contract/provider
+- Contract verification: 412 tests passed, no failures or skips (42 contract/provider
   tests); Ruff and mypy passed. One existing Starlette/AnyIO warning remains.
-- Unit 2 adds a configurable OpenAI Responses adapter, explicit output/timeout
+- Added a configurable OpenAI Responses adapter, explicit output/timeout
   bounds, disabled SDK retries, safe error mapping, and mocked transport tests.
-- Unit 2 verification: 454 tests passed, no failures or skips; Ruff, mypy,
+- Adapter verification: 454 tests passed, no failures or skips; Ruff, mypy,
   and locked dependency installation passed. The existing warning remains.
-- Unit 3 adds a provider-independent execution service with bounded transient
+- Added a provider-independent execution service with bounded transient
   retries, jittered backoff, and allowlisted JSON attempt/operation telemetry.
   Tests cover correlation, timing, safe logs, and single-layer retry behavior.
-- Unit 3 verification: 481 tests passed, no failures or skips (27 new service
+- Execution-service verification: 481 tests passed, no failures or skips (27 new service
   tests); Ruff and mypy passed. The existing warning remains.
-- Unit 4 adds an internal model smoke command with a fixed versioned prompt,
+- Added an internal model smoke command with a fixed versioned prompt,
   explicit call bounds, safe result summaries, and console telemetry setup.
   Mocked HTTP tests verify the command through the provider and execution service.
-- Unit 4 verification: 506 tests passed, no failures or skips (25 command tests);
+- Smoke-command verification: 506 tests passed, no failures or skips (25 command tests);
   Ruff, mypy, and command help passed. The existing warning remains.
-- Unit 5 records user-supplied live successes with GPT-5 nano and GPT-5.6 Luna,
+- Recorded user-supplied live successes with GPT-5 nano and GPT-5.6 Luna,
   plus the earlier bounded 429 failure. All traces preserve request/operation IDs,
   model/prompt identity, outcomes, timing, and safe metadata. See the live acceptance
   tables in [integration notes](llm-integration.md).
@@ -774,7 +774,11 @@ Phase 7 extends this foundation across capabilities and provides richer inspecti
 
 ### Capability
 
-A natural-language question can be translated into a safe structured query workflow.
+A natural-language question can be translated into a bounded domain query that
+combines approved typed filters and relationships. Q1–Q5 are canonical acceptance
+examples; supported combinations can answer additional questions without introducing
+an operation per question. See [the query design](structured-queries.md) for the
+current language and its limits.
 
 ### Example
 
@@ -782,16 +786,21 @@ A natural-language question can be translated into a safe structured query workf
 
 ### Recommended Flow
 
-User question  
-→ schema/context selection  
-→ structured query plan  
-→ validated query  
-→ database execution  
-→ structured result
+1. Receive the user question and trusted request context.
+2. Produce a bounded domain proposal with approved filters and literal entity references.
+3. Validate its shape, then resolve exact references within the authorized workspace and pinned catalog.
+4. Validate the resolved plan and construct a parameterized query deterministically.
+5. Require exact-plan caller confirmation for unanchored scope, then execute within a
+   workspace-scoped read-only transaction and resource limits.
+6. Return typed evidence with provenance.
 
 ### Safety Requirement
 
-The model must not receive unrestricted database execution capability.
+The model must not receive unrestricted database execution capability. Workspace,
+catalog pins, authorization, pagination, and resource limits remain caller-owned.
+Distinguish unsupported capability from prohibited behavior and missing/ambiguous
+inputs; never silently answer a different question. Schema validity alone is not
+authorization, semantic correctness, or read-only enforcement.
 
 ### Architectural Value
 
@@ -805,14 +814,24 @@ handling must remain deterministic application behavior.
 
 ### Completion Criteria
 
-- the Q1–Q5 canonical scenarios are supported, or an explicitly documented
-  superset is supported; each scenario produces a validated structured query,
-  correct records, and the required prohibited-behavior result
+- Q1–Q5 are canonical acceptance examples, not an exhaustive intended-use list;
+  bounded domain queries support their scenarios and documented combinations of
+  approved filters without one operation per question
+- deterministic tests verify expected plans/records and prohibited-behavior controls
+  for every canonical and additional case; model interpretation is assessed separately
+- a frozen development/holdout protocol measures repeated model outcomes against
+  predeclared pilot targets, with all runs retained and no tuning on held-out results;
+  see [query evaluation process](query-evaluation.md)
+- unanchored model proposals require explicit exact-plan caller confirmation before
+  evidence execution; evaluator-simulated review is distinguished from autonomous accuracy
 - generated queries are validated before execution
 - database access is read-only
 - invalid queries fail safely
 - query execution is traced
-- automated tests cover supported and unsafe cases
+- automated tests cover canonical examples, new filter combinations, nested invalid
+  inputs, unsafe cases, and filter/join/count boundaries
+- every advertised filter is implemented and tested; evaluation checks intent and
+  records so silent question substitution cannot pass as correct
 - a small versioned evaluation dataset records questions, expected records, and prohibited behavior against the versioned synthetic baseline
 - a repeatable evaluation command reports case-level results and aggregate outcomes, with dataset, model, and prompt versions recorded
 - query operations share the request correlation introduced in Waypoint 2.1
@@ -821,7 +840,85 @@ Use deterministic checks for query results and prohibited operations. Phase 8 ex
 
 ### Status
 
-- [ ] Complete
+- [x] Complete — bounded query execution and the guarded workflow passed the frozen Luna assessment (144/144 cases).
+- Bounded facility-equipment, compatible-stock, work-order, incident, and inventory
+  plans combine approved filters. Q1–Q5 remain examples, not an exhaustive use-case
+  registry; authority and execution limits remain caller-owned.
+- Read-only repeatable-read sessions enforce workspace scope and statement timeouts.
+  All five executors validate references, catalog pins, relationships, counts, and
+  evidence bounds. Migration 0011 exposes only the transaction workspace's catalog
+  pin; the restricted role requires the corresponding provisioning grant.
+- Versioned model planning, strict JSON validation, exact scoped entity resolution,
+  and content-free correlated traces connect natural-language questions to evidence.
+  No answer synthesis or natural-language HTTP endpoint is introduced.
+- The repeatable evaluation command scores intent, evidence, and execution policy
+  independently against `queries-3`: 12 canonical scenarios, six additional
+  combinations, and six declined cases. The unchanged `demo-1` baseline is the
+  oracle. Reports record model/prompt/dataset attribution and per-case outcomes.
+- Latest automated verification: 1,021 tests passed, no failures or skips, in 53.61 seconds.
+  Ruff, formatting, mypy, and whitespace checks passed. One existing Starlette/AnyIO
+  deprecation warning remains. Supported evidence is tested in two workspaces.
+- Local read-only preflight passes after restoring the existing catalog-pin EXECUTE
+  grant. One approved live run with `gpt-5.6-luna`, `bounded-query` prompt version 1,
+  and `queries-2` scored 17/24: six canonical, six additional, and five declined cases
+  passed. `queries-3` subsequently clarified eight question texts while preserving
+  all expected plans, evidence, and declines. A separately approved live run of
+  `queries-3` scored 23/24: all 18 supported queries and five of six declines passed.
+  The missing-facility question still executed instead of declining. Prompt version 2
+  now explicitly prohibits dropping unresolved entity restrictions while preserving
+  valid unrestricted queries. Its approved run scored 22/24: missing-facility passed,
+  but completed-work was declined and ambiguous-unit received the wrong decline
+  category. Both previously passed under prompt version 1; a single run cannot
+  distinguish prompt effects from model variability.
+- The final authorized iteration (prompt version 3, same `queries-3` fixture) scored
+  23/24: all 12 canonical scenarios, five additional combinations, and all six declines
+  passed. Completed-work was incorrectly declined as `ambiguous_input`. Safe report
+  diagnostics now record operation, decline category, and mismatched field names.
+  No further retries or tuning runs were made. This over-decline is documented as a
+  system limitation with follow-up options in the query guide. These are development
+  runs, not independent acceptance evidence.
+- Replaced the single-perfect-run gate with `query-protocol-1`: three scheduled runs
+  each of development and candidate wording-holdout datasets, configuration/dataset
+  fingerprints, separate failure categories, and per-dataset pilot targets. No live
+  calls were made for this process change, and no prior run was retroactively passed.
+  The 95% supported-query and 90% decline-classification targets allow limited safe
+  refusals but zero incorrect execution/evidence or call errors. These are provisional
+  synthetic-pilot targets, not production reliability guarantees. The first frozen assessment completed all six runs: supported-query success was
+  52/54 development versus 34/54 holdout; declines passed 18/18 in each set. Holdout
+  failures comprised 11 unnecessary declines and nine reference-resolution errors.
+  The protocol failed its declared targets. Review holdout entity-type ambiguity and
+  resolution diagnostics before further changes; preserve this result. See the
+  [assessment record](query-evaluation.md#first-frozen-assessment--2026-09-21).
+  See [structured-query notes](structured-queries.md) for scope and verification limits.
+- Prompt version 4 adds scoped UUID type grounding before planning and general
+  capability/decline guidance. Scored fixtures and the historical protocol remain
+  unchanged. Subsequent authorized iterative checks are recorded below; completion
+  still requires a new frozen protocol and fresh reviewed holdout.
+- Prompt version 6 clarifies returned evidence, exact fault identifiers, and existing
+  numeric filters. Deterministic checks reject invented fault codes and silent
+  selection among multiple grounded UUID candidates. Evaluation reports retain local
+  plan diagnostics and recognize tested full-enum equivalence. Reasoning effort is
+  configurable and attributed in reports; no saved model choice was changed.
+- The ten-run holdout allowance is exhausted, with all runs preserved. The final paired
+  check on GPT-5.2 with medium reasoning scored 23/24 development and 24/24 holdout.
+  An unidentified facility was silently dropped, causing broader inventory execution.
+  This violated the zero-unexpected-execution criterion and kept 2.2 open at that point.
+  The scope-confirmation boundary below addresses execution of unanchored proposals. See the full iterative record in the evaluation guide.
+- The explicit scope boundary is now implemented: unanchored plans return for review;
+  only exact-plan caller confirmation can execute them. No new HTTP endpoint, UI,
+  persisted workflow, or model repair loop is introduced. Frozen `query-protocol-2`
+  and fresh `queries-holdout-2` were prepared for final assessment. The user selected
+  Luna first, recorded separately as `query-protocol-2-luna`; the GPT-5.2 protocol
+  remains unrun. Earlier failures remain preserved.
+- The approved frozen Luna assessment passed all six scheduled runs: 72/72 development
+  and 72/72 fresh wording holdout, with 54/54 supported and 18/18 declined cases per
+  dataset. All 144 calls completed on the first attempt. Zero incorrect queries,
+  evidence mismatches, unexpected executions, or call errors were observed. The
+  assessor verified the fixed source, prompt, datasets, model, reasoning, and execution
+  mode against the protocol. Thirty cases used simulated exact-plan caller confirmation.
+  This closes 2.2 for the guarded synthetic-pilot workflow, not autonomous production
+  reliability. See the [final assessment](query-evaluation.md#luna-final-assessment--2026-09-21).
+  No later-waypoint work or additional live runs are authorized by this completion.
 
 ---
 
@@ -843,7 +940,9 @@ A user can ask an operational question conversationally instead of using an API 
 - evaluation measures unsupported factual claims, including plausible claims about valid records, against documented acceptance thresholds
 - unsupported or insufficient evidence produces a defined cautious response
 - request trace links user query, database query, results, and final answer
-- the evaluation baseline from Waypoint 2.2 includes expected answer facts, empty-result cases, and unsupported-claim cases
+- the evaluation baseline from Waypoint 2.2 includes expected answer facts for both
+  canonical examples and additional filter combinations, empty-result cases, and
+  unsupported-claim cases; broader results must not inherit canonical-only claims
 
 These checks provide measurable grounding guarantees; they do not claim that a generative model can never invent a fact. Publish known limitations alongside evaluation results.
 
@@ -2122,13 +2221,20 @@ Adds:
 
 Current phase:
 
-**Phase 1 — Structured Operational Backend**
+**Phase 2 — Minimum Viable Product**
 
-Current recommended waypoint:
+Current waypoint:
 
-**Waypoint 1.5 — Synthetic Structured Dataset**
+**Waypoint 2.2 — Structured Query Capability (complete, 2026-09-21)**
 
-The project should not begin implementing later phases until the current waypoint is complete.
+Bounded contracts, all five read-only executors, scoped model planning, tracing,
+explicit scope confirmation, and repeatable evaluations are implemented. The frozen
+Luna assessment passed 144/144 cases across six runs; earlier failures remain in the
+assessment history. The verified workflow requires caller review for unanchored plans,
+simulated in evaluation. Q1–Q5 remain examples alongside additional supported filters.
+Changes remain uncommitted at the user's direction. Waypoint 2.3 answer synthesis is
+next and has not been started; begin it only when requested. Real-user coverage and
+confirmation usability remain future validation work.
 
 ---
 

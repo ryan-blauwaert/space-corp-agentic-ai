@@ -56,6 +56,38 @@ Authorization, repository scoping, and [PostgreSQL row security](https://www.pos
 protect operational access; composite foreign keys protect relationship integrity.
 Shared catalog readability never permits cross-workspace operational aggregation.
 
+## Bounded Query Execution Boundary
+
+Waypoint 2.2 uses [bounded domain query contracts](structured-queries.md), with
+Q1–Q5 as canonical examples rather than an operation allowlist. Additional approved
+filters do not change database ownership or authorization. The model cannot select
+a workspace, catalog release, SQL text, table name, or arbitrary join. Trusted code
+must validate entity references and compile approved relationships into parameterized
+queries within the workspace's pinned catalog.
+
+The existing application role has limited write grants for operational use. Those
+grants do not by themselves make an AI query read-only. Unit 2 implements `Database.query_session()` with a read-only repeatable-read
+transaction, transaction-local workspace and statement timeout, and tests for
+connection reuse and failure cleanup. Unit 3 adds bounded evidence and validated facility-equipment/compatible-stock
+execution; unit 4 implements work-order, incident, and inventory queries using
+the same boundary. Unit 5 adds model planning, exact scoped reference resolution,
+and query tracing. Reference lookups run in a separate read-only pinned transaction;
+the executor revalidates visibility and the pin in its own evidence transaction.
+There is no database transaction held during a model call. Limits are per model
+attempt and per SQL statement, with bounded retries and query shapes; there is no
+single wall-clock cancellation deadline across the workflow. Contract validation
+alone proves none of the database execution guarantees. Broader queries must retain distinct-record counts,
+unknown-versus-zero stock, and the independent work-order relationships below.
+
+Migration 0011 adds `public.current_workspace_catalog_release()`: a no-argument,
+security-definer read of only the transaction workspace's catalog pin. Its fixed
+`pg_catalog` search path and qualified table reference avoid caller-controlled
+object resolution; PUBLIC execution is revoked, and provisioning explicitly grants
+execution to the restricted application role. Direct workspace-table access remains
+denied. This enables query pin validation without workspace administration access;
+trusted code still authorizes the workspace setting. Migrate both local databases
+to head before rerunning provisioning. See [query usage](structured-queries.md).
+
 ## Database Roles
 
 The migration role and the application role have different responsibilities:

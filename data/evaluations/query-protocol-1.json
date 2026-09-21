@@ -1,0 +1,20 @@
+{
+  "version": "query-protocol-1",
+  "model_id": "gpt-5.6-luna",
+  "prompt_version": "3",
+  "prompt_sha256": "9892ffa27bdc20fa61f24ae16ccc0dec77a5881c96c4bafe611212064c886aea",
+  "implementation_sha256": "84256389c5913a169413a9867ab51a93c79f85237a9954e835525300b806d632",
+  "repetitions": 3,
+  "minimum_supported_pass_rate": 0.95,
+  "minimum_decline_pass_rate": 0.9,
+  "datasets": {
+    "queries-3": {
+      "path": "data/evaluations/queries-3.json",
+      "sha256": "b50d855a1872cf73a60424cf2ee2699cd2a0f078bb7c466a8fa580a7d18054e9"
+    },
+    "queries-holdout-1": {
+      "path": "data/evaluations/queries-holdout-1.json",
+      "sha256": "3bfe916ff7e6b9c746b12d5978a9486e517cd44cfdae4c59870a70258d646ea9"
+    }
+  }
+}

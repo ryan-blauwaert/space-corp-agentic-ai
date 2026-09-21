@@ -285,5 +285,55 @@ and mypy passed. One existing Starlette/AnyIO deprecation warning remains.
 This verifies the Waypoint 2.1 integration criteria, not model answer quality or
 performance across workloads. Automated tests remain independent of credentials
 and network access. No live quota failure was induced, and arbitrary third-party
-logging is outside the service telemetry guarantee. Query generation remains
-Waypoint 2.2 work and has not been implemented.
+logging is outside the service telemetry guarantee. Waypoint 2.2 now defines
+[bounded domain query contracts and fixtures](structured-queries.md). Units 3–4
+execute all five domains; unit 5 connects `ModelService` through `QueryService.ask()`
+to strict JSON validation, exact entity resolution, and execution. Its versioned
+`bounded-query` prompt selects a domain and combines approved typed filters; Q1–Q5
+remain examples. It uses the existing text-only provider with application-side
+validation, not provider-native Structured Outputs or tool calling. Unit 6 adds the repeatable
+live evaluation command in `scripts/evaluate_queries.py`; the prior 23/24 run is development evidence and a completed-work over-decline remains. Reports record configured and returned model IDs, prompt version, and
+dataset digests. Alias IDs do not imply a reproducible model snapshot.
+The existing provider/service boundary remains responsible for model calls; query
+validation, workspace authority, and execution controls remain application-owned.
+
+
+The [frozen evaluation process](query-evaluation.md) now separates development
+regressions from a candidate wording holdout and evaluates repeated reports offline.
+Report format 3 records purpose, prompt/implementation digests, and failure categories.
+No new live calls are authorized or implied by that process, and no automatic repeat
+or repair loop was added to model execution.
+
+
+Query prompt version 4 includes scoped type hints for UUIDs already present in the
+question. These are application-owned identity facts, not record contents or evidence;
+planning still uses one logical model call. The query guide documents the bounded
+pre-planning lookup, failure handling, and independent final validation. The subsequent
+prompt-version-6 iterative assessment is recorded in the evaluation guide; its final
+paired check still failed scope preservation. The previous frozen assessment remains historical.
+
+### Configurable reasoning effort
+
+`SPACE_CORP_LLM_REASONING_EFFORT` optionally sets the Responses API reasoning effort
+(`none`, `minimal`, `low`, `medium`, `high`, or `xhigh`). Omit it to preserve the chosen
+model's default. Not every model supports every value; choose from that model's
+[documented capabilities](https://developers.openai.com/api/docs/models/gpt-5.2).
+For example, GPT-5.2 supports `medium` and defaults to `none` when unspecified.
+The adapter passes the setting without adding retries or changing request time/token
+bounds. Reasoning consumes the existing output-token budget and may increase latency
+and cost; an unsupported setting fails through normal model-error handling.
+
+Evaluation reports record `reasoning_effort`; frozen assessments compare it with the
+protocol's declared setting (omission means provider default). This keeps comparisons
+from silently mixing different reasoning configurations. This option adds no agent,
+repair loop, new dependency, or query-language capability. Query planning continues to
+make one logical model call.
+
+### Project model preference
+
+The local configuration template selects `gpt-5.6-luna` with `medium` reasoning for
+bounded queries and evaluations, matching the passing final Waypoint 2.2 assessment.
+The provider still accepts an explicit model override; no fallback model is selected
+on failure. GPT-5.2 appears in historical experiments and an unrun assessment protocol,
+not as the current recommendation. A configured model does not trigger calls at API
+startup or authorize further live evaluations.

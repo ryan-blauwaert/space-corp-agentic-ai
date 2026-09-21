@@ -5,7 +5,10 @@ Waypoint 1.7 runs two required checks on pull requests and pushes to `main`:
 - **Quality**: Ruff formatting, a small lint rule set (basic errors, unused names,
   and import ordering), and mypy over all `app/` and `scripts/` modules.
 - **Tests**: the complete pytest suite, including PostgreSQL integration,
-  migrations, role provisioning, bootstrap, and API acceptance tests.
+  migrations, role provisioning, bootstrap, and API acceptance tests. The suite also
+  includes bounded-query contract and fixture checks as they are added. These
+  offline checks do not establish model-planning accuracy or replace the later
+  Waypoint 2.2 query evaluation command.
 
 CI uses Python 3.14.6 on Ubuntu 24.04 and PostgreSQL 17. `pyproject.toml` still
 permits Python 3.12+, but the initial CI guarantee is the single tested version.

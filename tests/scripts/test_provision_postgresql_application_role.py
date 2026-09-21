@@ -432,6 +432,14 @@ def test_provisioning_removes_legacy_grants_and_is_repeatable(
         )
         == "f"
     )
+    assert (
+        sql(
+            provisioning_cluster,
+            "SELECT has_function_privilege('space_corp_app', "
+            "'public.current_workspace_catalog_release()', 'EXECUTE')",
+        )
+        == "t"
+    )
     sql(provisioning_cluster, "SET ROLE space_corp; CREATE TABLE future_table (id integer)")
     assert (
         sql(
