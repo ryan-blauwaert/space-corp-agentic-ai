@@ -1,5 +1,5 @@
-from uuid import UUID
 from unittest.mock import MagicMock, Mock
+from uuid import UUID
 
 import pytest
 from fastapi.testclient import TestClient
@@ -11,7 +11,6 @@ from app.main import (
     _verify_database_connection,
     create_app,
 )
-
 
 DEFAULT_WORKSPACE_ID = UUID("11111111-1111-1111-1111-111111111111")
 
@@ -30,9 +29,7 @@ def startup_settings(**overrides: object) -> Settings:
 
 
 def test_create_app_uses_configured_name() -> None:
-    application = create_app(
-        Settings(_env_file=None, application_name="Test Operations API")
-    )
+    application = create_app(Settings(_env_file=None, application_name="Test Operations API"))
 
     assert application.title == "Test Operations API"
 
@@ -76,9 +73,7 @@ def test_injected_database_remains_owned_by_caller() -> None:
 
 
 def test_startup_requires_database_configuration() -> None:
-    application = create_app(
-        Settings(_env_file=None, default_workspace_id=DEFAULT_WORKSPACE_ID)
-    )
+    application = create_app(Settings(_env_file=None, default_workspace_id=DEFAULT_WORKSPACE_ID))
 
     with pytest.raises(ApplicationStartupError, match="SPACE_CORP_DATABASE_URL"):
         with TestClient(application):
@@ -98,7 +93,9 @@ def test_verify_database_connection_executes_health_query() -> None:
 
     _verify_database_connection(database)
 
-    statement = database.engine.connect.return_value.__enter__.return_value.execute.call_args.args[0]
+    statement = database.engine.connect.return_value.__enter__.return_value.execute.call_args.args[
+        0
+    ]
     assert str(statement) == "SELECT 1"
 
 
@@ -138,7 +135,7 @@ def test_operational_read_openapi_and_documentation_pages() -> None:
         assert operation["tags"] == [path.split("/")[1]]
         assert "$ref" in operation["responses"]["200"]["content"]["application/json"]["schema"]
         assert "422" in operation["responses"]
-        for code in (["404", "503"] if "{" in path else ["503"]):
+        for code in ["404", "503"] if "{" in path else ["503"]:
             assert set(operation["responses"][code]["content"]) == {"application/problem+json"}
         parameters = {p["name"]: p["schema"] for p in operation["parameters"]}
         assert "workspace_id" not in parameters
@@ -149,4 +146,8 @@ def test_operational_read_openapi_and_documentation_pages() -> None:
             assert parameters["limit"]["maximum"] == 100
             assert parameters["limit"]["minimum"] == 1
             assert parameters["offset"]["minimum"] == 0
-    assert set(schema["paths"]) == set(paths) | {"/health", "/facilities", "/facilities/{facility_id}"}
+    assert set(schema["paths"]) == set(paths) | {
+        "/health",
+        "/facilities",
+        "/facilities/{facility_id}",
+    }

@@ -15,13 +15,31 @@ def test_dataset_volume_and_deterministic_identity_contract() -> None:
     assert len(manifest.inventory) == 179
     assert {s.question for s in manifest.scenarios} == {"Q1", "Q2", "Q3", "Q4", "Q5"}
     workspace = uuid4()
-    assert operational_id(workspace, "demo-1", "units", "U001") == operational_id(workspace, "demo-1", "units", "U001")
-    assert operational_id(workspace, "demo-1", "units", "U001") != operational_id(uuid4(), "demo-1", "units", "U001")
-    assert operational_id(workspace, "demo-1", "units", "U001") != operational_id(workspace, "demo-2", "units", "U001")
+    assert operational_id(workspace, "demo-1", "units", "U001") == operational_id(
+        workspace, "demo-1", "units", "U001"
+    )
+    assert operational_id(workspace, "demo-1", "units", "U001") != operational_id(
+        uuid4(), "demo-1", "units", "U001"
+    )
+    assert operational_id(workspace, "demo-1", "units", "U001") != operational_id(
+        workspace, "demo-2", "units", "U001"
+    )
     assert shared_id("catalog-1", "models", "M01") != shared_id("catalog-2", "models", "M01")
 
 
-@pytest.mark.parametrize("problem", ["duplicate", "foreign_unit", "compatibility", "stock", "fault", "work_time", "naive", "window"])
+@pytest.mark.parametrize(
+    "problem",
+    [
+        "duplicate",
+        "foreign_unit",
+        "compatibility",
+        "stock",
+        "fault",
+        "work_time",
+        "naive",
+        "window",
+    ],
+)
 def test_invalid_manifest_is_rejected_before_database_access(problem: str) -> None:
     data = load_manifest().model_dump(mode="json")
     if problem == "duplicate":

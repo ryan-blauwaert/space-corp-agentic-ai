@@ -41,9 +41,7 @@ def test_settings_load_environment_overrides(monkeypatch: MonkeyPatch) -> None:
     monkeypatch.setenv("SPACE_CORP_APPLICATION_NAME", "Test Operations API")
     monkeypatch.setenv("SPACE_CORP_LOGGING_LEVEL", "DEBUG")
     monkeypatch.setenv("SPACE_CORP_DATABASE_URL", "postgresql://localhost/test")
-    monkeypatch.setenv(
-        "SPACE_CORP_MIGRATION_DATABASE_URL", "postgresql://localhost/migration_test"
-    )
+    monkeypatch.setenv("SPACE_CORP_MIGRATION_DATABASE_URL", "postgresql://localhost/migration_test")
     monkeypatch.setenv("SPACE_CORP_DEFAULT_WORKSPACE_ID", "11111111-1111-1111-1111-111111111111")
 
     settings = load_settings()

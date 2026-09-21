@@ -13,9 +13,14 @@ from app.schemas.pagination import PaginationMetadata
 from app.schemas.problems import ProblemDetail
 
 router = APIRouter(
-    prefix="/work-orders", tags=["work-orders"],
-    responses={503: {"description": "Database or workspace configuration unavailable.",
-        "content": {"application/problem+json": {"schema": ProblemDetail.model_json_schema()}}}},
+    prefix="/work-orders",
+    tags=["work-orders"],
+    responses={
+        503: {
+            "description": "Database or workspace configuration unavailable.",
+            "content": {"application/problem+json": {"schema": ProblemDetail.model_json_schema()}},
+        }
+    },
 )
 
 
@@ -28,7 +33,9 @@ def list_work_orders(
     """Workspace work orders ordered by reference code then ID. Optional filters combine with AND. Due times are returned without an implicit current-time overdue calculation."""
     with database.workspace_session(workspace_id) as session:
         items, total = SqlAlchemyWorkOrderRepository(session).read_page(
-            workspace_id, limit=query.limit, offset=query.offset,
+            workspace_id,
+            limit=query.limit,
+            offset=query.offset,
             facility_id=query.facility_id,
             status=query.status,
             priority=query.priority,
@@ -40,9 +47,15 @@ def list_work_orders(
 
 
 @router.get(
-    "/{work_order_id}", response_model=WorkOrderResponse, operation_id="getWorkOrder",
-    responses={404: {"description": "Record not found in the configured workspace.",
-        "content": {"application/problem+json": {"schema": ProblemDetail.model_json_schema()}}}},
+    "/{work_order_id}",
+    response_model=WorkOrderResponse,
+    operation_id="getWorkOrder",
+    responses={
+        404: {
+            "description": "Record not found in the configured workspace.",
+            "content": {"application/problem+json": {"schema": ProblemDetail.model_json_schema()}},
+        }
+    },
 )
 def get_work_order(
     work_order_id: UUID,

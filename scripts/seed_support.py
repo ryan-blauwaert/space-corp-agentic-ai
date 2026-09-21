@@ -9,9 +9,17 @@ class SeedConfigurationError(RuntimeError):
 
 
 SEED_TABLES = (
-    "baselines", "workspaces", "facilities", "catalog_releases",
-    "equipment_models", "components", "equipment_model_components",
-    "equipment_units", "inventory_items", "incidents", "work_orders",
+    "baselines",
+    "workspaces",
+    "facilities",
+    "catalog_releases",
+    "equipment_models",
+    "components",
+    "equipment_model_components",
+    "equipment_units",
+    "inventory_items",
+    "incidents",
+    "work_orders",
 )
 
 
@@ -31,9 +39,7 @@ def require_migration_owner(session: Session) -> str:
     ).all()
     owners = {name: owner for _, name, owner in rows}
     if set(owners) != set(SEED_TABLES):
-        raise SeedConfigurationError(
-            "All dataset migrations must be applied before seeding."
-        )
+        raise SeedConfigurationError("All dataset migrations must be applied before seeding.")
     current_user = str(rows[0][0])
     if any(owner != current_user for owner in owners.values()):
         raise SeedConfigurationError(

@@ -12,9 +12,7 @@ from app.persistence.base import Base
 
 class BaselineRecord(Base):
     __tablename__ = "baselines"
-    __table_args__ = (
-        UniqueConstraint("id", "catalog_release_id", name="uq_baselines_id_release"),
-    )
+    __table_args__ = (UniqueConstraint("id", "catalog_release_id", name="uq_baselines_id_release"),)
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
     version: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)

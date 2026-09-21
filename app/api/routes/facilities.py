@@ -12,16 +12,13 @@ from app.schemas.facilities import FacilityListResponse, FacilityResponse
 from app.schemas.pagination import PaginationMetadata, PaginationQuery
 from app.schemas.problems import ProblemDetail
 
-
 router = APIRouter(
     prefix="/facilities",
     tags=["facilities"],
     responses={
         503: {
             "description": "Database or workspace configuration unavailable.",
-            "content": {
-                "application/problem+json": {"schema": ProblemDetail.model_json_schema()}
-            },
+            "content": {"application/problem+json": {"schema": ProblemDetail.model_json_schema()}},
         }
     },
 )
@@ -64,9 +61,7 @@ def list_facilities(
     responses={
         404: {
             "description": "Facility not found in the configured workspace.",
-            "content": {
-                "application/problem+json": {"schema": ProblemDetail.model_json_schema()}
-            },
+            "content": {"application/problem+json": {"schema": ProblemDetail.model_json_schema()}},
         }
     },
 )
@@ -76,9 +71,7 @@ def get_facility(
     workspace_id: Annotated[UUID, Depends(get_default_workspace_id)],
 ) -> FacilityResponse:
     with database.workspace_session(workspace_id) as session:
-        facility = SqlAlchemyFacilityRepository(session).get_by_id(
-            workspace_id, facility_id
-        )
+        facility = SqlAlchemyFacilityRepository(session).get_by_id(workspace_id, facility_id)
 
     if facility is None:
         raise HTTPException(404, "The requested Facility is not available.")

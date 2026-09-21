@@ -90,7 +90,8 @@ No particular agent framework, workflow framework, vector database, or deploymen
 **Phase 1 — Structured Operational Backend**
 
 The versioned operational dataset and core read-only API are implemented through
-Waypoint 1.6. See the [dataset guide](docs/dataset.md) for bootstrap and refresh,
+Waypoint 1.6. Waypoint 1.7 adds required PR quality and database-backed test checks;
+see the [CI guide](docs/ci.md) for local reproduction. See the [dataset guide](docs/dataset.md) for bootstrap and refresh,
 and [API documentation](docs/api.md) for endpoint usage and repeatable local
 verification. The [roadmap](docs/roadmap.md) records acceptance status.
 AI capabilities remain later work.
@@ -152,14 +153,16 @@ See the [database architecture](docs/database-architecture.md) and [roadmap](doc
 
 ## Local Development
 
-The backend requires Python 3.12 or later.
+The backend declares Python 3.12 or later; use Python 3.14.6 to reproduce the
+verified local and CI environment.
 
 Create a virtual environment and install the application with development dependencies:
 
 ```bash
-python3 -m venv .venv
+python3.14 -m venv .venv
 source .venv/bin/activate
-python -m pip install -e ".[dev]"
+python -m pip install --require-hashes -r requirements-dev.lock
+python -m pip install --no-deps --no-build-isolation -e .
 ```
 
 Start the local API:
@@ -282,4 +285,5 @@ python -m pip wheel --no-deps --wheel-dir dist .
 
 `build/`, `dist/`, bytecode, pytest caches, coverage outputs, and macOS metadata are generated artifacts and are ignored. Keep local logs, database exports, and other private scratch files under the ignored `.local/` directory. `.env.example` may be tracked with placeholders only. Ignore rules do not remove already-tracked files or replace credential review.
 
-Dependency locking, lint/type-check tooling, and CI remain separate follow-up work. No application dependencies were added for the Facility API fixes.
+Dependency locking, formatting, linting, static typing, and required PR checks are
+documented in [the CI guide](docs/ci.md), including equivalent local commands.

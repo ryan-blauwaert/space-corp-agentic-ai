@@ -5,7 +5,6 @@ from datetime import datetime
 from enum import StrEnum
 from uuid import UUID
 
-
 INCIDENT_REFERENCE_CODE_MAX_LENGTH = 64
 WORK_ORDER_REFERENCE_CODE_MAX_LENGTH = 64
 
@@ -119,7 +118,9 @@ class NewWorkOrder:
     completed_at: datetime | None = None
 
     def __post_init__(self) -> None:
-        _validate_required_text("Work order reference code", self.reference_code, WORK_ORDER_REFERENCE_CODE_MAX_LENGTH)
+        _validate_required_text(
+            "Work order reference code", self.reference_code, WORK_ORDER_REFERENCE_CODE_MAX_LENGTH
+        )
         _validate_work_order_lifecycle(self.priority, self.status, self.due_at, self.completed_at)
 
 
@@ -139,8 +140,12 @@ class WorkOrder:
     updated_at: datetime
 
     def __post_init__(self) -> None:
-        _validate_required_text("Work order reference code", self.reference_code, WORK_ORDER_REFERENCE_CODE_MAX_LENGTH)
-        _validate_work_order_lifecycle(self.priority, self.status, self.due_at, self.completed_at, created_at=self.created_at)
+        _validate_required_text(
+            "Work order reference code", self.reference_code, WORK_ORDER_REFERENCE_CODE_MAX_LENGTH
+        )
+        _validate_work_order_lifecycle(
+            self.priority, self.status, self.due_at, self.completed_at, created_at=self.created_at
+        )
 
 
 def _validate_required_text(field_name: str, value: str, maximum_length: int) -> None:
@@ -172,8 +177,12 @@ def _validate_incident_lifecycle(
 
 
 def _validate_work_order_lifecycle(
-    priority: WorkOrderPriority, status: WorkOrderStatus, due_at: datetime | None,
-    completed_at: datetime | None, *, created_at: datetime | None = None,
+    priority: WorkOrderPriority,
+    status: WorkOrderStatus,
+    due_at: datetime | None,
+    completed_at: datetime | None,
+    *,
+    created_at: datetime | None = None,
 ) -> None:
     if not isinstance(priority, WorkOrderPriority):
         raise ValueError("Work order priority must be a WorkOrderPriority.")
@@ -198,9 +207,7 @@ def _normalize_fault_code(fault_code: str | None) -> str | None:
         return None
 
     normalized = fault_code.strip().upper()
-    _validate_required_text(
-        "Incident fault code", normalized, INCIDENT_FAULT_CODE_MAX_LENGTH
-    )
+    _validate_required_text("Incident fault code", normalized, INCIDENT_FAULT_CODE_MAX_LENGTH)
     return normalized
 
 

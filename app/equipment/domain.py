@@ -5,7 +5,6 @@ from datetime import datetime
 from enum import StrEnum
 from uuid import UUID
 
-
 CATALOG_RELEASE_CODE_MAX_LENGTH = 64
 EQUIPMENT_MODEL_CODE_MAX_LENGTH = 64
 EQUIPMENT_MODEL_NAME_MAX_LENGTH = 256
@@ -30,9 +29,7 @@ class NewCatalogRelease:
     code: str
 
     def __post_init__(self) -> None:
-        _validate_required_text(
-            "Catalog release code", self.code, CATALOG_RELEASE_CODE_MAX_LENGTH
-        )
+        _validate_required_text("Catalog release code", self.code, CATALOG_RELEASE_CODE_MAX_LENGTH)
 
 
 @dataclass(frozen=True, slots=True)
@@ -44,9 +41,7 @@ class CatalogRelease:
     created_at: datetime
 
     def __post_init__(self) -> None:
-        _validate_required_text(
-            "Catalog release code", self.code, CATALOG_RELEASE_CODE_MAX_LENGTH
-        )
+        _validate_required_text("Catalog release code", self.code, CATALOG_RELEASE_CODE_MAX_LENGTH)
 
 
 @dataclass(frozen=True, slots=True)
@@ -58,12 +53,8 @@ class NewEquipmentModel:
     name: str
 
     def __post_init__(self) -> None:
-        _validate_required_text(
-            "Equipment model code", self.code, EQUIPMENT_MODEL_CODE_MAX_LENGTH
-        )
-        _validate_required_text(
-            "Equipment model name", self.name, EQUIPMENT_MODEL_NAME_MAX_LENGTH
-        )
+        _validate_required_text("Equipment model code", self.code, EQUIPMENT_MODEL_CODE_MAX_LENGTH)
+        _validate_required_text("Equipment model name", self.name, EQUIPMENT_MODEL_NAME_MAX_LENGTH)
 
 
 @dataclass(frozen=True, slots=True)
@@ -77,12 +68,8 @@ class EquipmentModel:
     created_at: datetime
 
     def __post_init__(self) -> None:
-        _validate_required_text(
-            "Equipment model code", self.code, EQUIPMENT_MODEL_CODE_MAX_LENGTH
-        )
-        _validate_required_text(
-            "Equipment model name", self.name, EQUIPMENT_MODEL_NAME_MAX_LENGTH
-        )
+        _validate_required_text("Equipment model code", self.code, EQUIPMENT_MODEL_CODE_MAX_LENGTH)
+        _validate_required_text("Equipment model name", self.name, EQUIPMENT_MODEL_NAME_MAX_LENGTH)
 
 
 @dataclass(frozen=True, slots=True)
@@ -162,8 +149,7 @@ class NewEquipmentUnit:
         )
         if not isinstance(self.operational_status, EquipmentOperationalStatus):
             raise ValueError(
-                "Equipment unit operational status must be an "
-                "EquipmentOperationalStatus."
+                "Equipment unit operational status must be an EquipmentOperationalStatus."
             )
 
 
@@ -188,8 +174,7 @@ class EquipmentUnit:
         )
         if not isinstance(self.operational_status, EquipmentOperationalStatus):
             raise ValueError(
-                "Equipment unit operational status must be an "
-                "EquipmentOperationalStatus."
+                "Equipment unit operational status must be an EquipmentOperationalStatus."
             )
 
 

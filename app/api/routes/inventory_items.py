@@ -8,14 +8,23 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from app.api.dependencies import get_database, get_default_workspace_id
 from app.database import Database
 from app.equipment.repository import SqlAlchemyInventoryItemRepository
-from app.schemas.equipment import InventoryItemListResponse, InventoryItemQuery, InventoryItemResponse
+from app.schemas.equipment import (
+    InventoryItemListResponse,
+    InventoryItemQuery,
+    InventoryItemResponse,
+)
 from app.schemas.pagination import PaginationMetadata
 from app.schemas.problems import ProblemDetail
 
 router = APIRouter(
-    prefix="/inventory-items", tags=["inventory-items"],
-    responses={503: {"description": "Database or workspace configuration unavailable.",
-        "content": {"application/problem+json": {"schema": ProblemDetail.model_json_schema()}}}},
+    prefix="/inventory-items",
+    tags=["inventory-items"],
+    responses={
+        503: {
+            "description": "Database or workspace configuration unavailable.",
+            "content": {"application/problem+json": {"schema": ProblemDetail.model_json_schema()}},
+        }
+    },
 )
 
 
@@ -28,7 +37,9 @@ def list_inventory_items(
     """Recorded workspace stock ordered by ID. Missing stock rows are not zero quantities. Optional filters combine with AND."""
     with database.workspace_session(workspace_id) as session:
         items, total = SqlAlchemyInventoryItemRepository(session).read_page(
-            workspace_id, limit=query.limit, offset=query.offset,
+            workspace_id,
+            limit=query.limit,
+            offset=query.offset,
             facility_id=query.facility_id,
             component_id=query.component_id,
         )
@@ -39,9 +50,15 @@ def list_inventory_items(
 
 
 @router.get(
-    "/{inventory_item_id}", response_model=InventoryItemResponse, operation_id="getInventoryItem",
-    responses={404: {"description": "Record not found in the configured workspace.",
-        "content": {"application/problem+json": {"schema": ProblemDetail.model_json_schema()}}}},
+    "/{inventory_item_id}",
+    response_model=InventoryItemResponse,
+    operation_id="getInventoryItem",
+    responses={
+        404: {
+            "description": "Record not found in the configured workspace.",
+            "content": {"application/problem+json": {"schema": ProblemDetail.model_json_schema()}},
+        }
+    },
 )
 def get_inventory_item(
     inventory_item_id: UUID,

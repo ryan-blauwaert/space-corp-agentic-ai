@@ -1,7 +1,7 @@
 from collections.abc import Iterator
 from dataclasses import dataclass
-from uuid import UUID, uuid4
 from unittest.mock import MagicMock
+from uuid import UUID, uuid4
 
 import pytest
 from fastapi import FastAPI
@@ -138,9 +138,7 @@ def test_list_facilities_applies_pagination_limits_and_offsets(
             response = client.get("/facilities?limit=1&offset=1")
 
         assert response.status_code == 200
-        assert [facility["code"] for facility in response.json()["items"]] == [
-            "ORB-OPS-01"
-        ]
+        assert [facility["code"] for facility in response.json()["items"]] == ["ORB-OPS-01"]
         assert response.json()["pagination"] == {"limit": 1, "offset": 1, "total": 2}
     finally:
         database.dispose()
@@ -181,9 +179,7 @@ def test_list_facilities_rejects_a_client_supplied_workspace(
 
     try:
         with TestClient(application) as client:
-            response = client.get(
-                f"/facilities?workspace_id={api_workspaces.other_id}"
-            )
+            response = client.get(f"/facilities?workspace_id={api_workspaces.other_id}")
 
         assert response.status_code == 422
     finally:
@@ -221,9 +217,11 @@ def test_get_facility_returns_only_a_record_in_the_configured_workspace(
     )
     try:
         with database.workspace_session(api_workspaces.other_id) as session:
-            other_id = SqlAlchemyFacilityRepository(session).list_by_workspace(
-                api_workspaces.other_id
-            )[0].id
+            other_id = (
+                SqlAlchemyFacilityRepository(session)
+                .list_by_workspace(api_workspaces.other_id)[0]
+                .id
+            )
         with TestClient(application) as client:
             item = client.get("/facilities").json()["items"][0]
             response = client.get(f"/facilities/{item['id']}")
@@ -243,10 +241,17 @@ def test_get_facility_returns_only_a_record_in_the_configured_workspace(
         database.dispose()
 
 
-@pytest.mark.parametrize("path", [
-    "/facilities/not-a-uuid", "/facilities?limit=0", "/facilities?limit=101",
-    "/facilities?offset=-1", "/facilities?limit=abc", "/facilities?workspace_id=other",
-])
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/facilities/not-a-uuid",
+        "/facilities?limit=0",
+        "/facilities?limit=101",
+        "/facilities?offset=-1",
+        "/facilities?limit=abc",
+        "/facilities?workspace_id=other",
+    ],
+)
 def test_invalid_facility_requests_do_not_access_database(path: str) -> None:
     database = MagicMock()
     application = create_app(
@@ -294,9 +299,13 @@ def test_facility_openapi_contract() -> None:
             content = responses[status_code]["content"]
             assert set(content) == {"application/problem+json"}
             assert set(content["application/problem+json"]["schema"]["required"]) == {
-                "title", "status", "detail"
+                "title",
+                "status",
+                "detail",
             }
-    parameters = {p["name"]: p["schema"] for p in schema["paths"]["/facilities"]["get"]["parameters"]}
+    parameters = {
+        p["name"]: p["schema"] for p in schema["paths"]["/facilities"]["get"]["parameters"]
+    }
     assert parameters["limit"]["minimum"] == 1
     assert parameters["limit"]["maximum"] == 100
     assert parameters["limit"]["default"] == 50

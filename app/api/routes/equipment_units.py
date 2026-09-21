@@ -8,14 +8,23 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from app.api.dependencies import get_database, get_default_workspace_id
 from app.database import Database
 from app.equipment.repository import SqlAlchemyEquipmentUnitRepository
-from app.schemas.equipment import EquipmentUnitListResponse, EquipmentUnitQuery, EquipmentUnitResponse
+from app.schemas.equipment import (
+    EquipmentUnitListResponse,
+    EquipmentUnitQuery,
+    EquipmentUnitResponse,
+)
 from app.schemas.pagination import PaginationMetadata
 from app.schemas.problems import ProblemDetail
 
 router = APIRouter(
-    prefix="/equipment-units", tags=["equipment-units"],
-    responses={503: {"description": "Database or workspace configuration unavailable.",
-        "content": {"application/problem+json": {"schema": ProblemDetail.model_json_schema()}}}},
+    prefix="/equipment-units",
+    tags=["equipment-units"],
+    responses={
+        503: {
+            "description": "Database or workspace configuration unavailable.",
+            "content": {"application/problem+json": {"schema": ProblemDetail.model_json_schema()}},
+        }
+    },
 )
 
 
@@ -28,7 +37,9 @@ def list_equipment_units(
     """Workspace units ordered by asset tag then ID. Optional filters combine with AND."""
     with database.workspace_session(workspace_id) as session:
         items, total = SqlAlchemyEquipmentUnitRepository(session).read_page(
-            workspace_id, limit=query.limit, offset=query.offset,
+            workspace_id,
+            limit=query.limit,
+            offset=query.offset,
             facility_id=query.facility_id,
             equipment_model_id=query.equipment_model_id,
             operational_status=query.operational_status,
@@ -40,9 +51,15 @@ def list_equipment_units(
 
 
 @router.get(
-    "/{equipment_unit_id}", response_model=EquipmentUnitResponse, operation_id="getEquipmentUnit",
-    responses={404: {"description": "Record not found in the configured workspace.",
-        "content": {"application/problem+json": {"schema": ProblemDetail.model_json_schema()}}}},
+    "/{equipment_unit_id}",
+    response_model=EquipmentUnitResponse,
+    operation_id="getEquipmentUnit",
+    responses={
+        404: {
+            "description": "Record not found in the configured workspace.",
+            "content": {"application/problem+json": {"schema": ProblemDetail.model_json_schema()}},
+        }
+    },
 )
 def get_equipment_unit(
     equipment_unit_id: UUID,

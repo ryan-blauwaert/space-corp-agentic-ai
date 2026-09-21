@@ -7,9 +7,8 @@ from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from sqlalchemy import (
-    and_,
-    Column,
     CheckConstraint,
+    Column,
     DateTime,
     ForeignKey,
     ForeignKeyConstraint,
@@ -22,7 +21,7 @@ from sqlalchemy import (
     Uuid,
     func,
 )
-from sqlalchemy.orm import Mapped, foreign, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.equipment.domain import (
     CATALOG_RELEASE_CODE_MAX_LENGTH,
@@ -42,9 +41,9 @@ if TYPE_CHECKING:
 
 # Match Python str.strip(), including Unicode whitespace.
 _REQUIRED_TEXT_WHITESPACE = (
-    '\\0009\\000A\\000B\\000C\\000D\\001C\\001D\\001E\\001F\\0020'
-    '\\0085\\00A0\\1680\\2000\\2001\\2002\\2003\\2004\\2005\\2006'
-    '\\2007\\2008\\2009\\200A\\2028\\2029\\202F\\205F\\3000'
+    "\\0009\\000A\\000B\\000C\\000D\\001C\\001D\\001E\\001F\\0020"
+    "\\0085\\00A0\\1680\\2000\\2001\\2002\\2003\\2004\\2005\\2006"
+    "\\2007\\2008\\2009\\200A\\2028\\2029\\202F\\205F\\3000"
 )
 
 
@@ -95,9 +94,7 @@ class CatalogReleaseRecord(Base):
     equipment_models: Mapped[list[EquipmentModelRecord]] = relationship(
         back_populates="catalog_release"
     )
-    components: Mapped[list[ComponentRecord]] = relationship(
-        back_populates="catalog_release"
-    )
+    components: Mapped[list[ComponentRecord]] = relationship(back_populates="catalog_release")
 
 
 class EquipmentModelRecord(Base):
@@ -129,18 +126,12 @@ class EquipmentModelRecord(Base):
     catalog_release_id: Mapped[UUID] = mapped_column(
         ForeignKey("catalog_releases.id", ondelete="RESTRICT"), nullable=False
     )
-    code: Mapped[str] = mapped_column(
-        String(EQUIPMENT_MODEL_CODE_MAX_LENGTH), nullable=False
-    )
-    name: Mapped[str] = mapped_column(
-        String(EQUIPMENT_MODEL_NAME_MAX_LENGTH), nullable=False
-    )
+    code: Mapped[str] = mapped_column(String(EQUIPMENT_MODEL_CODE_MAX_LENGTH), nullable=False)
+    name: Mapped[str] = mapped_column(String(EQUIPMENT_MODEL_NAME_MAX_LENGTH), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
-    catalog_release: Mapped[CatalogReleaseRecord] = relationship(
-        back_populates="equipment_models"
-    )
+    catalog_release: Mapped[CatalogReleaseRecord] = relationship(back_populates="equipment_models")
     equipment_units: Mapped[list[EquipmentUnitRecord]] = relationship(
         back_populates="equipment_model"
     )
@@ -163,12 +154,8 @@ class ComponentRecord(Base):
             f"char_length(btrim(name, U&'{_REQUIRED_TEXT_WHITESPACE}')) > 0",
             name="ck_components_name_not_blank",
         ),
-        UniqueConstraint(
-            "catalog_release_id", "code", name="uq_components_release_code"
-        ),
-        UniqueConstraint(
-            "catalog_release_id", "id", name="uq_components_release_id"
-        ),
+        UniqueConstraint("catalog_release_id", "code", name="uq_components_release_code"),
+        UniqueConstraint("catalog_release_id", "id", name="uq_components_release_id"),
     )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
@@ -180,16 +167,12 @@ class ComponentRecord(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
-    catalog_release: Mapped[CatalogReleaseRecord] = relationship(
-        back_populates="components"
-    )
+    catalog_release: Mapped[CatalogReleaseRecord] = relationship(back_populates="components")
     equipment_models: Mapped[list[EquipmentModelRecord]] = relationship(
         secondary=equipment_model_components,
         back_populates="components",
     )
-    inventory_items: Mapped[list[InventoryItemRecord]] = relationship(
-        back_populates="component"
-    )
+    inventory_items: Mapped[list[InventoryItemRecord]] = relationship(back_populates="component")
 
 
 class InventoryItemRecord(Base):
@@ -270,9 +253,7 @@ class EquipmentUnitRecord(Base):
         UniqueConstraint(
             "workspace_id", "asset_tag", name="uq_equipment_units_workspace_asset_tag"
         ),
-        UniqueConstraint(
-            "workspace_id", "id", name="uq_equipment_units_workspace_id"
-        ),
+        UniqueConstraint("workspace_id", "id", name="uq_equipment_units_workspace_id"),
         UniqueConstraint(
             "workspace_id",
             "facility_id",
@@ -322,9 +303,7 @@ class EquipmentUnitRecord(Base):
         ),
         foreign_keys="[EquipmentUnitRecord.facility_id]",
     )
-    equipment_model: Mapped[EquipmentModelRecord] = relationship(
-        back_populates="equipment_units"
-    )
+    equipment_model: Mapped[EquipmentModelRecord] = relationship(back_populates="equipment_units")
     incidents: Mapped[list[IncidentRecord]] = relationship(
         back_populates="equipment_unit",
         primaryjoin=(

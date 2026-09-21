@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from sqlalchemy import (
-    and_,
     CheckConstraint,
     DateTime,
     ForeignKey,
@@ -14,7 +13,7 @@ from sqlalchemy import (
     Uuid,
     func,
 )
-from sqlalchemy.orm import Mapped, foreign, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.facilities.domain import (
     FACILITY_CODE_MAX_LENGTH,
@@ -31,9 +30,9 @@ if TYPE_CHECKING:
 
 # Match Python str.strip(), including Unicode whitespace.
 _REQUIRED_TEXT_WHITESPACE = (
-    '\\0009\\000A\\000B\\000C\\000D\\001C\\001D\\001E\\001F\\0020'
-    '\\0085\\00A0\\1680\\2000\\2001\\2002\\2003\\2004\\2005\\2006'
-    '\\2007\\2008\\2009\\200A\\2028\\2029\\202F\\205F\\3000'
+    "\\0009\\000A\\000B\\000C\\000D\\001C\\001D\\001E\\001F\\0020"
+    "\\0085\\00A0\\1680\\2000\\2001\\2002\\2003\\2004\\2005\\2006"
+    "\\2007\\2008\\2009\\200A\\2028\\2029\\202F\\205F\\3000"
 )
 
 
@@ -77,9 +76,7 @@ class FacilityRecord(Base):
     code: Mapped[str] = mapped_column(String(FACILITY_CODE_MAX_LENGTH), nullable=False)
     name: Mapped[str] = mapped_column(String(FACILITY_NAME_MAX_LENGTH), nullable=False)
     facility_type: Mapped[str] = mapped_column(String(64), nullable=False)
-    location: Mapped[str] = mapped_column(
-        String(FACILITY_LOCATION_MAX_LENGTH), nullable=False
-    )
+    location: Mapped[str] = mapped_column(String(FACILITY_LOCATION_MAX_LENGTH), nullable=False)
     operational_status: Mapped[str] = mapped_column(String(32), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

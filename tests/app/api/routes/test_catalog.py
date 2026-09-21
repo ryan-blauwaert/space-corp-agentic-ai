@@ -1,7 +1,7 @@
 """Shared catalog reads, revision-specific compatibility, and error contracts."""
 
-from uuid import uuid4
 from unittest.mock import MagicMock
+from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
@@ -48,32 +48,54 @@ def test_shared_catalog_and_compatibility(read_api_dataset: ReadApiDataset) -> N
         assert response.status_code == 200
         assert response.json()["name"] == component.name
         assert response.json()["catalog_release_id"] == release
-    for path in (f"/equipment-models/{uuid4()}", f"/components/{uuid4()}", f"/equipment-models/{uuid4()}/components"):
+    for path in (
+        f"/equipment-models/{uuid4()}",
+        f"/components/{uuid4()}",
+        f"/equipment-models/{uuid4()}/components",
+    ):
         response = data.client.get(path)
         assert response.status_code == 404
         assert response.headers["content-type"] == "application/problem+json"
 
 
-@pytest.mark.parametrize("path", [
-    "/equipment-models/invalid", "/components/invalid", "/equipment-models/invalid/components",
-    f"/equipment-models/{uuid4()}/components?limit=0",
-    f"/equipment-models/{uuid4()}/components?offset=-1",
-    f"/equipment-models/{uuid4()}/components?limit=101",
-    f"/equipment-models/{uuid4()}/components?workspace_id=other",
-])
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/equipment-models/invalid",
+        "/components/invalid",
+        "/equipment-models/invalid/components",
+        f"/equipment-models/{uuid4()}/components?limit=0",
+        f"/equipment-models/{uuid4()}/components?offset=-1",
+        f"/equipment-models/{uuid4()}/components?limit=101",
+        f"/equipment-models/{uuid4()}/components?workspace_id=other",
+    ],
+)
 def test_catalog_validation_does_not_query_database(path: str) -> None:
     database = MagicMock()
-    app = create_app(Settings(_env_file=None, database_url=None, default_workspace_id=uuid4()), database)
+    app = create_app(
+        Settings(_env_file=None, database_url=None, default_workspace_id=uuid4()), database
+    )
     with TestClient(app) as client:
         assert client.get(path).status_code == 422
     database.session.assert_not_called()
 
 
-@pytest.mark.parametrize("path", [f"/equipment-models/{uuid4()}", f"/components/{uuid4()}", f"/equipment-models/{uuid4()}/components"])
+@pytest.mark.parametrize(
+    "path",
+    [
+        f"/equipment-models/{uuid4()}",
+        f"/components/{uuid4()}",
+        f"/equipment-models/{uuid4()}/components",
+    ],
+)
 def test_catalog_database_failure(path: str) -> None:
     database = MagicMock()
-    database.session.side_effect = OperationalError("SELECT private_data", {}, Exception("password=secret"))
-    app = create_app(Settings(_env_file=None, database_url=None, default_workspace_id=uuid4()), database)
+    database.session.side_effect = OperationalError(
+        "SELECT private_data", {}, Exception("password=secret")
+    )
+    app = create_app(
+        Settings(_env_file=None, database_url=None, default_workspace_id=uuid4()), database
+    )
     with TestClient(app) as client:
         response = client.get(path)
     assert response.status_code == 503
@@ -83,14 +105,19 @@ def test_catalog_database_failure(path: str) -> None:
 
 
 @pytest.mark.integration
-@pytest.mark.parametrize("collection,entity", [("equipment-models", "models"), ("components", "components")])
+@pytest.mark.parametrize(
+    "collection,entity", [("equipment-models", "models"), ("components", "components")]
+)
 def test_catalog_lists_releases_and_unused_records(
-    read_api_dataset: ReadApiDataset, migrated_database: str,
-    collection: str, entity: str,
+    read_api_dataset: ReadApiDataset,
+    migrated_database: str,
+    collection: str,
+    entity: str,
 ) -> None:
     from sqlalchemy import delete
+
     from app.database import Database
-    from app.equipment.models import CatalogReleaseRecord, EquipmentModelRecord, ComponentRecord
+    from app.equipment.models import CatalogReleaseRecord, ComponentRecord, EquipmentModelRecord
 
     data = read_api_dataset
     catalog = data.manifest.catalog
@@ -104,8 +131,14 @@ def test_catalog_lists_releases_and_unused_records(
         with owner.session() as session:
             session.add(CatalogReleaseRecord(id=other_release, code=f"unused-{other_release}"))
             session.flush()
-            session.add(record(id=unused_id, catalog_release_id=other_release,
-                               code=definitions[0].key, name="Unused catalog revision"))
+            session.add(
+                record(
+                    id=unused_id,
+                    catalog_release_id=other_release,
+                    code=definitions[0].key,
+                    name="Unused catalog revision",
+                )
+            )
         response = data.client.get(path, params={"catalog_release_id": release, "limit": 100})
         assert response.status_code == 200
         page = response.json()
@@ -119,11 +152,21 @@ def test_catalog_lists_releases_and_unused_records(
             assert data.client.get(path + "/" + item["id"]).json() == item
             assert "workspace_id" not in item
         for client in (data.other_client, data.empty_client):
-            assert client.get(path, params={"catalog_release_id": release, "limit": 100}).json() == page
-        result = data.client.get(path, params={"catalog_release_id": release, "limit": 2, "offset": 1}).json()
+            assert (
+                client.get(path, params={"catalog_release_id": release, "limit": 100}).json()
+                == page
+            )
+        result = data.client.get(
+            path, params={"catalog_release_id": release, "limit": 2, "offset": 1}
+        ).json()
         assert result["items"] == page["items"][1:3]
         assert result["pagination"]["total"] == len(definitions)
-        assert data.client.get(path, params={"catalog_release_id": release, "offset": 1000}).json()["items"] == []
+        assert (
+            data.client.get(path, params={"catalog_release_id": release, "offset": 1000}).json()[
+                "items"
+            ]
+            == []
+        )
         unknown = data.client.get(path, params={"catalog_release_id": str(uuid4())})
         assert unknown.status_code == 200
         assert unknown.json() == {"items": [], "pagination": {"limit": 50, "offset": 0, "total": 0}}
@@ -146,15 +189,29 @@ def test_catalog_lists_releases_and_unused_records(
     finally:
         with owner.session() as session:
             session.execute(delete(record).where(record.catalog_release_id == other_release))
-            session.execute(delete(CatalogReleaseRecord).where(CatalogReleaseRecord.id == other_release))
+            session.execute(
+                delete(CatalogReleaseRecord).where(CatalogReleaseRecord.id == other_release)
+            )
         owner.dispose()
 
 
 @pytest.mark.parametrize("collection", ["equipment-models", "components"])
-@pytest.mark.parametrize("query", ["limit=0", "limit=101", "offset=-1", "catalog_release_id=invalid", "workspace_id=other", "search=unsupported"])
+@pytest.mark.parametrize(
+    "query",
+    [
+        "limit=0",
+        "limit=101",
+        "offset=-1",
+        "catalog_release_id=invalid",
+        "workspace_id=other",
+        "search=unsupported",
+    ],
+)
 def test_catalog_list_validation(collection: str, query: str) -> None:
     database = MagicMock()
-    app = create_app(Settings(_env_file=None, database_url=None, default_workspace_id=uuid4()), database)
+    app = create_app(
+        Settings(_env_file=None, database_url=None, default_workspace_id=uuid4()), database
+    )
     with TestClient(app) as client:
         assert client.get(f"/{collection}?{query}").status_code == 422
     database.session.assert_not_called()

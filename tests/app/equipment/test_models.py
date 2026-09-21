@@ -24,9 +24,7 @@ def make_catalog_release(**overrides: object) -> CatalogReleaseRecord:
     return CatalogReleaseRecord(**values)
 
 
-def make_equipment_model(
-    catalog_release_id: UUID, **overrides: object
-) -> EquipmentModelRecord:
+def make_equipment_model(catalog_release_id: UUID, **overrides: object) -> EquipmentModelRecord:
     values = {
         "catalog_release_id": catalog_release_id,
         "code": "ECS-4",
@@ -36,9 +34,7 @@ def make_equipment_model(
     return EquipmentModelRecord(**values)
 
 
-def make_component(
-    catalog_release_id: UUID, **overrides: object
-) -> ComponentRecord:
+def make_component(catalog_release_id: UUID, **overrides: object) -> ComponentRecord:
     values = {
         "catalog_release_id": catalog_release_id,
         "code": "FLT-F12",
@@ -137,8 +133,7 @@ def test_model_component_compatibility_requires_a_shared_release() -> None:
         "component_id",
     ]
     assert {
-        tuple(constraint.column_keys)
-        for constraint in association_table.foreign_key_constraints
+        tuple(constraint.column_keys) for constraint in association_table.foreign_key_constraints
     } == {
         ("catalog_release_id", "equipment_model_id"),
         ("catalog_release_id", "component_id"),
@@ -152,8 +147,7 @@ def test_equipment_unit_uses_workspace_scoped_facility_relationship() -> None:
     assert unit_table.c.facility_id.nullable is False
     assert unit_table.c.equipment_model_id.nullable is False
     assert any(
-        {column.name for column in constraint.columns}
-        == {"workspace_id", "facility_id"}
+        {column.name for column in constraint.columns} == {"workspace_id", "facility_id"}
         for constraint in unit_table.foreign_key_constraints
     )
 
@@ -165,29 +159,55 @@ def test_inventory_item_uses_workspace_scoped_facility_relationship() -> None:
     assert item_table.c.facility_id.nullable is False
     assert item_table.c.component_id.nullable is False
     assert any(
-        {column.name for column in constraint.columns}
-        == {"workspace_id", "facility_id"}
+        {column.name for column in constraint.columns} == {"workspace_id", "facility_id"}
         for constraint in item_table.foreign_key_constraints
     )
     assert any(
-        tuple(constraint.columns.keys())
-        == ("workspace_id", "facility_id", "component_id")
+        tuple(constraint.columns.keys()) == ("workspace_id", "facility_id", "component_id")
         for constraint in item_table.constraints
         if isinstance(constraint, UniqueConstraint)
     )
 
 
 def test_catalog_and_workspace_relationships_are_registered() -> None:
-    assert CatalogReleaseRecord.__mapper__.relationships["equipment_models"].mapper.class_ is EquipmentModelRecord
-    assert CatalogReleaseRecord.__mapper__.relationships["components"].mapper.class_ is ComponentRecord
-    assert EquipmentModelRecord.__mapper__.relationships["components"].mapper.class_ is ComponentRecord
-    assert ComponentRecord.__mapper__.relationships["equipment_models"].mapper.class_ is EquipmentModelRecord
-    assert ComponentRecord.__mapper__.relationships["inventory_items"].mapper.class_ is InventoryItemRecord
-    assert EquipmentModelRecord.__mapper__.relationships["equipment_units"].mapper.class_ is EquipmentUnitRecord
-    assert FacilityRecord.__mapper__.relationships["equipment_units"].mapper.class_ is EquipmentUnitRecord
-    assert FacilityRecord.__mapper__.relationships["inventory_items"].mapper.class_ is InventoryItemRecord
-    assert WorkspaceRecord.__mapper__.relationships["equipment_units"].mapper.class_ is EquipmentUnitRecord
-    assert WorkspaceRecord.__mapper__.relationships["inventory_items"].mapper.class_ is InventoryItemRecord
+    assert (
+        CatalogReleaseRecord.__mapper__.relationships["equipment_models"].mapper.class_
+        is EquipmentModelRecord
+    )
+    assert (
+        CatalogReleaseRecord.__mapper__.relationships["components"].mapper.class_ is ComponentRecord
+    )
+    assert (
+        EquipmentModelRecord.__mapper__.relationships["components"].mapper.class_ is ComponentRecord
+    )
+    assert (
+        ComponentRecord.__mapper__.relationships["equipment_models"].mapper.class_
+        is EquipmentModelRecord
+    )
+    assert (
+        ComponentRecord.__mapper__.relationships["inventory_items"].mapper.class_
+        is InventoryItemRecord
+    )
+    assert (
+        EquipmentModelRecord.__mapper__.relationships["equipment_units"].mapper.class_
+        is EquipmentUnitRecord
+    )
+    assert (
+        FacilityRecord.__mapper__.relationships["equipment_units"].mapper.class_
+        is EquipmentUnitRecord
+    )
+    assert (
+        FacilityRecord.__mapper__.relationships["inventory_items"].mapper.class_
+        is InventoryItemRecord
+    )
+    assert (
+        WorkspaceRecord.__mapper__.relationships["equipment_units"].mapper.class_
+        is EquipmentUnitRecord
+    )
+    assert (
+        WorkspaceRecord.__mapper__.relationships["inventory_items"].mapper.class_
+        is InventoryItemRecord
+    )
 
 
 @pytest.mark.integration
@@ -382,9 +402,7 @@ def test_inventory_item_rejects_facility_from_another_workspace(
     facility = make_facility(second_workspace.id)
     integration_session.add_all([component, facility])
     integration_session.flush()
-    integration_session.add(
-        make_inventory_item(first_workspace.id, facility.id, component.id)
-    )
+    integration_session.add(make_inventory_item(first_workspace.id, facility.id, component.id))
 
     with pytest.raises(IntegrityError):
         integration_session.flush()
@@ -458,9 +476,7 @@ def test_equipment_unit_rejects_facility_from_another_workspace(
     facility = make_facility(second_workspace.id)
     integration_session.add_all([model, facility])
     integration_session.flush()
-    integration_session.add(
-        make_equipment_unit(first_workspace.id, facility.id, model.id)
-    )
+    integration_session.add(make_equipment_unit(first_workspace.id, facility.id, model.id))
 
     with pytest.raises(IntegrityError):
         integration_session.flush()
@@ -487,9 +503,7 @@ def test_equipment_unit_asset_tag_can_repeat_only_across_workspaces(
         ]
     )
     integration_session.flush()
-    integration_session.add(
-        make_equipment_unit(first_workspace.id, first_facility.id, model.id)
-    )
+    integration_session.add(make_equipment_unit(first_workspace.id, first_facility.id, model.id))
 
     with pytest.raises(IntegrityError):
         integration_session.flush()

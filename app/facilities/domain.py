@@ -3,7 +3,6 @@ from datetime import datetime
 from enum import StrEnum
 from uuid import UUID
 
-
 FACILITY_CODE_MAX_LENGTH = 64
 FACILITY_NAME_MAX_LENGTH = 256
 FACILITY_LOCATION_MAX_LENGTH = 256
@@ -65,9 +64,7 @@ def _validate_required_text(code: str, name: str, location: str) -> None:
         if not value.strip():
             raise ValueError(f"Facility {field_name} must not be blank.")
         if len(value) > maximum_length:
-            raise ValueError(
-                f"Facility {field_name} must be at most {maximum_length} characters."
-            )
+            raise ValueError(f"Facility {field_name} must be at most {maximum_length} characters.")
 
 
 def _validate_enum_values(

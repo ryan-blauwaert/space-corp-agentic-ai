@@ -23,7 +23,6 @@ from app.facilities.models import FacilityRecord
 from app.facilities.repository import SqlAlchemyFacilityRepository
 from app.workspaces.models import WorkspaceRecord
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -303,15 +302,19 @@ def test_application_role_enforces_workspace_rls_and_resets_pooled_context(
                     )
                 ).all()
             )
-            role_memberships = session.execute(
-                text(
-                    "SELECT granted_role.rolname "
-                    "FROM pg_auth_members AS membership "
-                    "JOIN pg_roles AS member ON member.oid = membership.member "
-                    "JOIN pg_roles AS granted_role ON granted_role.oid = membership.roleid "
-                    "WHERE member.rolname = 'space_corp_app'"
+            role_memberships = (
+                session.execute(
+                    text(
+                        "SELECT granted_role.rolname "
+                        "FROM pg_auth_members AS membership "
+                        "JOIN pg_roles AS member ON member.oid = membership.member "
+                        "JOIN pg_roles AS granted_role ON granted_role.oid = membership.roleid "
+                        "WHERE member.rolname = 'space_corp_app'"
+                    )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
 
         assert (bypass_rls, is_superuser, can_create_role, can_create_database) == (
             False,
@@ -335,20 +338,14 @@ def test_application_role_enforces_workspace_rls_and_resets_pooled_context(
 
         connection_ids: list[int] = []
         with application_database.workspace_session(first_workspace_id) as session:
-            assert session.execute(text("SELECT current_user")).scalar_one() == (
-                "space_corp_app"
-            )
-            connection_ids.append(
-                session.execute(text("SELECT pg_backend_pid()")).scalar_one()
-            )
+            assert session.execute(text("SELECT current_user")).scalar_one() == ("space_corp_app")
+            connection_ids.append(session.execute(text("SELECT pg_backend_pid()")).scalar_one())
             first_facility = SqlAlchemyFacilityRepository(session).create(
                 first_workspace_id, make_new_facility("LUN-OPS-01")
             )
 
         with application_database.workspace_session(second_workspace_id) as session:
-            connection_ids.append(
-                session.execute(text("SELECT pg_backend_pid()")).scalar_one()
-            )
+            connection_ids.append(session.execute(text("SELECT pg_backend_pid()")).scalar_one())
             second_facility = SqlAlchemyFacilityRepository(session).create(
                 second_workspace_id, make_new_facility("ORB-OPS-01")
             )
@@ -357,14 +354,15 @@ def test_application_role_enforces_workspace_rls_and_resets_pooled_context(
 
         with application_database.workspace_session(first_workspace_id) as session:
             assert session.get(FacilityRecord, second_facility.id) is None
-            assert session.execute(
-                update(FacilityRecord)
-                .where(FacilityRecord.id == second_facility.id)
-                .values(name="Should not update")
-            ).rowcount == 0
-            assert session.execute(select(FacilityRecord.id)).scalars().all() == [
-                first_facility.id
-            ]
+            assert (
+                session.execute(
+                    update(FacilityRecord)
+                    .where(FacilityRecord.id == second_facility.id)
+                    .values(name="Should not update")
+                ).rowcount
+                == 0
+            )
+            assert session.execute(select(FacilityRecord.id)).scalars().all() == [first_facility.id]
 
         with pytest.raises(ProgrammingError):
             with application_database.workspace_session(first_workspace_id) as session:
@@ -373,9 +371,7 @@ def test_application_role_enforces_workspace_rls_and_resets_pooled_context(
                 )
 
         with application_database.session() as session:
-            final_connection_id = session.execute(
-                text("SELECT pg_backend_pid()")
-            ).scalar_one()
+            final_connection_id = session.execute(text("SELECT pg_backend_pid()")).scalar_one()
             assert session.execute(select(FacilityRecord.id)).scalars().all() == []
             assert session.execute(
                 text("SELECT current_setting('app.workspace_id', true)")
@@ -386,9 +382,7 @@ def test_application_role_enforces_workspace_rls_and_resets_pooled_context(
         with migration_database.session() as session:
             session.execute(
                 delete(FacilityRecord).where(
-                    FacilityRecord.workspace_id.in_(
-                        [first_workspace_id, second_workspace_id]
-                    )
+                    FacilityRecord.workspace_id.in_([first_workspace_id, second_workspace_id])
                 )
             )
             session.execute(
@@ -418,16 +412,25 @@ def test_required_text_migration_rejects_existing_invalid_data_without_rewriting
             # This intentionally targets the pre-baseline schema. Do not use
             # today's ORM workspace columns to construct historical test data.
             session.execute(text("INSERT INTO workspaces (id) VALUES (:id)"), {"id": workspace_id})
-            session.add(FacilityRecord(
-                id=facility_id, workspace_id=workspace_id, code=" ", name="Legacy",
-                facility_type="orbital_station", location="Orbit",
-                operational_status="operational",
-            ))
+            session.add(
+                FacilityRecord(
+                    id=facility_id,
+                    workspace_id=workspace_id,
+                    code=" ",
+                    name="Legacy",
+                    facility_type="orbital_station",
+                    location="Orbit",
+                    operational_status="operational",
+                )
+            )
         with pytest.raises(IntegrityError):
             command.upgrade(config, "head")
         with database.session() as session:
             assert session.get(FacilityRecord, facility_id).code == " "
-            assert session.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "0003_facility_workspace_rls"
+            assert (
+                session.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
+                == "0003_facility_workspace_rls"
+            )
             session.get(FacilityRecord, facility_id).code = "LEGACY-01"
         command.upgrade(config, "head")
         with database.session() as session:
@@ -442,7 +445,8 @@ def test_required_text_migration_rejects_existing_invalid_data_without_rewriting
 
 @pytest.fixture
 def preserve_application_grants(
-    migrated_database: str, integration_application_database_url: str,
+    migrated_database: str,
+    integration_application_database_url: str,
 ) -> Iterator[None]:
     """Round-trip migrations must not leave the shared test role unprovisioned."""
     from sqlalchemy.engine import make_url
@@ -452,25 +456,37 @@ def preserve_application_grants(
     quote = database.engine.dialect.identifier_preparer.quote_identifier
     try:
         with database.session() as session:
-            tables = session.execute(text("""
+            tables = session.execute(
+                text("""
                 SELECT table_name, privilege_type, is_grantable
                 FROM information_schema.role_table_grants
                 WHERE table_schema = 'public' AND grantee = :role
-            """), {"role": role}).all()
-            columns = session.execute(text("""
+            """),
+                {"role": role},
+            ).all()
+            columns = session.execute(
+                text("""
                 SELECT table_name, column_name, privilege_type, is_grantable
                 FROM information_schema.column_privileges
                 WHERE table_schema = 'public' AND grantee = :role
-            """), {"role": role}).all()
+            """),
+                {"role": role},
+            ).all()
         yield
     finally:
         with database.session() as session:
             for table, privilege, grantable in tables:
                 suffix = " WITH GRANT OPTION" if grantable == "YES" else ""
-                session.execute(text(f"GRANT {privilege} ON public.{quote(table)} TO {quote(role)}{suffix}"))
+                session.execute(
+                    text(f"GRANT {privilege} ON public.{quote(table)} TO {quote(role)}{suffix}")
+                )
             table_privileges = {(table, privilege) for table, privilege, _ in tables}
             for table, column, privilege, grantable in columns:
                 if (table, privilege) not in table_privileges:
                     suffix = " WITH GRANT OPTION" if grantable == "YES" else ""
-                    session.execute(text(f"GRANT {privilege} ({quote(column)}) ON public.{quote(table)} TO {quote(role)}{suffix}"))
+                    session.execute(
+                        text(
+                            f"GRANT {privilege} ({quote(column)}) ON public.{quote(table)} TO {quote(role)}{suffix}"
+                        )
+                    )
         database.dispose()
