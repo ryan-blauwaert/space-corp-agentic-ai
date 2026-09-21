@@ -29,7 +29,7 @@ createdb --owner=space_corp space_corp
 createdb --owner=space_corp space_corp_test
 ```
 
-Apply migrations as the schema owner, then provision the restricted application login. The provisioning script creates `space_corp_app` with `NOBYPASSRLS`, grants read-only access to catalog releases, equipment models, components, and model-component compatibility associations, and grants scoped Facility, EquipmentUnit, and InventoryItem reads, inserts, and approved column-level updates for both local databases. It removes legacy broad/default grants and does not grant access to `workspaces` or `alembic_version`. It rejects a pre-existing application role with role memberships or required application tables not owned by `space_corp`; resolve those conditions before rerunning it.
+Apply migrations as the schema owner, then provision the restricted application login. The provisioning script creates `space_corp_app` with `NOBYPASSRLS`, grants read-only access to catalog releases, equipment models, components, and model-component compatibility associations, and grants scoped Facility, EquipmentUnit, InventoryItem, Incident, and WorkOrder reads, inserts, and approved column-level updates for both local databases. It removes legacy broad/default grants and does not grant access to `workspaces` or `alembic_version`. It rejects a pre-existing application role with role memberships or required application tables not owned by `space_corp`; resolve those conditions before rerunning it.
 
 ```bash
 export SPACE_CORP_MIGRATION_DATABASE_URL="postgresql+psycopg://space_corp@localhost:5432/space_corp"
@@ -151,7 +151,7 @@ Do not run `docker compose down -v` unless you intentionally want to delete the 
 
 ## Additional Verification
 
-The integration suite prepares the schema through explicit fixture dependencies, so individual repository and API files can be run independently after initial role provisioning. The catalog/equipment migration round-trip test removes and reapplies only that migration slice, preserving existing Facility grants. Use a dedicated test database with no valuable data; do not run parallel suites against the same database.
+The integration suite prepares the schema through explicit fixture dependencies, so individual repository and API files can be run independently after initial role provisioning. Migration round-trip tests snapshot and restore the application role’s existing table and column grants after recreating tables. Use a dedicated test database with no valuable data; do not run parallel suites against the same database.
 
 To include provisioning success, repeatability, legacy-grant removal, and failed-precondition tests, set `SPACE_CORP_TEST_POSTGRES_BIN` in `.env.test` to your installed PostgreSQL server-binary directory (for example, `$(pg_config --bindir)`).
 

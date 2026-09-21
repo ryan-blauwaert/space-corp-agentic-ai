@@ -31,5 +31,5 @@ async def database_unavailable(
     """Keep database connection details out of public error responses."""
     return await http_problem(
         request,
-        HTTPException(503, "The Facility API database is unavailable."),
+        HTTPException(503, "The operational API database is unavailable."),
     )
