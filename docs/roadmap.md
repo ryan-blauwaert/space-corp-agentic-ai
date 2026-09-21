@@ -658,7 +658,29 @@ are not required here.
 
 ### Status
 
-- [~] In progress — local checks implemented; GitHub acceptance pending.
+- [x] Complete
+- `.github/workflows/checks.yml` runs required Quality and Tests jobs on pull
+  requests and pushes to `main`, using Python 3.14.6 and PostgreSQL 17 on Ubuntu.
+- Hashed runtime, development, and build dependencies are recorded in
+  `requirements-dev.lock`; clean Linux installation and local installation passed.
+- Ruff formatting/lint and mypy across all 47 application/script modules pass.
+  The initial lint baseline includes mechanical formatting/import cleanup and
+  narrow type fixes, with no schema or application capability changes.
+- The complete suite passed locally and in GitHub: 370 passed, zero failures or
+  skips, one existing Starlette/AnyIO deprecation warning. Required test mode
+  rejects missing integration prerequisites and skipped coverage. Fresh CI
+  databases exercise migrations, restricted-role behavior, and provisioning.
+- `main` protection requires Quality and Tests from GitHub Actions, up-to-date
+  branches, and administrator enforcement. A deliberate unused-import probe
+  failed Quality while Tests passed and GitHub reported BLOCKED; the probe was
+  removed, both checks passed, and GitHub reported CLEAN. No merge was attempted.
+- Acceptance: [PR #10](https://github.com/ryan-blauwaert/space-corp-agentic-ai/pull/10),
+  [passing run](https://github.com/ryan-blauwaert/space-corp-agentic-ai/actions/runs/35549044523),
+  [failed-gate verification](https://github.com/ryan-blauwaert/space-corp-agentic-ai/actions/runs/35548918274).
+- [CI guide](ci.md) documents local reproduction, lock updates, permissions, and
+  environment boundaries. No active acceptance gap remains; broader Python/OS
+  matrices, static checks for tests/migrations, deployment, and AI checks are
+  intentionally outside this initial CI increment.
 
 ---
 

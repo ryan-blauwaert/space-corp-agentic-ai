@@ -79,8 +79,9 @@ permission. Pull requests use `pull_request`, not `pull_request_target`.
 
 ## Merge enforcement and acceptance
 
-The GitHub protection rule for `main` must require **Quality** and **Tests**, require
-the branch to be up to date, and enforce the rule for administrators. No mandatory
+The GitHub protection rule for `main` requires **Quality** and **Tests** from
+GitHub Actions, requires the branch to be up to date, and enforces the rule for
+administrators. No mandatory
 reviewer count is needed for this single-contributor project. Keep check names
 stable because protection refers to them by name.
 
@@ -93,3 +94,9 @@ References: [Ruff](https://docs.astral.sh/ruff/formatter/),
 [mypy adoption](https://mypy.readthedocs.io/en/stable/existing_code.html),
 [pip repeatable installs](https://pip.pypa.io/en/stable/topics/repeatable-installs/),
 and [GitHub branch protection](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches).
+
+Verified in [PR #10](https://github.com/ryan-blauwaert/space-corp-agentic-ai/pull/10):
+370 tests passed without skips on a clean Linux runner; Quality passed with 47
+modules checked by mypy. A temporary lint failure blocked merging while Tests
+passed; removing it restored a CLEAN merge state. The probe is absent from the
+final tree. One existing Starlette/AnyIO deprecation warning remains.
