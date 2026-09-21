@@ -821,7 +821,17 @@ Use deterministic checks for query results and prohibited operations. Phase 8 ex
 
 ### Status
 
-- [ ] Complete
+- [~] In progress — unit 1 query contracts and versioned evaluation cases implemented.
+- Added typed Q1–Q5 plans/results, caller-owned workspace/correlation/page inputs,
+  explicit declined-planning outcomes, and safe query error categories.
+- Added `queries-1` with questions referencing all 12 `demo-1` scenarios and six
+  declined cases. The loader validates baseline/catalog identity, digest, scenario
+  coverage, and typed expected evidence without model or database calls.
+- Unit 1 verification: 647 tests passed, no failures or skips (121 new contract
+  and fixture tests); Ruff and mypy passed. One existing deprecation warning remains.
+- See [structured-query notes](structured-queries.md) for scope, validation limits,
+  and prohibited behaviors. Read-only sessions, execution, planning, tracing, and
+  the repeatable evaluation command remain unimplemented.
 
 ---
 
