@@ -456,7 +456,8 @@ review and does not establish autonomous or production reliability. See
 
 Current priorities are to maintain the documented query capabilities incrementally,
 preserve canonical evidence, and verify new filter combinations without relaxing
-workspace or execution controls. Answer synthesis and frontend work belong to the
-following waypoints. Agents, RAG, vector databases, MCP, authentication, durable
+workspace or execution controls. Waypoint 2.3 answer synthesis is active, with typed contracts and development
+expectations defined; generation and grounding are pending. Frontend work remains
+in the following waypoint. Agents, RAG, vector databases, MCP, authentication, durable
 workflows, advanced evaluation infrastructure, and deployment gates remain later
 work; the initial query evaluation harness is required within Waypoint 2.2.

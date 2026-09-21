@@ -954,7 +954,17 @@ fallbacks remain application-owned.
 
 ### Status
 
-- [ ] Complete
+- [~] In progress — typed answer contracts and versioned development expectations exist.
+- Answer requests preserve query context, resolved scope, and typed evidence; output
+  distinguishes answered and cautious states, including pending scope confirmation.
+- `answers-1` pins all 24 existing development questions and adds eight unsupported-claim
+  challenges. Historical 2.2 datasets and protocols remain unchanged.
+- [Answer-synthesis guidance](answer-synthesis.md) defines empty/partial/unknown evidence
+  semantics and acceptance thresholds before live tests. Contracts do not yet enforce
+  runtime grounding; generation, validation, tracing, and live assessment remain pending.
+- Verification: 1,074 tests passed with no failures or skips, including 53 new tests
+  and required PostgreSQL integration. Lint, formatting, and types passed; one existing
+  Starlette/AnyIO warning remains. No live answer calls were made.
 
 ---
 
@@ -2225,16 +2235,16 @@ Current phase:
 
 Current waypoint:
 
-**Waypoint 2.2 — Structured Query Capability (complete, 2026-09-21)**
+**Waypoint 2.3 — Structured Answer Synthesis (in progress)**
 
 Bounded contracts, all five read-only executors, scoped model planning, tracing,
 explicit scope confirmation, and repeatable evaluations are implemented. The frozen
 Luna assessment passed 144/144 cases across six runs; earlier failures remain in the
 assessment history. The verified workflow requires caller review for unanchored plans,
 simulated in evaluation. Q1–Q5 remain examples alongside additional supported filters.
-Changes remain uncommitted at the user's direction. Waypoint 2.3 answer synthesis is
-next and has not been started; begin it only when requested. Real-user coverage and
-confirmation usability remain future validation work.
+Waypoint 2.2 was committed as `eb2fc19`. Waypoint 2.3 now has typed answer contracts
+and development expectations; runtime synthesis and grounding remain pending.
+Real-user coverage and confirmation usability remain future validation work.
 
 ---
 

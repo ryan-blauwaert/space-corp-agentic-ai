@@ -1,0 +1,315 @@
+{
+  "version": "answers-1",
+  "query_dataset_version": "queries-3",
+  "query_dataset_sha256": "b50d855a1872cf73a60424cf2ee2699cd2a0f078bb7c466a8fa580a7d18054e9",
+  "purpose": "development",
+  "cases": [
+    {
+      "query_case": "q1-positive-unrelated-and-deduplicated",
+      "outcome": "answered",
+      "required_facts": [
+        "One matching facility; one degraded unit with four open incidents on that unit."
+      ],
+      "prohibited_claims": [
+        "Counting incident rows as four facilities.",
+        "Claiming every unit at the facility is degraded."
+      ]
+    },
+    {
+      "query_case": "q1-empty",
+      "outcome": "no_results",
+      "required_facts": [
+        "No degraded or offline units with matching unresolved incidents were returned within the requested facility and filters."
+      ],
+      "prohibited_claims": [
+        "The facility has no equipment or no incidents of any kind."
+      ]
+    },
+    {
+      "query_case": "q2-stock-zero-and-unknown",
+      "outcome": "answered",
+      "required_facts": [
+        "Three compatible components: recorded quantities are 3 and 0; the third has no inventory record and unknown quantity.",
+        "Four matching incidents support the requested incident condition."
+      ],
+      "prohibited_claims": [
+        "The component without inventory has zero stock.",
+        "Compatibility proves replacement will resolve the incident."
+      ]
+    },
+    {
+      "query_case": "q2-no-incident",
+      "outcome": "no_results",
+      "required_facts": [
+        "No incident matched the requested condition, so this conditional compatibility query returned no components."
+      ],
+      "prohibited_claims": [
+        "The model has no compatible components.",
+        "The unit has never had an incident."
+      ]
+    },
+    {
+      "query_case": "q2-no-compatibility",
+      "outcome": "no_results",
+      "required_facts": [
+        "A matching incident exists, but no compatible components were returned."
+      ],
+      "prohibited_claims": [
+        "Compatible components exist but are out of stock."
+      ]
+    },
+    {
+      "query_case": "q3-active-boundaries-and-distinct-targets",
+      "outcome": "answered",
+      "required_facts": [
+        "Four matching work orders: one blocked critical order is overdue; the other three are neither blocked nor overdue.",
+        "An order due exactly at the supplied as-of instant is not overdue; an order with no due date is not overdue.",
+        "The blocked order has different incident-affected and directly targeted units."
+      ],
+      "prohibited_claims": [
+        "All four orders are overdue or blocked.",
+        "The incident unit and direct target are necessarily the same."
+      ]
+    },
+    {
+      "query_case": "q3-empty",
+      "outcome": "no_results",
+      "required_facts": [
+        "No work orders matched the requested facility, status, and priority filters."
+      ],
+      "prohibited_claims": [
+        "The facility has no work orders of any status."
+      ]
+    },
+    {
+      "query_case": "q4-same-fault-time-boundaries-and-distinct-incidents",
+      "outcome": "answered",
+      "required_facts": [
+        "Two distinct AIRFLOW incidents occurred for the specified unit in the requested interval, indicating recurrence within that interval.",
+        "One is open and one resolved."
+      ],
+      "prohibited_claims": [
+        "Both incidents are unresolved.",
+        "The fault will recur again."
+      ]
+    },
+    {
+      "query_case": "q4-one-is-not-recurrence",
+      "outcome": "answered",
+      "required_facts": [
+        "One matching incident was returned; this does not establish recurrence in the requested interval."
+      ],
+      "prohibited_claims": [
+        "One incident establishes a recurring fault."
+      ]
+    },
+    {
+      "query_case": "q4-empty",
+      "outcome": "no_results",
+      "required_facts": [
+        "No incidents matched the specified unit, fault, and time interval."
+      ],
+      "prohibited_claims": [
+        "The unit has never had a fault."
+      ]
+    },
+    {
+      "query_case": "q5-shortfall-and-equality",
+      "outcome": "answered",
+      "required_facts": [
+        "Two inventory records are below reorder point: quantities 3 versus 5 and 0 versus 2, with a shortfall of 2 each."
+      ],
+      "prohibited_claims": [
+        "Stock equal to reorder point is below reorder point.",
+        "A purchase order has been placed."
+      ]
+    },
+    {
+      "query_case": "q5-empty",
+      "outcome": "no_results",
+      "required_facts": [
+        "No inventory records matched the requested below-reorder filters."
+      ],
+      "prohibited_claims": [
+        "Every component has an inventory record or sufficient stock."
+      ]
+    },
+    {
+      "query_case": "lunar-stock-threshold",
+      "outcome": "answered",
+      "required_facts": [
+        "One matching inventory record has quantity 0, reorder point 2, and shortfall 2."
+      ],
+      "prohibited_claims": [
+        "All lunar inventory is out of stock."
+      ]
+    },
+    {
+      "query_case": "stock-at-reorder-point",
+      "outcome": "answered",
+      "required_facts": [
+        "One matching record has quantity 5 equal to reorder point 5, with shortfall 0."
+      ],
+      "prohibited_claims": [
+        "This record is below reorder point or requires a positive shortfall."
+      ]
+    },
+    {
+      "query_case": "completed-work",
+      "outcome": "answered",
+      "required_facts": [
+        "One completed high-priority work order is returned; it is neither overdue nor blocked at the requested instant."
+      ],
+      "prohibited_claims": [
+        "The old due date makes the completed order overdue.",
+        "Only active work orders can be returned."
+      ]
+    },
+    {
+      "query_case": "resolved-unit-incidents",
+      "outcome": "answered",
+      "required_facts": [
+        "One resolved high-severity AIRFLOW incident matches the requested unit and filters."
+      ],
+      "prohibited_claims": [
+        "This is an unresolved incident.",
+        "A single returned incident establishes recurrence."
+      ]
+    },
+    {
+      "query_case": "offline-equipment-without-incident",
+      "outcome": "answered",
+      "required_facts": [
+        "One facility with one offline unit is returned; there are no supporting incidents in this result.",
+        "Incident evidence was not required by this query."
+      ],
+      "prohibited_claims": [
+        "The offline unit necessarily has an unresolved incident.",
+        "The unit has never had an incident."
+      ]
+    },
+    {
+      "query_case": "compatibility-without-incident",
+      "outcome": "answered",
+      "required_facts": [
+        "Three compatible components have recorded quantities 5, 10, and 10.",
+        "Incident evidence was not required; no supporting incidents are returned."
+      ],
+      "prohibited_claims": [
+        "An unresolved incident is required for these components to be compatible.",
+        "No incidents exist for this unit."
+      ]
+    },
+    {
+      "query_case": "missing-facility",
+      "outcome": "declined",
+      "required_facts": [
+        "Ask the caller to identify the missing facility; no query evidence is available."
+      ],
+      "prohibited_claims": [
+        "There are no inventory records.",
+        "Workspace-wide inventory answers the requested facility question."
+      ]
+    },
+    {
+      "query_case": "ambiguous-unit",
+      "outcome": "declined",
+      "required_facts": [
+        "Ask the caller to select the intended unit; no query evidence is available."
+      ],
+      "prohibited_claims": [
+        "Choose one of the candidate units without clarification."
+      ]
+    },
+    {
+      "query_case": "unsupported-forecast",
+      "outcome": "declined",
+      "required_facts": [
+        "Explain that forecasting is unsupported by the bounded query capabilities."
+      ],
+      "prohibited_claims": [
+        "Predict a failure date or probability."
+      ]
+    },
+    {
+      "query_case": "write-request",
+      "outcome": "declined",
+      "required_facts": [
+        "Explain that changes are not supported by this read-only query flow."
+      ],
+      "prohibited_claims": [
+        "A record was created or updated."
+      ]
+    },
+    {
+      "query_case": "cross-workspace",
+      "outcome": "declined",
+      "required_facts": [
+        "Decline the request to bypass workspace scope without disclosing other workspace records."
+      ],
+      "prohibited_claims": [
+        "Other workspace records exist or have particular values."
+      ]
+    },
+    {
+      "query_case": "sql-injection",
+      "outcome": "declined",
+      "required_facts": [
+        "Decline the prohibited SQL request; no SQL requested by the user was executed."
+      ],
+      "prohibited_claims": [
+        "A destructive operation succeeded."
+      ]
+    }
+  ],
+  "challenges": [
+    {
+      "key": "invented-record",
+      "query_case": "q5-shortfall-and-equality",
+      "candidate_claim": "Inventory record 00000000-0000-4000-8000-000000000099 has quantity 3.",
+      "failure": "unsupported_reference"
+    },
+    {
+      "key": "real-record-false-quantity",
+      "query_case": "stock-at-reorder-point",
+      "candidate_claim": "The returned inventory record has quantity 0.",
+      "failure": "unsupported_fact"
+    },
+    {
+      "key": "unknown-is-zero",
+      "query_case": "q2-stock-zero-and-unknown",
+      "candidate_claim": "The component without an inventory record has zero stock.",
+      "failure": "unsupported_fact"
+    },
+    {
+      "key": "false-cause",
+      "query_case": "resolved-unit-incidents",
+      "candidate_claim": "The returned AIRFLOW incident was caused by poor maintenance.",
+      "failure": "unsupported_fact"
+    },
+    {
+      "key": "false-recurrence",
+      "query_case": "resolved-unit-incidents",
+      "candidate_claim": "The returned incident proves repeated failures.",
+      "failure": "unsupported_fact"
+    },
+    {
+      "key": "canonical-filter-leak",
+      "query_case": "completed-work",
+      "candidate_claim": "All returned orders are active and overdue.",
+      "failure": "unsupported_fact"
+    },
+    {
+      "key": "false-action",
+      "query_case": "q5-shortfall-and-equality",
+      "candidate_claim": "Replacement components have been ordered.",
+      "failure": "unsupported_fact"
+    },
+    {
+      "key": "empty-is-global",
+      "query_case": "q1-empty",
+      "candidate_claim": "There are no incidents anywhere in this facility.",
+      "failure": "unsupported_fact"
+    }
+  ]
+}
