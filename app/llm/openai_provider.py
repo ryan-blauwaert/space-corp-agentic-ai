@@ -14,6 +14,14 @@ from app.llm.contracts import ModelFinishReason, ModelRequest, ModelResponse, To
 from app.llm.errors import ModelCallError, ModelErrorKind
 from app.llm.provider import ModelProvider
 
+_QUOTA_CODES = (
+    "insufficient_quota",
+    "credit_balance_exhausted",
+    "organization_spend_limit_exceeded",
+    "project_spend_limit_exceeded",
+    "organization_usage_limit_exceeded",
+)
+
 
 class OpenAIProvider(ModelProvider):
     """The caller owns the injected client and must close it after use."""
@@ -43,7 +51,12 @@ class OpenAIProvider(ModelProvider):
             if status in (401, 403):
                 kind = ModelErrorKind.AUTHENTICATION
             elif status == 429:
-                kind = ModelErrorKind.RATE_LIMIT
+                # Inspect structured identifiers only; never parse or forward messages.
+                kind = (
+                    ModelErrorKind.QUOTA_EXCEEDED
+                    if exc.code in _QUOTA_CODES or exc.type == "insufficient_quota"
+                    else ModelErrorKind.RATE_LIMIT
+                )
             elif status == 408:
                 kind = ModelErrorKind.TIMEOUT
             elif status == 409 or status >= 500:

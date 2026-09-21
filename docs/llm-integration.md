@@ -1,8 +1,9 @@
 # Controlled Model Integration
 
-Waypoint 2.1 is being implemented incrementally. Units 1–3 define the boundary,
-a configured OpenAI adapter, and controlled execution with telemetry. The smoke
-command and live acceptance remain pending. Existing operational endpoints are unaffected.
+Waypoint 2.1 is complete. Units 1–4 provide the boundary,
+a configured OpenAI adapter, controlled execution with telemetry, and an internal
+smoke command. Live acceptance evidence is recorded below. Existing operational
+endpoints are unaffected.
 
 ## Contracts
 
@@ -34,7 +35,7 @@ both cases. The execution service owns retries and telemetry, so SDK retries mus
 silently multiply application attempts. This interface includes no database access,
 tool calling, streaming, or vendor-specific payloads.
 
-`app/llm/errors.py` defines authentication, invalid-request, rate-limit, timeout,
+`app/llm/errors.py` defines authentication, invalid-request, rate-limit, quota-exceeded, timeout,
 unavailable, invalid-response, and refusal categories. Errors carry context and a
 fixed safe message. The adapter maps SDK failures into these categories; the
 execution service owns category-to-retry policy.
@@ -96,9 +97,18 @@ with configured_provider(settings) as provider:
 
 The default is three attempts total, including the initial call. `max_attempts`
 can be 1–3; 1 disables retries. Only rate limits, timeouts, and unavailable-service
-failures are retried. Authentication, invalid requests/responses, and refusals stop
+failures are retried. Quota failures, authentication, invalid requests/responses, and refusals stop
 immediately. Partial text at the output limit is returned explicitly, without retry.
 The same immutable request and correlation IDs are reused for every attempt.
+For HTTP 429, the adapter recognizes `insufficient_quota`,
+`credit_balance_exhausted`, `organization_spend_limit_exceeded`,
+`project_spend_limit_exceeded`, and `organization_usage_limit_exceeded` codes, or
+an `insufficient_quota` type. These map to `quota_exceeded`, which is not retried.
+Check API credits and organization/project limits before trying again. Other 429s
+retain `rate_limit`, including unknown/missing identifiers; retries stay bounded.
+Classification uses structured identifiers only, never provider message text.
+This follows the [OpenAI error guidance](https://developers.openai.com/api/docs/guides/error-codes).
+
 Provider results/errors with mismatched context fail as invalid responses. Unexpected
 programming exceptions are recorded as `internal_error` without exception details,
 then re-raised rather than retried or disguised as provider failures.
@@ -120,7 +130,7 @@ The service emits JSON messages at INFO through `app.llm.service`, using standar
 [Python logging](https://docs.python.org/3/library/logging.html). It does not install
 handlers or change process-wide levels. The calling entry point must configure a
 handler and enable INFO for this logger to collect events; ordinary Python's default
-WARNING threshold hides them. The upcoming smoke command will provide that wiring.
+WARNING threshold hides them. The smoke command below provides that wiring.
 No tracing service, persistence table, dependency, or API endpoint is added here.
 
 One `model_attempt` event is emitted per finished attempt and one `model_operation`
@@ -150,6 +160,58 @@ HTTP payloads, exception messages, or tracebacks are included. Identifiers must 
 be populated with user content. This allowlist covers these service events, not
 arbitrary logging by callers, SDKs, or exception handlers.
 
+## Internal smoke command (unit 4)
+
+From the repository root, configure `SPACE_CORP_LLM_MODEL_ID` and
+`SPACE_CORP_LLM_API_KEY` in your environment or ignored `.env` file. No model is
+selected automatically; use an available Responses-compatible text model. Do not
+put keys in command arguments or tracked files. The command needs no database or
+workspace and does not import the API application.
+
+```bash
+.venv/bin/python -m scripts.smoke_llm
+```
+
+This command makes a real provider call when credentials are configured and can
+incur provider charges. It sends only the fixed prompt “Reply with the single word
+READY. Do not use tools.”, identified by `model-smoke` version `1`. It creates new
+request and operation UUIDs, invokes the existing provider through `ModelService`,
+and closes the client on success or failure. No operational data, tools, or database
+writes are involved. Changes to the fixed prompt require a prompt-version change.
+
+Defaults are a 256-token output cap, a 30-second per-attempt SDK timeout, and at
+most three attempts. Override bounds explicitly when needed:
+
+```bash
+.venv/bin/python -m scripts.smoke_llm --max-output-tokens 512 --timeout-seconds 20 --max-attempts 1
+```
+
+The output cap includes reasoning tokens for applicable models; a low cap may
+produce no usable text or an output-limit response. Retry and timeout semantics
+are those of the service described above. `--help` performs no model call and
+requires no configuration.
+
+Stdout contains one JSON result summary with `request_id`, `operation_id`,
+`outcome`, and `error_kind`. Stderr contains the allowlisted JSON attempt/operation
+events. The command explicitly enables INFO for the service logger, independent
+of `SPACE_CORP_LOGGING_LEVEL`, and does not enable verbose SDK logging. It restores
+service logging state on exit. Neither output stream prints the prompt, generated
+text, key, exception details, or traceback. Disable externally configured SDK debug
+logging when working with credentials, as described above.
+
+| Exit code | Meaning |
+| --- | --- |
+| `0` | Provider returned usable, completed text |
+| `1` | Model/setup failure or output-limit partial text |
+| `2` | Invalid arguments, invalid settings, or missing model/key |
+
+Success verifies the text-call path, not exact compliance with the requested word
+or answer quality. Output-limit text is not counted as a successful smoke check.
+Configuration failures occur before a call and print a safe diagnostic to stderr;
+they have no result summary or model events. Setup failures produce a safe summary,
+but no model events if execution never began. Model failures retain the same IDs in
+the summary and telemetry, including across retries.
+
 ## Verification and remaining work
 
 `tests/app/llm/` maps the provider-interface and predictable-failure criteria to
@@ -168,7 +230,60 @@ to verify that retry counts do not multiply. Fake time avoids real waits in poli
 tests. These cover the predictable-failure, identifier logging, correlation, and
 telemetry-content criteria without claiming real-provider acceptance.
 
-Remaining units add the smoke command and live acceptance. Real credentials, model
-availability, live provider behavior, and entry-point log collection remain
-unverified. Waypoint 2.1 remains incomplete. Query generation remains Waypoint 2.2
-work.
+`tests/scripts/test_smoke_llm.py` runs the command through the real adapter/service
+with mocked HTTP to verify entry-point wiring, emitted console telemetry, correlation,
+retry bounds, exit codes, validation, cleanup, and sensitive-content exclusion.
+A subprocess test verifies module invocation without model or database settings.
+Tests send no live model requests.
+
+Quota regression tests cover each recognized billing/quota code, the type fallback,
+unknown/malformed identifiers, and transient throttling. Command tests prove that
+quota failures emit safe, correlated events and stop after one HTTP attempt despite
+the default three-attempt allowance.
+
+## Live acceptance (unit 5)
+
+The following evidence was supplied by the user from local smoke-command runs.
+These were live calls, separate from the mocked automated suite. No additional
+provider calls were made to record this evidence.
+
+| Run | Requested / returned model | Result | Attempts | Operation duration | Reported input / output tokens |
+| --- | --- | --- | --- | --- | --- |
+| Initial failure | `gpt-5-nano` / null | `rate_limit` under the original mapping | 3 | 4323.542 ms | unknown / unknown |
+| Nano success | `gpt-5-nano` / `gpt-5-nano-2025-08-07` | completed | 1 | 1641.14 ms | 18 / 109 |
+| Luna success | `gpt-5.6-luna` / `gpt-5.6-luna` | completed | 1 | 2458.105 ms | 18 / 5 |
+
+Correlation evidence (each pair is shared by every attempt, operation event, and
+command summary in that run):
+
+| Run | Request ID | Operation ID |
+| --- | --- | --- |
+| Initial failure | `9b220d53-91ba-4197-9139-0c7e17df4497` | `97d7735b-fe30-4820-84e3-15cdc3c853a3` |
+| Nano success | `f0c74776-ec7b-4e12-8d71-18b13156768b` | `2f31dc66-fcab-4549-9ad3-f2994982686e` |
+| Luna success | `b0c81943-dde9-46ba-928e-006ee5be83fa` | `3f15378a-1a3f-4841-a835-6456d355c200` |
+
+All runs record prompt `model-smoke`, version `1`, and exclude raw prompt/output,
+credentials, and evidence content. Success summaries report `completed` with null
+error categories. The earlier failure demonstrates bounded retries and failure
+correlation, but does not reveal its original provider code; it cannot be
+retroactively classified as quota exhaustion. The corrected quota distinction is
+verified with mocked HTTP responses, not an intentionally induced live billing
+failure. Returned aliases are not proof of an immutable model revision.
+
+### Completion evidence and limits
+
+- Model invocation: user-supplied live successes above, plus command wiring tests.
+- Provider interface: explicit `ModelProvider` implementation checked by mypy.
+- Predictable failures: adapter, service, and command tests; live bounded-failure trace.
+- Model/prompt identity and correlation: automated assertions and all three live traces.
+- Content handling: explicit telemetry allowlist, safe console output tests, and the
+  documented metadata policy above.
+
+Final verification: 526 automated tests passed with no failures or skips; Ruff
+and mypy passed. One existing Starlette/AnyIO deprecation warning remains.
+
+This verifies the Waypoint 2.1 integration criteria, not model answer quality or
+performance across workloads. Automated tests remain independent of credentials
+and network access. No live quota failure was induced, and arbitrary third-party
+logging is outside the service telemetry guarantee. Query generation remains
+Waypoint 2.2 work and has not been implemented.

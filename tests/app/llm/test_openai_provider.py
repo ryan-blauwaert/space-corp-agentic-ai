@@ -205,3 +205,44 @@ def test_model_mismatch_prevents_io(request_value):
     with pytest.raises(ModelCallError) as caught:
         generate(request_value, handler)
     assert caught.value.kind == ModelErrorKind.INVALID_REQUEST
+
+
+@pytest.mark.parametrize(
+    "details,kind",
+    [
+        ({"code": "insufficient_quota"}, "quota_exceeded"),
+        ({"code": "credit_balance_exhausted"}, "quota_exceeded"),
+        ({"code": "organization_spend_limit_exceeded"}, "quota_exceeded"),
+        ({"code": "project_spend_limit_exceeded"}, "quota_exceeded"),
+        ({"code": "organization_usage_limit_exceeded"}, "quota_exceeded"),
+        ({"type": "insufficient_quota"}, "quota_exceeded"),
+        ({"code": "unknown", "type": "insufficient_quota"}, "quota_exceeded"),
+        ({"code": "rate_limit_exceeded", "type": "rate_limit_error"}, "rate_limit"),
+        ({"code": "slow_down", "type": "rate_limit_error"}, "rate_limit"),
+        ({"code": None, "type": None}, "rate_limit"),
+        ({"code": "unknown"}, "rate_limit"),
+        ({"code": ["malformed"], "type": {}}, "rate_limit"),
+    ],
+)
+def test_429_uses_structured_quota_identifiers(request_value, details, kind):
+    calls = []
+
+    def handler(request):
+        calls.append(request)
+        return httpx.Response(
+            429,
+            json={
+                "error": {
+                    "message": "private credentials and insufficient_quota message",
+                    **details,
+                }
+            },
+        )
+
+    with pytest.raises(ModelCallError) as caught:
+        generate(request_value, handler)
+    assert caught.value.kind == kind
+    assert caught.value.context == request_value.context
+    assert str(caught.value) == f"Model call failed: {kind}."
+    assert caught.value.__suppress_context__
+    assert len(calls) == 1

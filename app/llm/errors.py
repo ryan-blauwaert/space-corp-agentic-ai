@@ -9,6 +9,7 @@ class ModelErrorKind(StrEnum):
     AUTHENTICATION = "authentication"
     INVALID_REQUEST = "invalid_request"
     RATE_LIMIT = "rate_limit"
+    QUOTA_EXCEEDED = "quota_exceeded"
     TIMEOUT = "timeout"
     UNAVAILABLE = "unavailable"
     INVALID_RESPONSE = "invalid_response"

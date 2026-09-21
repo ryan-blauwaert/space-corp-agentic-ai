@@ -178,6 +178,7 @@ def test_retry_exhaustion_is_bounded(call, caplog, kind):
     "kind",
     [
         ModelErrorKind.AUTHENTICATION,
+        ModelErrorKind.QUOTA_EXCEEDED,
         ModelErrorKind.INVALID_REQUEST,
         ModelErrorKind.INVALID_RESPONSE,
         ModelErrorKind.REFUSED,
