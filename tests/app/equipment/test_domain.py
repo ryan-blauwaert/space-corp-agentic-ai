@@ -74,9 +74,7 @@ def test_component_accepts_valid_data() -> None:
         ("name", "x" * (COMPONENT_NAME_MAX_LENGTH + 1), "at most"),
     ],
 )
-def test_new_component_rejects_invalid_text(
-    field_name: str, value: str, message: str
-) -> None:
+def test_new_component_rejects_invalid_text(field_name: str, value: str, message: str) -> None:
     values: dict[str, object] = {
         "catalog_release_id": uuid4(),
         "code": "FLT-F12",
@@ -166,7 +164,11 @@ def test_new_inventory_item_rejects_invalid_stock_levels(
     ("asset_tag", "status", "message"),
     [
         ("", EquipmentOperationalStatus.OPERATIONAL, "must not be blank"),
-        ("x" * (EQUIPMENT_UNIT_ASSET_TAG_MAX_LENGTH + 1), EquipmentOperationalStatus.OPERATIONAL, "at most"),
+        (
+            "x" * (EQUIPMENT_UNIT_ASSET_TAG_MAX_LENGTH + 1),
+            EquipmentOperationalStatus.OPERATIONAL,
+            "at most",
+        ),
         ("ECS-14", "operational", "must be an EquipmentOperationalStatus"),
     ],
 )

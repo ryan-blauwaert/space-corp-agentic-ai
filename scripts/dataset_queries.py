@@ -1,8 +1,8 @@
 """Fixed reference queries for baseline acceptance, not a public query service."""
 
 from datetime import UTC, datetime
-from uuid import UUID
 from typing import TypedDict, cast
+from uuid import UUID
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -66,28 +66,59 @@ def json_value(value: object) -> object:
     return value
 
 
-def evaluate(session: Session, workspace_id: UUID, manifest: Manifest, question: str, inputs: dict[str, str]) -> dict[str, object]:
+def evaluate(
+    session: Session, workspace_id: UUID, manifest: Manifest, question: str, inputs: dict[str, str]
+) -> dict[str, object]:
     workspace = session.get(WorkspaceRecord, workspace_id)
     release = shared_id(manifest.catalog.version, "release", manifest.catalog.version)
     baseline = shared_id(manifest.version, "baseline", manifest.version)
-    if workspace is None or (workspace.baseline_id, workspace.catalog_release_id) != (baseline, release):
+    if workspace is None or (workspace.baseline_id, workspace.catalog_release_id) != (
+        baseline,
+        release,
+    ):
         raise SeedConfigurationError("Queries require a matching pinned workspace.")
-    parameters = dict(workspace=workspace_id, release=release, as_of=manifest.as_of,
-                      window_start=manifest.window_start, facility=None)
+    parameters = dict(
+        workspace=workspace_id,
+        release=release,
+        as_of=manifest.as_of,
+        window_start=manifest.window_start,
+        facility=None,
+    )
     for key, entity in (("facility", "facilities"), ("unit", "units")):
         if key in inputs:
             parameters[key] = operational_id(workspace_id, manifest.version, entity, inputs[key])
             table = "facilities" if key == "facility" else "equipment_units"
-            if session.scalar(text(f"SELECT id FROM {table} WHERE workspace_id=:workspace AND id=:{key}"), parameters) is None:
+            if (
+                session.scalar(
+                    text(f"SELECT id FROM {table} WHERE workspace_id=:workspace AND id=:{key}"),
+                    parameters,
+                )
+                is None
+            ):
                 raise SeedConfigurationError("Requested input does not exist in this workspace.")
     if "model" in inputs:
         parameters["model"] = shared_id(manifest.catalog.version, "models", inputs["model"])
-        if session.scalar(text("SELECT id FROM equipment_models WHERE id=:model AND catalog_release_id=:release"), parameters) is None:
+        if (
+            session.scalar(
+                text(
+                    "SELECT id FROM equipment_models WHERE id=:model AND catalog_release_id=:release"
+                ),
+                parameters,
+            )
+            is None
+        ):
             raise SeedConfigurationError("Unknown model in the pinned release.")
     parameters["fault"] = inputs.get("fault_code", "").strip().upper()
     incident_ids = []
     if question == "Q2":
-        incident_ids = list(session.scalars(text("SELECT id FROM incidents WHERE workspace_id=:workspace AND equipment_unit_id=:unit AND status IN ('open','investigating') ORDER BY reference_code"), parameters))
+        incident_ids = list(
+            session.scalars(
+                text(
+                    "SELECT id FROM incidents WHERE workspace_id=:workspace AND equipment_unit_id=:unit AND status IN ('open','investigating') ORDER BY reference_code"
+                ),
+                parameters,
+            )
+        )
         if not incident_ids:
             return {"status": "no_unresolved_incident", "incident_ids": [], "rows": []}
     rows = [dict(row) for row in session.execute(text(QUERIES[question]), parameters).mappings()]
@@ -95,11 +126,20 @@ def evaluate(session: Session, workspace_id: UUID, manifest: Manifest, question:
     if question == "Q1":
         grouped: dict[UUID, FacilityEvidence] = {}
         for row in rows:
-            evidence = grouped.setdefault(row["facility_id"], FacilityEvidence(facility_id=row["facility_id"], units=[], incidents=[]))
+            evidence = grouped.setdefault(
+                row["facility_id"],
+                FacilityEvidence(facility_id=row["facility_id"], units=[], incidents=[]),
+            )
             unit = dict(unit_id=row["unit_id"], operational_status=row["operational_status"])
             if unit not in evidence["units"]:
                 evidence["units"].append(unit)
-            evidence["incidents"].append(dict(incident_id=row["incident_id"], equipment_unit_id=row["unit_id"], status=row["incident_status"]))
+            evidence["incidents"].append(
+                dict(
+                    incident_id=row["incident_id"],
+                    equipment_unit_id=row["unit_id"],
+                    status=row["incident_status"],
+                )
+            )
         result = {"rows": list(grouped.values())}
     elif question == "Q2":
         result.update(status="matched" if rows else "no_compatibility", incident_ids=incident_ids)
@@ -111,7 +151,11 @@ def evaluate(session: Session, workspace_id: UUID, manifest: Manifest, question:
 def expected_evidence(value: object, workspace: UUID, manifest: Manifest) -> object:
     if isinstance(value, str) and value.startswith("@"):
         entity, key = value[1:].split(":", 1)
-        id_ = shared_id(manifest.catalog.version, entity, key) if entity in ("models", "components") else operational_id(workspace, manifest.version, entity, key)
+        id_ = (
+            shared_id(manifest.catalog.version, entity, key)
+            if entity in ("models", "components")
+            else operational_id(workspace, manifest.version, entity, key)
+        )
         return str(id_)
     if isinstance(value, dict):
         return {k: expected_evidence(v, workspace, manifest) for k, v in value.items()}
@@ -125,5 +169,7 @@ def validate_scenarios(session: Session, workspace: UUID, manifest: Manifest) ->
         actual = evaluate(session, workspace, manifest, scenario.question, scenario.inputs)
         expected = expected_evidence(scenario.expected, workspace, manifest)
         if actual != expected:
-            raise SeedConfigurationError(f"Scenario {scenario.key} failed: expected {expected!r}, received {actual!r}")
+            raise SeedConfigurationError(
+                f"Scenario {scenario.key} failed: expected {expected!r}, received {actual!r}"
+            )
     return len(manifest.scenarios)

@@ -19,7 +19,14 @@ from scripts.seed_support import SeedConfigurationError
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def bootstrap(settings: Settings, workspace: UUID | None = None, *, manifest_path: Path = DEFAULT_MANIFEST, refresh: bool = False, validate: bool = False) -> dict[str, object]:
+def bootstrap(
+    settings: Settings,
+    workspace: UUID | None = None,
+    *,
+    manifest_path: Path = DEFAULT_MANIFEST,
+    refresh: bool = False,
+    validate: bool = False,
+) -> dict[str, object]:
     """Guards run before migrations, publication, or operational writes."""
     if settings.environment != "development" or settings.migration_database_url is None:
         raise SeedConfigurationError("A development migration-owner connection is required.")
@@ -28,8 +35,11 @@ def bootstrap(settings: Settings, workspace: UUID | None = None, *, manifest_pat
         raise SeedConfigurationError("Development bootstrap cannot target a test database.")
     local_hosts = (None, "localhost", "127.0.0.1", "::1")
     query_hosts = url.normalized_query.get("host", ())
-    if (url.host not in local_hosts or "service" in url.query
-            or any(host not in local_hosts and not host.startswith("/") for host in query_hosts)):
+    if (
+        url.host not in local_hosts
+        or "service" in url.query
+        or any(host not in local_hosts and not host.startswith("/") for host in query_hosts)
+    ):
         raise SeedConfigurationError("Development bootstrap requires local PostgreSQL.")
     workspace = workspace or settings.default_workspace_id
     if workspace is None:
@@ -46,8 +56,13 @@ def bootstrap(settings: Settings, workspace: UUID | None = None, *, manifest_pat
             if validate or refresh:
                 validate_workspace(session, workspace, manifest)
                 scenarios = validate_scenarios(session, workspace, manifest)
-            return dict(workspace_id=str(workspace), baseline=manifest.version,
-                        catalog=manifest.catalog.version, counts=counts, scenarios_verified=scenarios)
+            return dict(
+                workspace_id=str(workspace),
+                baseline=manifest.version,
+                catalog=manifest.catalog.version,
+                counts=counts,
+                scenarios_verified=scenarios,
+            )
     finally:
         database.dispose()
 
@@ -56,11 +71,25 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--workspace", type=UUID)
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
-    parser.add_argument("--refresh", action="store_true", help="Replace only this pinned workspace's operational records with the frozen baseline.")
-    parser.add_argument("--validate", action="store_true", help="Verify exact baseline rows and Q1–Q5 evidence; edited copies will fail validation.")
+    parser.add_argument(
+        "--refresh",
+        action="store_true",
+        help="Replace only this pinned workspace's operational records with the frozen baseline.",
+    )
+    parser.add_argument(
+        "--validate",
+        action="store_true",
+        help="Verify exact baseline rows and Q1–Q5 evidence; edited copies will fail validation.",
+    )
     args = parser.parse_args()
     try:
-        result = bootstrap(Settings(), args.workspace, manifest_path=args.manifest, refresh=args.refresh, validate=args.validate)
+        result = bootstrap(
+            Settings(),
+            args.workspace,
+            manifest_path=args.manifest,
+            refresh=args.refresh,
+            validate=args.validate,
+        )
     except (SeedConfigurationError, ValueError) as error:
         parser.exit(1, f"Dataset bootstrap failed: {error}\n")
     print(json.dumps(result, indent=2))

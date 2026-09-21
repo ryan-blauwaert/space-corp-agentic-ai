@@ -12,13 +12,12 @@ from app.persistence.models import (
     ComponentRecord,
     EquipmentModelRecord,
     EquipmentUnitRecord,
-    InventoryItemRecord,
-    IncidentRecord,
-    WorkOrderRecord,
     FacilityRecord,
+    IncidentRecord,
+    InventoryItemRecord,
+    WorkOrderRecord,
     WorkspaceRecord,
 )
-
 
 _REGISTERED_MODELS = (
     CatalogReleaseRecord,

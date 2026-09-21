@@ -18,7 +18,14 @@ from app.equipment.repository import (
 )
 from app.facilities.domain import FacilityOperationalStatus, FacilityType, NewFacility
 from app.facilities.repository import SqlAlchemyFacilityRepository
-from app.operations.domain import IncidentSeverity, IncidentStatus, NewIncident, NewWorkOrder, WorkOrderPriority, WorkOrderStatus
+from app.operations.domain import (
+    IncidentSeverity,
+    IncidentStatus,
+    NewIncident,
+    NewWorkOrder,
+    WorkOrderPriority,
+    WorkOrderStatus,
+)
 from app.operations.repository import SqlAlchemyIncidentRepository, SqlAlchemyWorkOrderRepository
 from app.workspaces.models import WorkspaceRecord
 
@@ -76,8 +83,17 @@ def make_new_incident(facility_id: UUID, equipment_unit_id: UUID | None) -> NewI
     )
 
 
-def make_new_work_order(facility_id: UUID, incident_id: UUID | None, unit_id: UUID | None) -> NewWorkOrder:
-    return NewWorkOrder(facility_id=facility_id, originating_incident_id=incident_id, target_equipment_unit_id=unit_id, reference_code="WO-ECS-001", priority=WorkOrderPriority.HIGH, status=WorkOrderStatus.OPEN)
+def make_new_work_order(
+    facility_id: UUID, incident_id: UUID | None, unit_id: UUID | None
+) -> NewWorkOrder:
+    return NewWorkOrder(
+        facility_id=facility_id,
+        originating_incident_id=incident_id,
+        target_equipment_unit_id=unit_id,
+        reference_code="WO-ECS-001",
+        priority=WorkOrderPriority.HIGH,
+        status=WorkOrderStatus.OPEN,
+    )
 
 
 @pytest.mark.integration
@@ -96,8 +112,11 @@ def test_incident_repository_creates_lists_and_resolves_an_incident(
 
     resolved_at = datetime.now(UTC)
     updated = repository.update_lifecycle(
-        workspace_id, created.id, severity=IncidentSeverity.CRITICAL,
-        status=IncidentStatus.RESOLVED, resolved_at=resolved_at,
+        workspace_id,
+        created.id,
+        severity=IncidentSeverity.CRITICAL,
+        status=IncidentStatus.RESOLVED,
+        resolved_at=resolved_at,
     )
 
     assert updated is not None
@@ -143,13 +162,16 @@ def test_incident_repository_excludes_another_workspace(
     assert repository.get_by_id(other_workspace.id, created.id) is None
     assert repository.list_by_facility(other_workspace.id, facility.id) == []
     assert repository.count_by_facility(other_workspace.id, facility.id) == 0
-    assert repository.update_lifecycle(
-        other_workspace.id,
-        created.id,
-        severity=IncidentSeverity.CRITICAL,
-        status=IncidentStatus.RESOLVED,
-        resolved_at=datetime.now(UTC),
-    ) is None
+    assert (
+        repository.update_lifecycle(
+            other_workspace.id,
+            created.id,
+            severity=IncidentSeverity.CRITICAL,
+            status=IncidentStatus.RESOLVED,
+            resolved_at=datetime.now(UTC),
+        )
+        is None
+    )
     assert repository.get_by_id(workspace_id, created.id) == created
 
 
@@ -157,13 +179,28 @@ def test_incident_repository_excludes_another_workspace(
 def test_work_order_repository_creates_scoped_work_and_updates_lifecycle(
     integration_session: Session, workspace_id: UUID
 ) -> None:
-    facility = SqlAlchemyFacilityRepository(integration_session).create(workspace_id, make_new_facility())
+    facility = SqlAlchemyFacilityRepository(integration_session).create(
+        workspace_id, make_new_facility()
+    )
     model = create_model(integration_session)
-    unit = SqlAlchemyEquipmentUnitRepository(integration_session).create(workspace_id, make_new_equipment_unit(facility.id, model.id))
-    incident = SqlAlchemyIncidentRepository(integration_session).create(workspace_id, make_new_incident(facility.id, unit.id))
+    unit = SqlAlchemyEquipmentUnitRepository(integration_session).create(
+        workspace_id, make_new_equipment_unit(facility.id, model.id)
+    )
+    incident = SqlAlchemyIncidentRepository(integration_session).create(
+        workspace_id, make_new_incident(facility.id, unit.id)
+    )
     repository = SqlAlchemyWorkOrderRepository(integration_session)
-    created = repository.create(workspace_id, make_new_work_order(facility.id, incident.id, unit.id))
-    completed = repository.update_lifecycle(workspace_id, created.id, priority=WorkOrderPriority.CRITICAL, status=WorkOrderStatus.COMPLETED, due_at=None, completed_at=datetime.now(UTC))
+    created = repository.create(
+        workspace_id, make_new_work_order(facility.id, incident.id, unit.id)
+    )
+    completed = repository.update_lifecycle(
+        workspace_id,
+        created.id,
+        priority=WorkOrderPriority.CRITICAL,
+        status=WorkOrderStatus.COMPLETED,
+        due_at=None,
+        completed_at=datetime.now(UTC),
+    )
     assert completed is not None
     assert completed.originating_incident_id == incident.id
     assert completed.target_equipment_unit_id == unit.id
@@ -192,8 +229,12 @@ def test_work_order_repository_scope_pagination_and_missing_records(
     later = repository.create(workspace_id, replace(template, reference_code="WO-B", due_at=due_at))
     first = repository.create(workspace_id, replace(template, reference_code="WO-A", due_at=due_at))
     unscheduled = repository.create(workspace_id, replace(template, reference_code="WO-C"))
-    repository.create(workspace_id, replace(template, facility_id=other_facility.id, reference_code="WO-D"))
-    foreign = repository.create(other_workspace.id, replace(template, facility_id=foreign_facility.id))
+    repository.create(
+        workspace_id, replace(template, facility_id=other_facility.id, reference_code="WO-D")
+    )
+    foreign = repository.create(
+        other_workspace.id, replace(template, facility_id=foreign_facility.id)
+    )
 
     assert repository.list_by_facility(workspace_id, facility.id) == [first, later, unscheduled]
     assert repository.list_by_facility(workspace_id, facility.id, limit=1, offset=1) == [later]
@@ -201,24 +242,38 @@ def test_work_order_repository_scope_pagination_and_missing_records(
     assert repository.count_by_facility(workspace_id, facility.id) == 3
     for inaccessible_id in (foreign.id, uuid4()):
         assert repository.get_by_id(workspace_id, inaccessible_id) is None
-        assert repository.update_lifecycle(
-            workspace_id, inaccessible_id, priority=WorkOrderPriority.LOW,
-            status=WorkOrderStatus.CANCELLED, due_at=None, completed_at=None,
-        ) is None
+        assert (
+            repository.update_lifecycle(
+                workspace_id,
+                inaccessible_id,
+                priority=WorkOrderPriority.LOW,
+                status=WorkOrderStatus.CANCELLED,
+                due_at=None,
+                completed_at=None,
+            )
+            is None
+        )
     assert repository.list_by_facility(workspace_id, foreign_facility.id) == []
     assert repository.count_by_facility(workspace_id, foreign_facility.id) == 0
     assert repository.get_by_id(other_workspace.id, foreign.id) == foreign
 
     with pytest.raises(ValueError, match="cannot precede creation"):
         repository.update_lifecycle(
-            workspace_id, first.id, priority=WorkOrderPriority.CRITICAL,
-            status=WorkOrderStatus.COMPLETED, due_at=None,
+            workspace_id,
+            first.id,
+            priority=WorkOrderPriority.CRITICAL,
+            status=WorkOrderStatus.COMPLETED,
+            due_at=None,
             completed_at=first.created_at - timedelta(seconds=1),
         )
     assert repository.get_by_id(workspace_id, first.id) == first
     cancelled = repository.update_lifecycle(
-        workspace_id, first.id, priority=WorkOrderPriority.LOW,
-        status=WorkOrderStatus.CANCELLED, due_at=None, completed_at=None,
+        workspace_id,
+        first.id,
+        priority=WorkOrderPriority.LOW,
+        status=WorkOrderStatus.CANCELLED,
+        due_at=None,
+        completed_at=None,
     )
     assert cancelled is not None
     assert cancelled.completed_at is None

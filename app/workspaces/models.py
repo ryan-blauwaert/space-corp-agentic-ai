@@ -27,7 +27,8 @@ class WorkspaceRecord(Base):
         ForeignKeyConstraint(
             ["baseline_id", "catalog_release_id"],
             ["baselines.id", "baselines.catalog_release_id"],
-            ondelete="RESTRICT", name="fk_workspaces_baseline_release",
+            ondelete="RESTRICT",
+            name="fk_workspaces_baseline_release",
         ),
     )
 
@@ -44,14 +45,8 @@ class WorkspaceRecord(Base):
         nullable=False,
         server_default=func.now(),
     )
-    facilities: Mapped[list[FacilityRecord]] = relationship(
-        back_populates="workspace"
-    )
-    equipment_units: Mapped[list[EquipmentUnitRecord]] = relationship(
-        back_populates="workspace"
-    )
-    inventory_items: Mapped[list[InventoryItemRecord]] = relationship(
-        back_populates="workspace"
-    )
+    facilities: Mapped[list[FacilityRecord]] = relationship(back_populates="workspace")
+    equipment_units: Mapped[list[EquipmentUnitRecord]] = relationship(back_populates="workspace")
+    inventory_items: Mapped[list[InventoryItemRecord]] = relationship(back_populates="workspace")
     incidents: Mapped[list[IncidentRecord]] = relationship(back_populates="workspace")
     work_orders: Mapped[list[WorkOrderRecord]] = relationship(back_populates="workspace")

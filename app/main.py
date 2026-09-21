@@ -7,7 +7,15 @@ from sqlalchemy.exc import OperationalError
 from starlette.exceptions import HTTPException
 
 from app.api.errors import database_unavailable, http_problem
-from app.api.routes import catalog, equipment_units, facilities, health, incidents, inventory_items, work_orders
+from app.api.routes import (
+    catalog,
+    equipment_units,
+    facilities,
+    health,
+    incidents,
+    inventory_items,
+    work_orders,
+)
 from app.config import Settings
 from app.database import Database, create_database
 
@@ -16,9 +24,7 @@ class ApplicationStartupError(RuntimeError):
     """Raised when the application cannot safely begin serving requests."""
 
 
-def _validate_startup_configuration(
-    settings: Settings, database: Database | None
-) -> None:
+def _validate_startup_configuration(settings: Settings, database: Database | None) -> None:
     """Require the configuration needed by the currently available API."""
     if database is None and settings.database_url is None:
         raise ApplicationStartupError(

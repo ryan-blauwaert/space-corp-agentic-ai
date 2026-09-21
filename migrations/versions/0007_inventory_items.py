@@ -8,9 +8,8 @@ Create Date: 2026-09-20
 
 from typing import Sequence, Union
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 revision: str = "0007_inventory_items"
 down_revision: Union[str, Sequence[str], None] = "0006_components_compatibility"
@@ -54,9 +53,7 @@ def upgrade() -> None:
             ["facilities.workspace_id", "facilities.id"],
             ondelete="RESTRICT",
         ),
-        sa.ForeignKeyConstraint(
-            ["component_id"], ["components.id"], ondelete="RESTRICT"
-        ),
+        sa.ForeignKeyConstraint(["component_id"], ["components.id"], ondelete="RESTRICT"),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint(
             "workspace_id",

@@ -5,10 +5,10 @@ from uuid import uuid4
 import pytest
 
 from app.facilities.domain import (
-    Facility,
     FACILITY_CODE_MAX_LENGTH,
     FACILITY_LOCATION_MAX_LENGTH,
     FACILITY_NAME_MAX_LENGTH,
+    Facility,
     FacilityOperationalStatus,
     FacilityType,
     NewFacility,

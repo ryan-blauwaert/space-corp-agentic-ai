@@ -4,13 +4,13 @@ from http import HTTPStatus
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
-from sqlalchemy.exc import OperationalError
 from starlette.exceptions import HTTPException
 
 from app.schemas.problems import ProblemDetail
 
 
-async def http_problem(request: Request, exception: HTTPException) -> JSONResponse:
+async def http_problem(request: Request, exception: Exception) -> JSONResponse:
+    assert isinstance(exception, HTTPException)
     problem = ProblemDetail(
         title=HTTPStatus(exception.status_code).phrase,
         status=exception.status_code,
@@ -25,9 +25,7 @@ async def http_problem(request: Request, exception: HTTPException) -> JSONRespon
     )
 
 
-async def database_unavailable(
-    request: Request, exception: OperationalError
-) -> JSONResponse:
+async def database_unavailable(request: Request, exception: Exception) -> JSONResponse:
     """Keep database connection details out of public error responses."""
     return await http_problem(
         request,

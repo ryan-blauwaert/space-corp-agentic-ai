@@ -10,11 +10,10 @@ from app.equipment.models import (  # noqa: F401
     EquipmentUnitRecord,
     InventoryItemRecord,
 )
-from app.operations.models import IncidentRecord, WorkOrderRecord  # noqa: F401
 from app.facilities.models import FacilityRecord  # noqa: F401
+from app.operations.models import IncidentRecord, WorkOrderRecord  # noqa: F401
 from app.persistence.base import Base
 from app.workspaces.models import WorkspaceRecord  # noqa: F401
-
 
 config = context.config
 target_metadata = Base.metadata
@@ -27,8 +26,7 @@ def migration_database_url() -> str:
 
     if settings.migration_database_url is None:
         raise DatabaseConfigurationError(
-            "SPACE_CORP_MIGRATION_DATABASE_URL must be configured before running "
-            "migrations."
+            "SPACE_CORP_MIGRATION_DATABASE_URL must be configured before running migrations."
         )
 
     return str(settings.migration_database_url)

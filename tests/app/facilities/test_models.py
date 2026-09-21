@@ -100,9 +100,7 @@ def test_facility_database_rejects_invalid_constraint_values(
     workspace = WorkspaceRecord()
     integration_session.add(workspace)
     integration_session.flush()
-    integration_session.add(
-        make_facility_record(workspace.id, **{field_name: invalid_value})
-    )
+    integration_session.add(make_facility_record(workspace.id, **{field_name: invalid_value}))
 
     with pytest.raises(IntegrityError):
         integration_session.flush()

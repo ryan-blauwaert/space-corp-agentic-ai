@@ -12,12 +12,12 @@ from app.equipment.domain import (
     NewEquipmentUnit,
     NewInventoryItem,
 )
+from app.equipment.models import EquipmentModelRecord
 from app.equipment.repository import (
     SqlAlchemyCatalogRepository,
     SqlAlchemyEquipmentUnitRepository,
     SqlAlchemyInventoryItemRepository,
 )
-from app.equipment.models import EquipmentModelRecord
 from app.facilities.domain import FacilityOperationalStatus, FacilityType, NewFacility
 from app.facilities.repository import SqlAlchemyFacilityRepository
 from app.workspaces.models import WorkspaceRecord
@@ -158,9 +158,7 @@ def test_equipment_unit_repository_creates_and_retrieves_unit(
     model = create_model(integration_session)
     repository = SqlAlchemyEquipmentUnitRepository(integration_session)
 
-    created = repository.create(
-        workspace_id, make_new_equipment_unit(facility.id, model.id)
-    )
+    created = repository.create(workspace_id, make_new_equipment_unit(facility.id, model.id))
 
     assert repository.get_by_id(workspace_id, created.id) == created
     assert created.created_at is not None
@@ -194,9 +192,7 @@ def test_equipment_unit_repository_excludes_another_workspaces_unit(
     integration_session.add(WorkspaceRecord(id=other_workspace_id))
     integration_session.flush()
     facility_repository = SqlAlchemyFacilityRepository(integration_session)
-    other_facility = facility_repository.create(
-        other_workspace_id, make_new_facility("ORB-OPS-01")
-    )
+    other_facility = facility_repository.create(other_workspace_id, make_new_facility("ORB-OPS-01"))
     model = create_model(integration_session)
     repository = SqlAlchemyEquipmentUnitRepository(integration_session)
     other_unit = repository.create(
@@ -222,9 +218,7 @@ def test_equipment_unit_repository_updates_only_operational_status(
     )
     model = create_model(integration_session)
     repository = SqlAlchemyEquipmentUnitRepository(integration_session)
-    created = repository.create(
-        workspace_id, make_new_equipment_unit(facility.id, model.id)
-    )
+    created = repository.create(workspace_id, make_new_equipment_unit(facility.id, model.id))
 
     updated = repository.update_operational_status(
         workspace_id, created.id, EquipmentOperationalStatus.OFFLINE
@@ -304,12 +298,15 @@ def test_inventory_repository_excludes_another_workspace(
 
     assert repository.get_by_id(workspace_id, other_item.id) is None
     assert repository.list_by_facility(workspace_id, facility.id) == []
-    assert repository.update_stock_levels(
-        workspace_id,
-        other_item.id,
-        quantity_on_hand=4,
-        reorder_point=5,
-    ) is None
+    assert (
+        repository.update_stock_levels(
+            workspace_id,
+            other_item.id,
+            quantity_on_hand=4,
+            reorder_point=5,
+        )
+        is None
+    )
 
 
 @pytest.mark.integration

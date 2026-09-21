@@ -13,25 +13,42 @@ from app.config import Settings
 from app.database import Database
 from app.equipment.models import EquipmentUnitRecord, InventoryItemRecord
 from app.main import create_app
-from scripts.bootstrap_development import bootstrap, ROOT
+from scripts.bootstrap_development import ROOT, bootstrap
 from scripts.dataset_manifest import Manifest, load_manifest, operational_id, shared_id
 from scripts.seed_dataset import seed_workspace
 from scripts.seed_support import SeedConfigurationError, require_migration_owner
-from tests.scripts.test_provision_postgresql_application_role import provisioning_cluster, provision
+from tests.scripts.test_provision_postgresql_application_role import provision
+from tests.scripts.test_provision_postgresql_application_role import (
+    provisioning_cluster as provisioning_cluster,
+)
 
 
-@pytest.mark.parametrize("overrides", [
-    {"environment": "production"}, {"migration_database_url": None},
-    {"migration_database_url": "postgresql+psycopg://space_corp@localhost/space_corp_test"},
-    {"migration_database_url": "postgresql+psycopg://space_corp@remote.example/space_corp"},
-    {"migration_database_url": "postgresql+psycopg://space_corp@localhost/space_corp?host=remote.example"},
-    {"default_workspace_id": None},
-])
-def test_bootstrap_guards_precede_migrations(monkeypatch: pytest.MonkeyPatch, overrides: dict[str, object]) -> None:
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"environment": "production"},
+        {"migration_database_url": None},
+        {"migration_database_url": "postgresql+psycopg://space_corp@localhost/space_corp_test"},
+        {"migration_database_url": "postgresql+psycopg://space_corp@remote.example/space_corp"},
+        {
+            "migration_database_url": "postgresql+psycopg://space_corp@localhost/space_corp?host=remote.example"
+        },
+        {"default_workspace_id": None},
+    ],
+)
+def test_bootstrap_guards_precede_migrations(
+    monkeypatch: pytest.MonkeyPatch, overrides: dict[str, object]
+) -> None:
     def forbidden(*args: object, **kwargs: object) -> None:
         pytest.fail("Unsafe settings must not reach migrations")
+
     monkeypatch.setattr(command, "upgrade", forbidden)
-    settings = Settings(_env_file=None, environment="development", migration_database_url="postgresql+psycopg://space_corp@localhost/space_corp", default_workspace_id=uuid4()).model_copy(update=overrides)
+    settings = Settings(
+        _env_file=None,
+        environment="development",
+        migration_database_url="postgresql+psycopg://space_corp@localhost/space_corp",
+        default_workspace_id=uuid4(),
+    ).model_copy(update=overrides)
     with pytest.raises(SeedConfigurationError):
         bootstrap(settings)
 
@@ -41,7 +58,13 @@ def test_bootstrap_from_scratch_pins_and_existing_facility_api(
     provisioning_cluster: tuple[Path, dict[str, str]],
 ) -> None:
     _, environment = provisioning_cluster
-    url = URL.create("postgresql+psycopg", username="space_corp", host="localhost", database="space_corp", query={"host": environment["PGHOST"], "port": environment["PGPORT"]})
+    url = URL.create(
+        "postgresql+psycopg",
+        username="space_corp",
+        host="localhost",
+        database="space_corp",
+        query={"host": environment["PGHOST"], "port": environment["PGPORT"]},
+    )
     config = Config(str(ROOT / "alembic.ini"))
     config.attributes["migration_database_url"] = url.render_as_string(hide_password=False)
     command.downgrade(config, "base")
@@ -53,7 +76,12 @@ def test_bootstrap_from_scratch_pins_and_existing_facility_api(
     finally:
         empty_database.dispose()
     workspace = uuid4()
-    settings = Settings(_env_file=None, environment="development", migration_database_url=url.render_as_string(hide_password=False), default_workspace_id=workspace)
+    settings = Settings(
+        _env_file=None,
+        environment="development",
+        migration_database_url=url.render_as_string(hide_password=False),
+        default_workspace_id=workspace,
+    )
     result = bootstrap(settings, validate=True)
     assert result["scenarios_verified"] == 12
     assert bootstrap(settings, validate=True) == result
@@ -77,8 +105,20 @@ def test_bootstrap_from_scratch_pins_and_existing_facility_api(
             assert session.scalar(text("SELECT current_user")) == "space_corp_app"
             assert len(session.scalars(select(EquipmentUnitRecord)).all()) == 60
             for record in (
-                EquipmentUnitRecord(workspace_id=workspace, facility_id=facility, equipment_model_id=shared_id(newer.catalog.version, "models", "M01"), asset_tag="FOREIGN", operational_status="operational"),
-                InventoryItemRecord(workspace_id=workspace, facility_id=facility, component_id=shared_id(newer.catalog.version, "components", "C01"), quantity_on_hand=1, reorder_point=1),
+                EquipmentUnitRecord(
+                    workspace_id=workspace,
+                    facility_id=facility,
+                    equipment_model_id=shared_id(newer.catalog.version, "models", "M01"),
+                    asset_tag="FOREIGN",
+                    operational_status="operational",
+                ),
+                InventoryItemRecord(
+                    workspace_id=workspace,
+                    facility_id=facility,
+                    component_id=shared_id(newer.catalog.version, "components", "C01"),
+                    quantity_on_hand=1,
+                    reorder_point=1,
+                ),
             ):
                 with pytest.raises(IntegrityError, match="workspace catalog release"):
                     with session.begin_nested():
@@ -86,17 +126,30 @@ def test_bootstrap_from_scratch_pins_and_existing_facility_api(
                         session.flush()
             with pytest.raises(ProgrammingError):
                 with session.begin_nested():
-                    session.execute(text("UPDATE workspaces SET baseline_id=NULL, catalog_release_id=NULL"))
+                    session.execute(
+                        text("UPDATE workspaces SET baseline_id=NULL, catalog_release_id=NULL")
+                    )
             with pytest.raises(ProgrammingError):
                 with session.begin_nested():
                     session.execute(text("UPDATE baselines SET version='rewritten'"))
             # Successful same-release inserts ensure the definer trigger works with
             # a role that cannot SELECT the workspace table itself.
-            session.add(EquipmentUnitRecord(workspace_id=workspace, facility_id=facility,
-                equipment_model_id=shared_id(manifest.catalog.version, "models", "M01"),
-                asset_tag="ADDED", operational_status="operational"))
+            session.add(
+                EquipmentUnitRecord(
+                    workspace_id=workspace,
+                    facility_id=facility,
+                    equipment_model_id=shared_id(manifest.catalog.version, "models", "M01"),
+                    asset_tag="ADDED",
+                    operational_status="operational",
+                )
+            )
             session.flush()
-        api_settings = Settings(_env_file=None, environment="development", database_url=application_url, default_workspace_id=workspace)
+        api_settings = Settings(
+            _env_file=None,
+            environment="development",
+            database_url=application_url,
+            default_workspace_id=workspace,
+        )
         with TestClient(create_app(settings=api_settings)) as client:
             response = client.get("/facilities")
             assert response.status_code == 200

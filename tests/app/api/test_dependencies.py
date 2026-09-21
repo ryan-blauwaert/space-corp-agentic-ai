@@ -37,9 +37,7 @@ def test_get_database_rejects_missing_configuration() -> None:
 
 def test_get_default_workspace_id_returns_server_configuration() -> None:
     workspace_id = uuid4()
-    request = make_request(
-        settings=Settings(_env_file=None, default_workspace_id=workspace_id)
-    )
+    request = make_request(settings=Settings(_env_file=None, default_workspace_id=workspace_id))
 
     assert get_default_workspace_id(request) == workspace_id
 

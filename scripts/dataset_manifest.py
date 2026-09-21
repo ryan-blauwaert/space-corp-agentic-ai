@@ -6,11 +6,16 @@ from pathlib import Path
 from typing import Annotated, Literal, TypeVar
 from uuid import NAMESPACE_URL, UUID, uuid5
 
-from pydantic import BaseModel, ConfigDict, Field, AwareDatetime, model_validator
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
 
 from app.equipment.domain import EquipmentOperationalStatus
 from app.facilities.domain import FacilityOperationalStatus, FacilityType
-from app.operations.domain import IncidentSeverity, IncidentStatus, WorkOrderPriority, WorkOrderStatus
+from app.operations.domain import (
+    IncidentSeverity,
+    IncidentStatus,
+    WorkOrderPriority,
+    WorkOrderStatus,
+)
 
 Key = Annotated[str, Field(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")]
 
@@ -134,19 +139,27 @@ class Manifest(Frozen):
         for incident in self.incidents:
             if incident.facility not in facilities:
                 raise ValueError("Unknown incident Facility")
-            if incident.unit is not None and (incident.unit not in units or units[incident.unit].facility != incident.facility):
+            if incident.unit is not None and (
+                incident.unit not in units or units[incident.unit].facility != incident.facility
+            ):
                 raise ValueError("Incident unit must share Facility")
             if (incident.status == IncidentStatus.RESOLVED) != (incident.resolved_at is not None):
                 raise ValueError("Invalid incident terminal time")
             if incident.resolved_at is not None and incident.resolved_at < incident.occurred_at:
                 raise ValueError("Incident resolution precedes occurrence")
-            if incident.fault_code is not None and (not incident.fault_code.strip() or incident.fault_code != incident.fault_code.strip().upper() or len(incident.fault_code) > 64):
+            if incident.fault_code is not None and (
+                not incident.fault_code.strip()
+                or incident.fault_code != incident.fault_code.strip().upper()
+                or len(incident.fault_code) > 64
+            ):
                 raise ValueError("Fault code must be normalized")
         for work in self.work_orders:
             if work.facility not in facilities:
                 raise ValueError("Unknown work-order Facility")
             for key, records in ((work.incident, incidents), (work.target, units)):
-                if key is not None and (key not in records or records[key].facility != work.facility):
+                if key is not None and (
+                    key not in records or records[key].facility != work.facility
+                ):
                     raise ValueError("Work-order reference must share Facility")
             if (work.status == WorkOrderStatus.COMPLETED) != (work.completed_at is not None):
                 raise ValueError("Invalid work-order terminal time")
@@ -160,11 +173,15 @@ def load_manifest(path: Path = DEFAULT_MANIFEST) -> Manifest:
 
 
 def digest(value: object) -> str:
-    return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode()).hexdigest()
+    return hashlib.sha256(
+        json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode()
+    ).hexdigest()
 
 
 def shared_id(version: str, entity: str, key: str) -> UUID:
-    return uuid5(NAMESPACE_URL, json.dumps(["space-corp", version, entity, key], separators=(",", ":")))
+    return uuid5(
+        NAMESPACE_URL, json.dumps(["space-corp", version, entity, key], separators=(",", ":"))
+    )
 
 
 def operational_id(workspace: UUID, baseline: str, entity: str, key: str) -> UUID:

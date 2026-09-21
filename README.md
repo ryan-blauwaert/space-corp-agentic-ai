@@ -282,4 +282,5 @@ python -m pip wheel --no-deps --wheel-dir dist .
 
 `build/`, `dist/`, bytecode, pytest caches, coverage outputs, and macOS metadata are generated artifacts and are ignored. Keep local logs, database exports, and other private scratch files under the ignored `.local/` directory. `.env.example` may be tracked with placeholders only. Ignore rules do not remove already-tracked files or replace credential review.
 
-Dependency locking, lint/type-check tooling, and CI remain separate follow-up work. No application dependencies were added for the Facility API fixes.
+Dependency locking, formatting, linting, static typing, and required PR checks are
+documented in [the CI guide](docs/ci.md), including equivalent local commands.

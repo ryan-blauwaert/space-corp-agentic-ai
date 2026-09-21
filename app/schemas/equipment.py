@@ -5,8 +5,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.schemas.pagination import PaginationMetadata, PaginationQuery
 from app.equipment.domain import EquipmentOperationalStatus
+from app.schemas.pagination import PaginationMetadata, PaginationQuery
 
 
 class EquipmentUnitResponse(BaseModel):

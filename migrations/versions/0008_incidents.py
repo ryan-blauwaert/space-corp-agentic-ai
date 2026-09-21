@@ -8,9 +8,8 @@ Create Date: 2026-09-20
 
 from typing import Sequence, Union
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 revision: str = "0008_incidents"
 down_revision: Union[str, Sequence[str], None] = "0007_inventory_items"
@@ -38,12 +37,16 @@ def upgrade() -> None:
         sa.Column("fault_code", sa.String(length=64), nullable=True),
         sa.Column("resolved_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column(
-            "created_at", sa.DateTime(timezone=True),
-            server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False,
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("CURRENT_TIMESTAMP"),
+            nullable=False,
         ),
         sa.Column(
-            "updated_at", sa.DateTime(timezone=True),
-            server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False,
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("CURRENT_TIMESTAMP"),
+            nullable=False,
         ),
         sa.CheckConstraint(
             "char_length(btrim(reference_code, U&'\\0009\\000A\\000B\\000C\\000D\\0020\\0085\\00A0\\1680\\2000\\2001\\2002\\2003\\2004\\2005\\2006\\2007\\2008\\2009\\200A\\2028\\2029\\202F\\205F\\3000')) > 0",
@@ -81,22 +84,27 @@ def upgrade() -> None:
             ondelete="RESTRICT",
         ),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("workspace_id", "reference_code", name="uq_incidents_workspace_reference_code"),
+        sa.UniqueConstraint(
+            "workspace_id", "reference_code", name="uq_incidents_workspace_reference_code"
+        ),
         sa.UniqueConstraint("workspace_id", "id", name="uq_incidents_workspace_id"),
         sa.UniqueConstraint(
             "workspace_id", "facility_id", "id", name="uq_incidents_workspace_facility_id"
         ),
     )
     op.create_index(
-        "ix_incidents_workspace_facility_status", "incidents",
+        "ix_incidents_workspace_facility_status",
+        "incidents",
         ["workspace_id", "facility_id", "status"],
     )
     op.create_index(
-        "ix_incidents_workspace_equipment_unit_status", "incidents",
+        "ix_incidents_workspace_equipment_unit_status",
+        "incidents",
         ["workspace_id", "equipment_unit_id", "status"],
     )
     op.create_index(
-        "ix_incidents_workspace_unit_fault_occurred", "incidents",
+        "ix_incidents_workspace_unit_fault_occurred",
+        "incidents",
         ["workspace_id", "equipment_unit_id", "fault_code", "occurred_at"],
     )
     op.execute("ALTER TABLE incidents ENABLE ROW LEVEL SECURITY")

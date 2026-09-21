@@ -1,7 +1,7 @@
 """Add frozen baseline identities and enforce catalog pins for seeded workspaces."""
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision = "0010_baseline_pins"
@@ -16,17 +16,42 @@ def upgrade() -> None:
         "baselines",
         sa.Column("id", sa.Uuid(), primary_key=True),
         sa.Column("version", sa.String(64), nullable=False, unique=True),
-        sa.Column("catalog_release_id", sa.Uuid(), sa.ForeignKey("catalog_releases.id", ondelete="RESTRICT"), nullable=False),
+        sa.Column(
+            "catalog_release_id",
+            sa.Uuid(),
+            sa.ForeignKey("catalog_releases.id", ondelete="RESTRICT"),
+            nullable=False,
+        ),
         sa.Column("content_sha256", sa.String(64), nullable=False),
         sa.Column("manifest", postgresql.JSONB(), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
         sa.UniqueConstraint("id", "catalog_release_id", name="uq_baselines_id_release"),
     )
     op.add_column("workspaces", sa.Column("baseline_id", sa.Uuid()))
     op.add_column("workspaces", sa.Column("catalog_release_id", sa.Uuid()))
-    op.create_foreign_key("fk_workspaces_catalog_release", "workspaces", "catalog_releases", ["catalog_release_id"], ["id"], ondelete="RESTRICT")
-    op.create_foreign_key("fk_workspaces_baseline_release", "workspaces", "baselines", ["baseline_id", "catalog_release_id"], ["id", "catalog_release_id"], ondelete="RESTRICT")
-    op.create_check_constraint("ck_workspaces_baseline_pin_pair", "workspaces", "(baseline_id IS NULL) = (catalog_release_id IS NULL)")
+    op.create_foreign_key(
+        "fk_workspaces_catalog_release",
+        "workspaces",
+        "catalog_releases",
+        ["catalog_release_id"],
+        ["id"],
+        ondelete="RESTRICT",
+    )
+    op.create_foreign_key(
+        "fk_workspaces_baseline_release",
+        "workspaces",
+        "baselines",
+        ["baseline_id", "catalog_release_id"],
+        ["id", "catalog_release_id"],
+        ondelete="RESTRICT",
+    )
+    op.create_check_constraint(
+        "ck_workspaces_baseline_pin_pair",
+        "workspaces",
+        "(baseline_id IS NULL) = (catalog_release_id IS NULL)",
+    )
     # A definer trigger can read the private workspace pin without granting the
     # application role access to workspace administration. Names are qualified.
     op.execute("""

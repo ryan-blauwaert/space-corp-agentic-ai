@@ -658,7 +658,7 @@ are not required here.
 
 ### Status
 
-- [ ] Complete
+- [~] In progress — local checks implemented; GitHub acceptance pending.
 
 ---
 
