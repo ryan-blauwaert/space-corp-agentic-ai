@@ -17,6 +17,7 @@ We are in Phase 1 — Structured Operational Backend. Follow the current waypoin
 - Check current official guidance and established practice for architectural decisions; document meaningful deviations when project constraints justify them.
 - Use the repository's Python version and dependencies as defined in `pyproject.toml`.
 - Keep interfaces typed.
+- Use explicit inheritance when a concrete class intentionally implements a project-defined protocol, so the relationship is visible and checked by the type checker.
 - Do not introduce dependencies without explaining why.
 - Work only on the active roadmap waypoint unless the task explicitly expands scope. Do not implement future-waypoint architecture speculatively.
 - When all completion criteria for a waypoint have been verified, update its status to complete in the same change; do not mark it complete when required checks are skipped or unverified.

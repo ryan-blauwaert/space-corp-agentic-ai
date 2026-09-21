@@ -7,7 +7,7 @@ from app.llm.errors import ModelCallError, ModelErrorKind
 from app.llm.provider import ModelProvider
 
 
-class FakeProvider:
+class FakeProvider(ModelProvider):
     def __init__(self, failure: ModelErrorKind | None = None) -> None:
         self.failure = failure
         self.requests: list[ModelRequest] = []

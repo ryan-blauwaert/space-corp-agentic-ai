@@ -12,9 +12,10 @@ from pydantic import ValidationError
 
 from app.llm.contracts import ModelFinishReason, ModelRequest, ModelResponse, TokenUsage
 from app.llm.errors import ModelCallError, ModelErrorKind
+from app.llm.provider import ModelProvider
 
 
-class OpenAIProvider:
+class OpenAIProvider(ModelProvider):
     """The caller owns the injected client and must close it after use."""
 
     def __init__(self, client: OpenAI, model_id: str) -> None:

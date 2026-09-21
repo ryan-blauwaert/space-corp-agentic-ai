@@ -30,7 +30,7 @@ class FacilityRepository(Protocol):
         """Return the number of Facilities owned by the supplied workspace."""
 
 
-class SqlAlchemyFacilityRepository:
+class SqlAlchemyFacilityRepository(FacilityRepository):
     """SQLAlchemy implementation of workspace-scoped Facility persistence."""
 
     def __init__(self, session: Session) -> None:
