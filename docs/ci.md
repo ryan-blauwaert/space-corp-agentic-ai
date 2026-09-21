@@ -45,7 +45,9 @@ and never rewrites submitted code. Lint fixes should be reviewed before committi
 
 `pyproject.toml` defines acceptable dependencies and the development tools.
 `requirements-dev.lock` pins their resolved transitive and build dependencies,
-with hashes. Regenerate under the documented Python version after input changes:
+with hashes. The development inputs explicitly include `greenlet`, SQLAlchemy’s
+conditional Linux dependency, so a lock generated on macOS also covers Linux.
+Regenerate under the documented Python version after input changes:
 
 ```bash
 .venv/bin/python -m piptools compile pyproject.toml --extra dev --all-build-deps \
