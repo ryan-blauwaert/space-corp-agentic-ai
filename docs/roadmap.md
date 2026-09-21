@@ -927,7 +927,7 @@ Use deterministic checks for query results and prohibited operations. Phase 8 ex
 ### Capability
 
 Structured database results are converted into a useful natural-language answer.
-The model selects evidence-backed facts; application code renders the final sentences.
+The existing model plans the query; application code renders the returned evidence.
 Free-form model prose is not an approved delivery path.
 
 ### User Value
@@ -953,14 +953,15 @@ These checks provide measurable grounding guarantees; they do not claim that a g
 
 ### Possible Framework Use
 
-No framework is required. Reuse the existing model integration for bounded fact
-selection and implement small typed domain renderers. Evidence values, sentence wording,
+No framework is required. Reuse the existing query planner and typed domain renderers;
+no additional model call is needed for answer ordering or prose. Evidence values, sentence wording,
 identifier checks, scope disclosures, and cautious responses remain application-owned.
 
 ### Status
 
 - [~] In progress — typed evidence facts, deterministic sentence rendering, selection
-  validation, cautious responses, and development expectations exist.
+  validation, cautious responses, development expectations, and traced query-to-answer
+  orchestration exist.
 - The renderer rebuilds facts from trusted query evidence and accepts only snapshot-bound
   fact IDs for presentation order. All returned records and mandatory disclosures remain.
   Free-form draft delivery is removed; model-provided values or prose cannot be rendered.
@@ -969,11 +970,14 @@ identifier checks, scope disclosures, and cautious responses remain application-
   answers are withheld. No extra queries, framework, or database changes were added.
 - `answers-1` and the historical 2.2 fixtures/protocols remain unchanged. Rendering tests
   replace obsolete free-prose validation tests and cover additional filter combinations.
-- Model selection calls, request-trace integration, and live answer assessment remain
-  pending. Deterministic rendering does not prove query correctness or eliminate possible
-  renderer bugs. See [answer guidance and remaining work](answer-synthesis.md).
-- Verification: 1,133 tests passed, including 103 answer-layer tests and required
-  PostgreSQL integration, with no failures or skips. Lint, formatting, and types passed;
+- `AnswerService` connects query execution directly to rendering, preserves exact-plan
+  scope confirmation, and links planning/execution/results/answers through content-free
+  tracing. The fact-ordering model call is dropped; only query planning calls the model.
+- Answer evaluation and live acceptance remain pending. Deterministic rendering does not
+  prove query correctness or eliminate renderer bugs. See [answer guidance](answer-synthesis.md).
+- Verification: 1,175 tests passed, including 42 new workflow tests and required
+  PostgreSQL integration in two workspaces, with no failures or skips. Full-flow tests
+  use a fake provider and confirm no extra model calls. Lint, formatting, and types passed;
   one existing Starlette/AnyIO warning remains. No live model calls were made.
 
 ---
@@ -2254,8 +2258,9 @@ assessment history. The verified workflow requires caller review for unanchored 
 simulated in evaluation. Q1–Q5 remain examples alongside additional supported filters.
 Waypoint 2.2 was committed as `eb2fc19`. Waypoint 2.3 now renders sentences from evidence
 facts, with snapshot-bound selection
-validation and cautious responses. Model-prose delivery is removed. Model selection
-calls, trace integration, and answer assessment remain pending.
+validation and cautious responses. The internal service connects queries to rendered
+answers with tracing and scope confirmation. Model-prose delivery and the planned
+fact-ordering call are removed. Answer assessment remains pending.
 Real-user coverage and confirmation usability remain future validation work.
 
 ---

@@ -17,7 +17,9 @@ selection validation, and cautious responses are implemented. Model prose delive
 been removed: the renderer accepts only snapshot-bound fact IDs and rebuilds values
 from trusted evidence. Selection changes order without hiding records or mandatory
 scope/coverage disclosures. Use domain evidence shapes, not Q1–Q5 templates. Model
-selection calls, tracing integration, and answer assessment remain pending. Follow
+ordering calls are dropped. `AnswerService` connects planning/execution to rendering
+and traces the full flow, preserving exact-plan scope confirmation with no additional
+model call. Answer evaluation remains pending. Follow
 `docs/answer-synthesis.md`; do not implement later-waypoint features until requested.
 
 ## Development Instructions

@@ -147,3 +147,20 @@ class AnswerResponse(Frozen):
     context: QueryContext
     synthesis_operation_id: UUID
     outcome: AnswerOutcome = Field(repr=False)
+
+
+class AnswerTurn(Frozen):
+    """Internal result retaining the original question and pending/executed query.
+
+    Not a persisted session or an HTTP approval token. Only a trusted caller may
+    retain this value and submit it for exact-plan scope confirmation.
+    """
+
+    request: AnswerRequest = Field(repr=False)
+    response: AnswerResponse = Field(repr=False)
+
+    @model_validator(mode="after")
+    def consistent_context(self) -> "AnswerTurn":
+        if self.request.query.context != self.response.context:
+            raise ValueError("Answer and query contexts must match")
+        return self

@@ -103,8 +103,9 @@ requests. See the [query guide](docs/structured-queries.md) for capabilities and
 
 Waypoint 2.2 is complete. [Answer synthesis](docs/answer-synthesis.md) now has typed
 evidence-fact rendering, selection validation, development expectations, and cautious
-responses. Generated prose delivery has been removed. Model selection calls, query
-integration, and answer evaluation remain pending.
+responses. `AnswerService` connects the query flow to rendered answers with correlated
+tracing and scope confirmation. Only query planning calls the model; fact-ordering calls
+are dropped. Answer evaluation remains pending.
 
 The [dataset guide](docs/dataset.md) covers bootstrap and refresh,
 [API documentation](docs/api.md) covers existing endpoints, and the

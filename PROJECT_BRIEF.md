@@ -459,8 +459,9 @@ preserve canonical evidence, and verify new filter combinations without relaxing
 workspace or execution controls. Waypoint 2.3 answer synthesis is active, with typed contracts, development
 expectations, evidence-fact rendering, and cautious responses implemented. Free-form
 model prose delivery has been removed; selection can prioritize returned facts but
-cannot change values or omit records. Model selection calls, query integration, and
-answer evaluation remain pending. Frontend work remains
+cannot change values or omit records. The internal answer service now connects query
+execution to rendering with correlated tracing and explicit scope confirmation. The
+fact-ordering model call has been dropped; answer evaluation remains pending. Frontend work remains
 in the following waypoint. Agents, RAG, vector databases, MCP, authentication, durable
 workflows, advanced evaluation infrastructure, and deployment gates remain later
 work; the initial query evaluation harness is required within Waypoint 2.2.

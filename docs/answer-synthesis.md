@@ -1,15 +1,18 @@
 # Structured answer synthesis
 
 Waypoint 2.3 is in progress. Typed evidence facts, deterministic sentence rendering,
-selection validation, and cautious responses are implemented. The free-form model-prose
-delivery path has been removed. There is no model selection call, answer endpoint,
-query-to-answer orchestration, or live answer assessment yet. The query service is unchanged.
+selection validation, cautious responses, and internal query-to-answer orchestration with
+correlated tracing are implemented. Free-form model-prose delivery is removed. The model
+call for fact ordering has been dropped; only existing query planning uses the model.
+There is no answer HTTP endpoint or live answer assessment yet. The query service is unchanged.
 
 ## Implemented direction: render answers from evidence
 
 Application code builds typed facts from returned records and renders the sentences.
-A future model call may select fact identifiers for presentation order; it cannot
-supply values, prose, names, causes, sentence fragments, or formatting instructions.
+The answer service preserves returned record order and makes no fact-ordering model call.
+The renderer still supports an optional local fact-ID ordering preference, but the service
+does not expose or use it. No model supplies values, prose, names, causes, sentence
+fragments, or formatting instructions to the renderer.
 All returned records remain in the answer, including when a selection lists only a
 subset. This prevents selection from suppressing mandatory fields or disguising a
 subset as the complete result. Counts, scope notices, and coverage are application-owned.
@@ -41,7 +44,10 @@ general template engine, additional queries, or new infrastructure were introduc
   order. Selection does not omit records, approve scope, or set completeness.
 - `RenderedAnswer` and `AnswerResponse`: application output containing deterministic
   text/references, caller context, synthesis operation ID, and answered/cautious state.
-  The renderer returns an outcome; later orchestration supplies the response/trace wrapper.
+  The renderer returns an outcome; `AnswerService` supplies the response/trace wrapper.
+- `AnswerTurn`: the original question/query request and correlated answer response,
+  retained by a trusted caller for exact-plan scope review. It validates matching contexts
+  and is not a persistent session or an HTTP approval token.
 
 The existing frozen, extra-field-forbidding Pydantic models and
 [recommended discriminated unions](https://docs.pydantic.dev/latest/concepts/unions/#discriminated-unions)
@@ -122,22 +128,64 @@ prohibited claims never enter model prompts. The eight grounding challenges rema
 development material for the later evaluator; tests now cover non-delivery of arbitrary
 prose and selected-fact validation, but the assessment runner does not yet score answers.
 
+## Internal workflow and tracing
+
+`app/answers/service.py` composes the existing `QueryService` with deterministic rendering.
+It adds neither a provider dependency nor another call to the model. Query planning keeps
+its existing configured retry policy; rendering and confirmation add no attempts.
+
+```python
+from app.answers.service import AnswerService
+from app.queries.contracts import QueryPageRequest
+
+answers = AnswerService(query_service)  # Existing configured QueryService.
+turn = answers.ask(context, question, QueryPageRequest(limit=50))
+# Inspect turn.response.outcome; retain turn if scope confirmation is pending.
+```
+
+When the outcome is `awaiting_confirmation`, present `turn.request.query.plan` for
+review and do not execute it automatically. In a separate trusted-caller action, after
+approval of that exact plan:
+
+```python
+turn = answers.confirm_scope(context, turn, approved_plan)
+```
+
+The service preserves the original question, captured page, and context, delegates
+exact-plan checking to `QueryService.confirm_scope`, and renders the returned evidence.
+It rejects nonpending turns and changed request/operation/workspace contexts. It does
+not persist turns, authenticate callers, or strengthen the query layer's replay policy.
+The retained pending value is not a one-use token. Do not expose it directly as an
+untrusted HTTP approval payload when building 2.4.
+
+`answer_operation` covers the complete ask/confirmation operation; `answer_render`
+covers rendering. Both record a synthesis operation ID (returned on `AnswerResponse`),
+request/query operation IDs, renderer version, duration, and outcome. Successful query
+results add planning/resolution IDs, domain, scope status, total/row counts, and answer
+status. Answered outcomes add coverage and reference count; cautious outcomes add a
+reason. Confirmation records the previous synthesis operation ID to link both turns.
+The existing query/model events link planning and execution using the same request and
+query operation IDs. The returned `AnswerTurn` carries the evidence and answer themselves.
+
+Logs contain no question, plan values, record contents/identifiers, workspace ID, answer
+text, or raw exception details. No new persistence or telemetry system is introduced.
+Changes to rendering semantics should update `RENDERER_VERSION` for future attribution.
+
+`QueryError` failures propagate unchanged with safe correlated failure events. Planning
+failure, timeout, unavailable database, or an invalid approval is not a no-results answer.
+Unexpected errors also produce content-free failure metadata and propagate for handling
+at the future API boundary. Cautious renderer results remain typed outcomes (including
+oversized output withheld as `invalid_answer`). Trace metadata is not a semantic grader.
+
 ## Remaining committable work
 
-1. **`feat: select answer facts with bounded model output`** — Add a versioned selection
-   prompt through the existing Luna/medium integration. Accept only current fact IDs;
-   reject invented values, extra prose, and invalid output. Reuse safe failures and
-   bounded calls without a repair loop. Validate the selection before rendering. No
-   new model selection behavior is implemented by the renderer change.
-2. **`feat: connect queries to rendered answers`** — Compose query execution, selection,
-   validation, and rendering through an internal interface. Preserve scope confirmation
-   and correlate planning, execution, evidence, selection, and final answer without raw
-   content logging. Test full-flow success and cautious/failure outcomes. HTTP/UI is 2.4.
-3. **`test: verify evidence-rendered answers`** — Extend the existing evaluator to score
-   selection, required facts, correct record associations, and delivered sentences.
-   Separate fixed-evidence rendering tests from end-to-end planning accuracy. Freeze the
-   full implementation and fresh assessment data, obtain approval before live calls,
-   preserve all results, and publish limitations before completing the waypoint.
+**`test: verify evidence-rendered answers`** — Extend the existing evaluator to score
+required facts, correct record associations, cautious behavior, and delivered sentences.
+Separate fixed-evidence deterministic rendering checks from end-to-end planning accuracy.
+Freeze the full implementation and fresh assessment data, obtain approval before live
+planning calls, retain all results, and publish limitations before completing 2.3.
+No ordering/synthesis model call is planned. The original six-run acceptance plan below
+applies to end-to-end planning; fixed-evidence renderer evaluation needs no model calls.
 
 ## Acceptance thresholds set before live answer testing
 
@@ -158,8 +206,8 @@ model are implicitly authorized. These targets are unchanged by deterministic re
 
 Safe fallbacks on answerable cases count against answer success. A supported case
 failing every repetition fails acceptance regardless of aggregate score. Record invalid
-selections withheld separately from delivered unsupported claims. Compare selected facts
-and rendered values against the authored oracle and review every delivered assessment
+answers withheld separately from delivered unsupported claims. Compare rendered facts
+and values against the authored oracle and review every delivered assessment
 answer for sentence meaning, scope, and associations. An unreviewed semantic claim is
 not a pass. Report atomic supported/unsupported claims, required-fact coverage, case
 outcomes, and withheld answers. Another model's agreement is not sole proof of truth.
@@ -179,8 +227,8 @@ work-order relationships, recurrence conditions and time boundaries, partial/emp
 pages, state/context consistency, snapshot drift, selection tampering, literal escaping,
 and oversized output. Removed free-prose and explicit-claim tests were replaced with
 renderer and selection coverage; test totals therefore need not increase monotonically.
-Model selection, trace integration, live answer quality, and the full semantic evaluator
-remain unimplemented and unverified. Waypoint 2.3 remains in progress.
+Live end-to-end answer quality and the full semantic evaluator remain unimplemented
+and unverified. Model ordering is no longer planned. Waypoint 2.3 remains in progress.
 
 Historical verification: the contracts revision passed 1,074 tests; the explicit-claim
 validation revision passed 1,143 tests, both including required PostgreSQL integration
@@ -191,5 +239,15 @@ Renderer verification: **1,133 tests passed**, including 103 answer-contract, va
 and rendering tests plus required PostgreSQL integration, with no failures or skips
 (55.39 seconds). Ruff, formatting, mypy, and whitespace checks passed. One existing
 Starlette/AnyIO deprecation warning remains. The lower total reflects replacement of
-obsolete prose/claim validation tests, not skipped tests. Live answer assessment and
-selection/trace integration remain pending.
+obsolete prose/claim validation tests, not skipped tests. At that revision, live assessment and trace integration were still pending.
+
+Workflow verification: **1,175 tests passed**, including 42 new workflow tests and required
+PostgreSQL integration, with no failures or skips (59.92 seconds). All 18 supported
+fixtures traverse a fake planning provider, real restricted query execution, and rendering
+in two workspaces; six declined fixtures do not execute. Tests also cover context/plan
+approval rejection, pagination, oversized output, planning/query/render failures, and
+metadata-only tracing. Each successful full flow uses one provider attempt with the test
+retry limit of one; confirmation/rendering add none. This verifies orchestration, not
+live interpretation or answer semantic quality. Ruff, formatting, mypy, and whitespace
+checks passed; one existing Starlette/AnyIO warning remains. No live calls or commits
+were made for this change.
