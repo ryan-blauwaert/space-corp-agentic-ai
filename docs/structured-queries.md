@@ -3,14 +3,15 @@
 Waypoint 2.2 unit 1 defines contracts and evaluation fixtures; unit 2 adds the
 read-only workspace session boundary. Unit 3 implements facility-equipment and
 compatible-stock execution; unit 4 adds work-order, incident, and inventory
-execution. All five bounded domains can now execute typed plans directly. Model
-planning and answer synthesis remain subsequent work. Q1–Q5 are canonical
+execution. Unit 5 adds model-guided planning, exact scoped entity resolution, and
+query tracing. Repeatable live evaluation remains unit 6 work; answer synthesis
+belongs to Waypoint 2.3. Q1–Q5 are canonical
 acceptance examples, not an exhaustive list of legitimate user questions.
 
 ## Decision: bounded domain queries
 
-The model proposes a domain query and typed filters. Application code will validate
-it, authorize the referenced entities, and construct parameterized SQL using approved
+The model proposes a domain query and typed filters. Application code validates
+it, checks referenced entity visibility, and constructs parameterized SQL using approved
 relationships. Novel combinations of supported filters do not require a new question
 identifier, prompt example, or executor branch for every natural-language question.
 
@@ -315,11 +316,14 @@ For a direct smoke check, reuse the setup/context from the unit 3 example and ca
 
 ```python
 from app.queries.operations import OperationsQueryExecutor
+
 response = OperationsQueryExecutor(database).execute(
     context,
-    {"operation": "inventory",
-     "facility": {"facility_type": "lunar_installation"},
-     "quantity": {"operator": "lt", "value": 2}},
+    {
+        "operation": "inventory",
+        "facility": {"facility_type": "lunar_installation"},
+        "quantity": {"operator": "lt", "value": 2},
+    },
 )
 print(response.model_dump_json(indent=2))
 ```
@@ -357,6 +361,15 @@ allow symbolic fixture IDs; resolved execution contracts remain typed and closed
 
 ## Verification and remaining units
 
+After unit 5, the full PostgreSQL-enabled suite passed: 916 tests, no failures or
+skips, in 49.52 seconds. The 82 new tests cover strict proposal parsing, all 18
+supported fixtures through the complete workflow in two workspaces, six controlled
+decline responses, exact scoped references, ambiguous and unavailable references,
+model failures, and correlated content-free traces. Ruff lint/format, mypy, and
+whitespace checks passed. One existing Starlette/AnyIO deprecation warning remains.
+No live model calls were made; these checks verify application behavior, not actual
+model interpretation or decline accuracy. That coverage remains unit 6 work.
+
 After unit 4, the full suite passed: 834 tests, no failures or skips, including
 70 additional tests for operational queries and the shared execution boundary.
 Ruff and mypy passed. One existing Starlette/AnyIO deprecation warning remains.
@@ -371,10 +384,133 @@ semantics, nested malformed/unsafe fields, domain enums, numeric/time boundaries
 immutable evidence, normal/zero/unknown stock, broader work and incident results,
 fixture integrity, and workspace-dependent fixture identities.
 
-Remaining work stays in Waypoint 2.2: model planning and authorized entity resolution;
-query tracing; and repeatable model/query evaluations. All 18 supported fixture
-cases (12 canonical and six additional combinations) now run in automated tests
-against two isolated database copies. The six declined cases still require planner
-verification; validating their fixture shapes does not prove model behavior.
-No natural-language planning accuracy, answer quality, or live model/query journey
-is claimed. Waypoint 2.2 remains incomplete.
+Remaining work stays in Waypoint 2.2: repeatable model/query evaluations, including
+actual model intent and decline verification. Unit 5 tests the full application
+workflow with controlled model responses for all 18 supported cases in two isolated
+workspaces and all six declined cases. This does not measure natural-language
+planning accuracy or answer quality. Waypoint 2.2 remains incomplete.
+
+## Model-guided query workflow (unit 5)
+
+`QueryService.ask(context, question, page)` returns a `QueryOutcome`: a validated
+plan plus `QueryResponse` evidence, or a `DeclinedPlan` with no response. It does not
+write an answer or expose an HTTP endpoint. `QueryContext` must come from trusted
+caller authorization, never from model output. `page` remains caller-owned.
+
+The implementation consists of three small modules:
+
+- `app/queries/planning.py` owns the `bounded-query` version `1` prompt and strict
+  JSON parser. Its schema is derived from the existing query contracts, widening
+  UUID fields to literal reference strings only for the model proposal.
+- `app/queries/resolution.py` resolves exact references through fixed parameterized
+  statements inside a read-only workspace transaction. No entity directory or
+  operational records are sent to the model.
+- `app/queries/service.py` invokes the existing `ModelService`, validates and resolves
+  the proposal, dispatches one existing executor, and records safe stage metadata.
+
+The model receives only the question, schema, supported semantics, and current UTC
+instant. Work orders require `as_of`: the prompt asks for the explicit question time,
+otherwise the captured current instant. No active-status filters are silently added.
+All supplied filters intersect; omitted filters retain the existing executor semantics.
+The service makes one logical planning call (existing bounded retries may repeat an
+attempt), with no repair loop, secondary planner, tools, or additional dependencies.
+
+Before reference lookup, the parser rejects malformed JSON, duplicate keys,
+non-JSON numeric constants, extra fields, invalid filters and invented references.
+Each reference must occur literally in the question, ignoring case. References are
+limited to 256 characters; names and codes use exact case-insensitive matching:
+
+| Entity | Accepted references | Scope |
+| --- | --- | --- |
+| Facility | UUID, code, name | Authorized workspace |
+| Equipment unit | UUID, asset tag | Workspace and pinned model release |
+| Incident | UUID, reference code | Authorized workspace |
+| Equipment model | UUID, code, name | Pinned catalog release |
+| Component | UUID, code, name | Pinned catalog release |
+
+Each lookup retrieves at most two matches. Multiple matches return `ambiguous_input`;
+no match produces the safe `not_found` error. Neither reaches evidence execution.
+A name matching one record and another record's code is also ambiguous. There is
+no fuzzy matching, alias dictionary, conversation memory, or automatic disambiguation.
+The final plan contains UUIDs and is revalidated by the selected executor. Resolution
+and execution use separate transactions; the executor rechecks visibility and pins,
+so resolution does not grant lasting access to a record.
+
+This deliberately retains the existing text-only provider interface. OpenAI recommends
+[native Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs)
+for schema adherence; prompt-provided JSON plus strict application validation is our
+incremental choice for this unit. Invalid output fails closed instead of being repaired.
+This may increase format failures and does not guarantee correct interpretation.
+Unit 6 must measure intent, records, and refusal behavior; native output constraints
+can be considered if those results justify a provider-interface change.
+
+### Bounds, failures, and traces
+
+Questions are limited to 4,000 characters, returned plan text to 32,768 characters,
+and model output to 4,096 tokens. The model timeout is 30 seconds per attempt;
+`ModelService` permits at most three attempts with bounded retry delay. Existing
+five-second SQL statement timeouts, bounded statement counts, 100-row page limit,
+and equipment evidence limits remain in force. These are bounded individual stages,
+not a hard wall-clock deadline including pool waits and all network activity.
+
+Expected model errors, provider refusals, and incomplete output become `model_failure`.
+Malformed plans become `invalid_plan`; database errors retain the existing safe query
+categories. Programming errors propagate after a content-free `internal_error` trace.
+No raw provider or SQL error is added to application telemetry.
+
+The `app.queries.service` logger emits JSON `query_planning`, `query_resolution`, and,
+only for executable plans, `query_execution` events. They share the request ID and
+root `query_operation_id`; planning and resolution each receive a distinct operation
+ID. Existing model attempt/operation events use the planning operation ID. Events
+include duration, outcome, safe error category, approved operation, prompt/model
+configuration on planning, and counts on successful execution. They exclude question
+text, reference values, plans, workspace IDs, SQL, evidence, and exception bodies.
+Declines do not open an evidence transaction. A model-supplied decline also needs no
+reference lookup. See [model telemetry](llm-integration.md) for logging scope limits.
+
+Read-only enforcement and scope limits remain deterministic even if the model
+misinterprets a question. They cannot establish that a valid in-scope plan faithfully
+answers that question, or that every prohibited request is correctly classified.
+Those are explicitly separate evaluation responsibilities.
+
+### Direct local usage
+
+After migrating, provisioning, and seeding as documented, use the restricted
+application database URL and a trusted seeded workspace in `.env`. This example
+makes a paid model call; automatic tests use controlled providers instead.
+
+```python
+from uuid import uuid4
+
+from app.config import Settings
+from app.database import Database
+from app.llm.configuration import configured_provider
+from app.llm.service import ModelService
+from app.queries.contracts import QueryContext
+from app.queries.service import QueryService
+
+settings = Settings()
+assert settings.database_url is not None
+assert settings.default_workspace_id is not None
+assert settings.llm_model_id is not None
+
+database = Database(str(settings.database_url))
+try:
+    with configured_provider(settings) as provider:
+        outcome = QueryService(database, ModelService(provider), settings.llm_model_id).ask(
+            QueryContext(
+                request_id=uuid4(),
+                operation_id=uuid4(),
+                workspace_id=settings.default_workspace_id,
+            ),
+            "Which recorded stocks are below their reorder points at LUN-OPS-01?",
+        )
+        print(outcome.model_dump_json(indent=2))
+finally:
+    database.dispose()
+```
+
+Inspect `plan` before consuming `response`; a decline has `response=null`. The
+output includes evidence and is for intentional local inspection, not routine logs.
+Enable the existing application logging configuration if stage traces are desired.
+A repeatable evaluation CLI is the next unit; this example is not that harness.

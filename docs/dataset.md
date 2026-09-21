@@ -155,8 +155,11 @@ references all 12 baseline scenarios and adds six supported variations plus six
 declined cases. The loader validates contracts and evidence references. Unit 3 integration tests
 execute the facility-equipment and compatible-stock cases against the database;
 unit 4 adds work-order, incident, and inventory execution. All 18 supported cases
-now have database evidence checks in two workspaces. Model planning, verification
-of model declines, and the repeatable evaluation command remain subsequent work.
+now have database evidence checks in two workspaces. Unit 5 also runs these cases
+through the planning workflow with controlled model responses, and verifies that
+all six decline responses prevent evidence execution. These are application checks,
+not live model accuracy measurements. The repeatable evaluation command and actual
+model intent/decline verification remain unit 6 work.
 The baseline manifest and its original expectations are unchanged.
 
 The reference SQL in `scripts/dataset_queries.py` is a fixed acceptance oracle,

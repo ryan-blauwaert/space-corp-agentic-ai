@@ -95,8 +95,10 @@ provides bounded domain query contracts and evaluation fixtures. Q1–Q5 are can
 examples; approved filters can be combined to express additional legitimate questions.
 Unit 2 adds read-only workspace sessions with statement timeouts. Unit 3 implements
 facility-equipment and compatible-stock execution; unit 4 completes work-order,
-incident, and inventory execution. Model planning, query tracing, and the repeatable
-evaluation command remain subsequent work.
+incident, and inventory execution. Unit 5 adds model-guided planning, exact scoped
+entity resolution, and query tracing through the internal `QueryService`. See the
+[query workflow and usage](docs/structured-queries.md#model-guided-query-workflow-unit-5).
+The repeatable evaluation command remains unit 6 work.
 See the [structured-query guide](docs/structured-queries.md) for capabilities and limits.
 
 The [dataset guide](docs/dataset.md) covers bootstrap and refresh,

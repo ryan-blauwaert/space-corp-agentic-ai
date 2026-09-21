@@ -787,9 +787,9 @@ current language and its limits.
 ### Recommended Flow
 
 1. Receive the user question and trusted request context.
-2. Resolve referenced entities within the authorized workspace and pinned catalog.
-3. Produce a bounded domain plan with approved filters.
-4. Validate the plan and construct a parameterized query deterministically.
+2. Produce a bounded domain proposal with approved filters and literal entity references.
+3. Validate its shape, then resolve exact references within the authorized workspace and pinned catalog.
+4. Validate the resolved plan and construct a parameterized query deterministically.
 5. Execute within a workspace-scoped read-only transaction and resource limits.
 6. Return typed evidence with provenance.
 
@@ -862,8 +862,16 @@ Use deterministic checks for query results and prohibited operations. Phase 8 ex
   Ruff and mypy passed; the existing Starlette/AnyIO warning remains. No new
   migrations, provisioning changes, dependencies, or HTTP endpoints were needed.
 - See [structured-query notes](structured-queries.md) for semantics and boundaries.
-  Model planning, authorized entity-name resolution, query tracing, and the repeatable
-  evaluation command remain unimplemented. Waypoint 2.2 is incomplete.
+  Unit 5 adds versioned model planning, strict JSON validation, exact entity-name/code/ID
+  resolution within authorized scope, five-domain dispatch, and correlated content-free
+  planning/resolution/execution traces. Controlled model responses test the workflow;
+  live model accuracy and the repeatable evaluation command remain unit 6 work.
+  Waypoint 2.2 is incomplete.
+- Unit 5 verification: 916 tests passed, no failures or skips, including 82 new
+  planning, resolution, and orchestration tests. The full PostgreSQL-enabled suite
+  completed in 49.52 seconds. Ruff lint/format, mypy, and whitespace checks passed;
+  one existing Starlette/AnyIO deprecation warning remains. No live model calls
+  were made; model interpretation accuracy remains unverified pending unit 6.
 
 ---
 
@@ -2174,9 +2182,9 @@ Current waypoint:
 
 Unit 1 defines bounded domain query contracts and evaluation fixtures; unit 2 adds
 read-only workspace sessions; unit 3 adds facility-equipment and compatible-stock
-execution; unit 4 completes the remaining three domains. Subsequent units implement
-model planning,
-tracing, and repeatable evaluations. Q1–Q5 remain acceptance examples alongside
+execution; unit 4 completes the remaining three domains. Unit 5 implements model
+planning, exact scoped entity resolution, and query tracing. Unit 6 will add the
+repeatable evaluation command and measure model intent/decline accuracy. Q1–Q5 remain acceptance examples alongside
 additional supported combinations. Do not begin Waypoint 2.3 answer synthesis or
 later-phase capabilities until their prerequisites are complete.
 

@@ -70,9 +70,13 @@ grants do not by themselves make an AI query read-only. Unit 2 implements `Datab
 transaction, transaction-local workspace and statement timeout, and tests for
 connection reuse and failure cleanup. Unit 3 adds bounded evidence and validated facility-equipment/compatible-stock
 execution; unit 4 implements work-order, incident, and inventory queries using
-the same boundary. Every documented filter now has an executor; model planning,
-query tracing, and total orchestration deadlines remain subsequent requirements. Contract validation
-alone proves none of those execution guarantees. Broader queries must retain distinct-record counts,
+the same boundary. Unit 5 adds model planning, exact scoped reference resolution,
+and query tracing. Reference lookups run in a separate read-only pinned transaction;
+the executor revalidates visibility and the pin in its own evidence transaction.
+There is no database transaction held during a model call. Limits are per model
+attempt and per SQL statement, with bounded retries and query shapes; there is no
+single wall-clock cancellation deadline across the workflow. Contract validation
+alone proves none of the database execution guarantees. Broader queries must retain distinct-record counts,
 unknown-versus-zero stock, and the independent work-order relationships below.
 
 Migration 0011 adds `public.current_workspace_catalog_release()`: a no-argument,

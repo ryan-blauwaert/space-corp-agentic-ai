@@ -4,7 +4,7 @@ This repository is a portfolio project for building a production-style agentic A
 
 ## Current Phase
 
-We are in Phase 2 — Minimum Viable Product, at Waypoint 2.2 — Structured Query Capability. Follow `docs/roadmap.md` for authoritative completion status. Unit 1 defines bounded query contracts and evaluation fixtures; unit 2 adds read-only workspace sessions. Unit 3 implements facility-equipment and compatible-stock execution. Unit 4 implements work-order, incident, and inventory execution. Model planning, query tracing, and repeatable model/query evaluation remain subsequent work. Do not implement later-waypoint AI features speculatively.
+We are in Phase 2 — Minimum Viable Product, at Waypoint 2.2 — Structured Query Capability. Follow `docs/roadmap.md` for authoritative completion status. Unit 1 defines bounded query contracts and evaluation fixtures; unit 2 adds read-only workspace sessions. Unit 3 implements facility-equipment and compatible-stock execution. Unit 4 implements work-order, incident, and inventory execution. Unit 5 connects the model service to strict plan validation, exact scoped entity resolution, all five executors, and content-free query tracing. Repeatable model/query evaluation remains unit 6 work; controlled model responses in tests do not establish live planning accuracy. Do not implement later-waypoint AI features speculatively.
 
 ## Development Instructions
 

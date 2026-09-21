@@ -449,8 +449,9 @@ The current phase is Phase 2 — Minimum Viable Product. The structured backend,
 versioned baseline, core read-only APIs, PR checks, and controlled LLM integration
 are implemented. Waypoint 2.2 is in progress: bounded query contracts and versioned
 evaluation fixtures, read-only workspace sessions, and executors for all five bounded
-query domains exist. Model planning, query tracing, and the repeatable query
-evaluation command remain to be implemented. See
+query domains exist. Unit 5 adds model-guided planning, scoped entity resolution,
+and query tracing. The repeatable query evaluation command remains unit 6 work;
+live planning accuracy has not yet been measured. See
 [the roadmap](docs/roadmap.md) for authoritative completion status.
 
 Current priorities are to implement the documented query capabilities incrementally,
