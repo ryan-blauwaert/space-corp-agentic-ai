@@ -1,7 +1,8 @@
 # Structured Operational Queries
 
-Waypoint 2.2 unit 1 defines contracts and evaluation fixtures. It does not yet
-perform model calls, database queries, or answer synthesis. Q1–Q5 are canonical
+Waypoint 2.2 unit 1 defines contracts and evaluation fixtures; unit 2 adds the
+read-only workspace session boundary. Domain query executors, model planning,
+and answer synthesis are not yet implemented. Q1–Q5 are canonical
 acceptance examples, not an exhaustive list of legitimate user questions.
 
 ## Decision: bounded domain queries
@@ -126,8 +127,9 @@ facility health, repair suitability, or absence of unrecorded stock.
 `QueryPageRequest` separately controls pagination (default 50, maximum 100).
 Neither is model-generated. The plan cannot choose workspace, catalog release,
 SQL, table/column names, arbitrary joins, pagination, or execution limits.
-Authorization, read-only transactions, timeouts, and result/resource bounds remain
-application/database responsibilities for subsequent units. Broad filters must
+Unit 2 implements read-only transactions and statement timeouts. Authorization,
+entity/catalog validation, total-operation and result bounds remain responsibilities
+for subsequent executor/orchestration units. Broad filters must
 never bypass those limits; excess nested evidence must fail explicitly rather than
 be silently truncated.
 
@@ -142,6 +144,42 @@ Errors remain `invalid_plan`, `not_found`, `model_failure`, `database_unavailabl
 and `timeout`, with trusted correlation and fixed safe messages. Do not log raw
 validation errors, prompts, plans, or results wholesale. Hiding fields in repr is
 only a precaution. Schema-valid plans can still be semantically wrong.
+
+## Read-only workspace sessions (unit 2)
+
+`Database.query_session(workspace_id, statement_timeout_ms=5000)` uses the existing
+application engine and restricted application role. A fresh session begins an explicit
+`REPEATABLE READ, READ ONLY` transaction before establishing transaction-local workspace
+and statement-timeout settings. A UUID is required; the caller-owned timeout must be
+an integer from 1 to 60000 milliseconds. Invalid inputs fail before connecting.
+
+Repeatable read keeps evidence rows and their counts in one snapshot even if another
+transaction changes records. PostgreSQL rejects writes to operational tables,
+including explicit ORM flushes and writes flushed on context exit. The session and
+transaction contexts roll back failures and close the session; transaction-local
+settings reset on success and failure. Automatic transaction restart is disabled,
+so accidental session use after commit, rollback, or context exit cannot silently
+start an unscoped writable transaction. Ordinary `workspace_session` retains its
+existing write behavior for operational code.
+
+This follows [PostgreSQL transaction modes](https://www.postgresql.org/docs/current/sql-set-transaction.html),
+[statement timeout behavior](https://www.postgresql.org/docs/current/runtime-config-client.html),
+and [SQLAlchemy's explicit transaction lifecycle](https://docs.sqlalchemy.org/en/20/orm/session_basics.html#disabling-autobegin-to-prevent-implicit-transactions).
+The timeout bounds each statement, including lock waits, after setup; it is not a
+connection timeout, total request deadline, row limit, or nested-result budget.
+
+This helper is for trusted application-generated queries, not arbitrary SQL. Its
+protection assumes the configured restricted role and trusted code that does not
+replace transaction settings or deliberately start another transaction. It does
+not authorize a supplied workspace, check workspace existence/catalog pins, or
+sandbox all PostgreSQL functions and temporary-table effects. The model never
+receives the session. Executor validation remains necessary; no new role, grant,
+configuration environment variable, or dependency is introduced.
+
+Tests use the restricted application login and actual PostgreSQL to verify scoped
+reads, cross-workspace invisibility, rejected SQL/ORM writes, snapshot consistency,
+statement cancellation, setup/caller failures, early transaction closure, and
+restoration of pooled settings. Ordinary operational writes still succeed afterward.
 
 ## Versioned evaluation cases
 
@@ -172,16 +210,17 @@ allow symbolic fixture IDs; resolved execution contracts remain typed and closed
 
 ## Verification and remaining units
 
-The full suite passed: 700 tests, no failures or skips, including 174 query
-contract/error/fixture tests. Ruff and mypy passed. One existing Starlette/AnyIO
-deprecation warning remains.
+After unit 2, the full suite passed: 724 tests, no failures or skips, including
+24 additional session-boundary tests. The 174 query contract/error/fixture tests
+remain passing. Ruff and mypy passed. One existing Starlette/AnyIO deprecation
+warning remains.
 
 Unit tests cover canonical plan mappings, novel filter combinations, omitted-filter
 semantics, nested malformed/unsafe fields, domain enums, numeric/time boundaries,
 immutable evidence, normal/zero/unknown stock, broader work and incident results,
 fixture integrity, and workspace-dependent fixture identities.
 
-Remaining work stays in Waypoint 2.2: read-only query sessions; domain executors that
+Remaining work stays in Waypoint 2.2: domain executors that
 honor every advertised filter; model planning and authorized entity resolution;
 tracing; and repeatable evaluation of both canonical and additional questions.
 Executor tests must verify filter intersections and join/count correctness, not just

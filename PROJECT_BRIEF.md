@@ -448,8 +448,9 @@ The initial codebase may begin as a small modular application. Capabilities shou
 The current phase is Phase 2 — Minimum Viable Product. The structured backend,
 versioned baseline, core read-only APIs, PR checks, and controlled LLM integration
 are implemented. Waypoint 2.2 is in progress: bounded query contracts and versioned
-evaluation fixtures exist; query planning, read-only execution, tracing, and the
-repeatable query evaluation command remain to be implemented. See
+evaluation fixtures and read-only workspace sessions exist; domain query execution,
+model planning, tracing, and the repeatable query evaluation command remain to be
+implemented. See
 [the roadmap](docs/roadmap.md) for authoritative completion status.
 
 Current priorities are to implement the documented query capabilities incrementally,

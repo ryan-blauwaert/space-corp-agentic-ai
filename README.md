@@ -93,7 +93,8 @@ The operational backend, versioned dataset, read-only API, PR checks, and contro
 [LLM integration](docs/llm-integration.md) are implemented. Waypoint 2.2 unit 1
 provides bounded domain query contracts and evaluation fixtures. Q1–Q5 are canonical
 examples; approved filters can be combined to express additional legitimate questions.
-Model planning and database execution for these contracts remain subsequent work.
+Unit 2 adds read-only workspace sessions with statement timeouts. Model planning
+and domain query execution for these contracts remain subsequent work.
 See the [structured-query guide](docs/structured-queries.md) for capabilities and limits.
 
 The [dataset guide](docs/dataset.md) covers bootstrap and refresh,

@@ -834,7 +834,7 @@ Use deterministic checks for query results and prohibited operations. Phase 8 ex
 
 ### Status
 
-- [~] In progress — unit 1 reworked around bounded domain query contracts.
+- [~] In progress — bounded domain query contracts and read-only session boundary implemented.
 - Replaced Q1–Q5 operation tags with facility equipment, compatible stock, work
   order, incident, and inventory queries whose approved filters can be combined.
   Workspace/correlation/page controls remain caller-owned; no SQL is model-supplied.
@@ -843,9 +843,14 @@ Use deterministic checks for query results and prohibited operations. Phase 8 ex
 - Unit 1 rework verified: 700 tests passed with no failures or skips, including
   174 query contract/error/fixture tests. Ruff and mypy passed; one existing
   Starlette/AnyIO deprecation warning remains.
+- Unit 2 adds `Database.query_session`: read-only repeatable-read transactions,
+  trusted workspace UUID validation, bounded transaction-local statement timeouts,
+  explicit lifecycle handling, and restricted-role integration tests.
+- Unit 2 verification: 724 tests passed, no failures or skips (24 additional tests);
+  Ruff and mypy passed. The existing Starlette/AnyIO warning remains.
 - See [structured-query notes](structured-queries.md) for semantics and boundaries.
-  Read-only sessions, executors for all advertised filters, planning, tracing, and
-  repeatable evaluation remain unimplemented. Unit 1 validation does not complete 2.2.
+  Domain executors for all advertised filters, planning, tracing, and repeatable
+  evaluation remain unimplemented. Units 1–2 do not complete Waypoint 2.2.
 
 ---
 
@@ -2154,8 +2159,9 @@ Current waypoint:
 
 **Waypoint 2.2 — Structured Query Capability (in progress)**
 
-Unit 1 defines bounded domain query contracts and evaluation fixtures. Subsequent
-units implement read-only execution, all documented filters, model planning,
+Unit 1 defines bounded domain query contracts and evaluation fixtures; unit 2 adds
+read-only workspace sessions. Subsequent units implement domain queries and all
+documented filters, model planning,
 tracing, and repeatable evaluations. Q1–Q5 remain acceptance examples alongside
 additional supported combinations. Do not begin Waypoint 2.3 answer synthesis or
 later-phase capabilities until their prerequisites are complete.

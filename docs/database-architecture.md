@@ -66,10 +66,11 @@ must validate entity references and compile approved relationships into paramete
 queries within the workspace's pinned catalog.
 
 The existing application role has limited write grants for operational use. Those
-grants do not by themselves make an AI query read-only. Read-only transaction
-handling, execution timeouts, resource bounds, and connection-reuse tests remain
-explicit Waypoint 2.2 executor requirements. Contract validation alone proves none
-of those execution guarantees. Broader queries must retain distinct-record counts,
+grants do not by themselves make an AI query read-only. Unit 2 implements `Database.query_session()` with a read-only repeatable-read
+transaction, transaction-local workspace and statement timeout, and tests for
+connection reuse and failure cleanup. Total-operation/result bounds and domain
+executor validation remain subsequent Waypoint 2.2 requirements. Contract validation
+alone proves none of those execution guarantees. Broader queries must retain distinct-record counts,
 unknown-versus-zero stock, and the independent work-order relationships below.
 
 ## Database Roles

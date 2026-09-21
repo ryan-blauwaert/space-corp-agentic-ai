@@ -70,6 +70,34 @@ class Database:
             )
             yield session
 
+    @contextmanager
+    def query_session(
+        self, workspace_id: UUID, *, statement_timeout_ms: int = 5000
+    ) -> Iterator[Session]:
+        """Read-only query transaction for trusted code using the restricted app role.
+
+        This is not authorization or a sandbox for arbitrary/model-generated SQL.
+        Each statement is bounded; the executor must also bound total work/results.
+        """
+        if not isinstance(workspace_id, UUID):
+            raise ValueError("A trusted workspace UUID is required.")
+        if type(statement_timeout_ms) is not int or not 1 <= statement_timeout_ms <= 60000:
+            raise ValueError("Statement timeout must be an integer from 1 to 60000 ms.")
+
+        # A fresh session prevents earlier reads or pending writes from preceding
+        # transaction setup. Disabling autobegin prevents accidental unguarded reuse.
+        with self.session_factory(autobegin=False) as session:
+            with session.begin():
+                session.execute(text("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY"))
+                session.execute(
+                    text(
+                        "SELECT set_config('app.workspace_id', :workspace_id, true), "
+                        "set_config('statement_timeout', :timeout, true)"
+                    ),
+                    {"workspace_id": str(workspace_id), "timeout": f"{statement_timeout_ms}ms"},
+                )
+                yield session
+
     def dispose(self) -> None:
         self.engine.dispose()
 
