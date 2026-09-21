@@ -3,9 +3,18 @@
 from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import Field, StrictBool, StrictInt, StrictStr, TypeAdapter, model_validator
+from pydantic import Field, TypeAdapter, model_validator
 
-from app.queries.contracts import DeclinedPlan, Frozen, QueryContext
+from app.queries.contracts import (
+    CompatibleStockEvidence,
+    DeclinedPlan,
+    FacilityEquipmentEvidence,
+    Frozen,
+    IncidentEvidence,
+    InventoryEvidence,
+    QueryContext,
+    WorkOrderEvidence,
+)
 from app.queries.service import QueryOutcome
 
 AnswerText = Annotated[str, Field(min_length=1, max_length=12000, pattern=r"\S")]
@@ -24,31 +33,65 @@ class RecordReference(Frozen):
     record_id: UUID
 
 
-class EvidenceClaim(Frozen):
-    """An exact scalar assertion about a path in the returned QueryResult JSON.
+FactId = Annotated[str, Field(pattern=r"^[0-9a-f]{64}:[0-9]+$")]
 
-    String segments select fields; nonnegative integer segments select list entries.
-    No expressions, attribute access, aggregation, or external lookups are supported.
+
+class FacilityFact(Frozen):
+    kind: Literal["facility_equipment"] = "facility_equipment"
+    fact_id: FactId
+    evidence: FacilityEquipmentEvidence = Field(repr=False)
+
+
+class StockFact(Frozen):
+    kind: Literal["compatible_stock"] = "compatible_stock"
+    fact_id: FactId
+    evidence: CompatibleStockEvidence = Field(repr=False)
+
+
+class WorkOrderFact(Frozen):
+    kind: Literal["work_orders"] = "work_orders"
+    fact_id: FactId
+    evidence: WorkOrderEvidence = Field(repr=False)
+
+
+class IncidentFact(Frozen):
+    kind: Literal["incidents"] = "incidents"
+    fact_id: FactId
+    evidence: IncidentEvidence = Field(repr=False)
+
+
+class InventoryFact(Frozen):
+    kind: Literal["inventory"] = "inventory"
+    fact_id: FactId
+    evidence: InventoryEvidence = Field(repr=False)
+
+
+EvidenceFact = Annotated[
+    FacilityFact | StockFact | WorkOrderFact | IncidentFact | InventoryFact,
+    Field(discriminator="kind"),
+]
+
+
+class FactSelection(Frozen):
+    """Untrusted presentation preference only; never facts, text, or authority.
+
+    Listed facts appear first. All other returned facts remain in the answer.
     """
 
-    path: tuple[StrictStr | Annotated[int, Field(strict=True, ge=0)], ...] = Field(
-        min_length=1, max_length=12
-    )
-    value: StrictStr | StrictInt | StrictBool | None
+    fact_ids: tuple[FactId, ...] = Field(max_length=100)
+
+    @model_validator(mode="after")
+    def unique_facts(self) -> "FactSelection":
+        if len(set(self.fact_ids)) != len(self.fact_ids):
+            raise ValueError("Selected facts must be unique")
+        return self
 
 
-class AnswerDraft(Frozen):
-    """Untrusted model output. Valid schema and real IDs do not prove true prose."""
+class RenderedAnswer(Frozen):
+    """Application output only. The renderer never accepts this as input."""
 
     text: AnswerText = Field(repr=False)
     references: tuple[RecordReference, ...] = Field(max_length=500)
-    claims: tuple[EvidenceClaim, ...] = Field(default=(), max_length=500, repr=False)
-
-    @model_validator(mode="after")
-    def unique_references(self) -> "AnswerDraft":
-        if len(set(self.references)) != len(self.references):
-            raise ValueError("Answer references must be unique")
-        return self
 
 
 class AnswerRequest(Frozen):
@@ -79,7 +122,7 @@ class Answered(Frozen):
     """Application output after validation; never accept directly from the model."""
 
     status: Literal["answered"] = "answered"
-    answer: AnswerDraft = Field(repr=False)
+    answer: RenderedAnswer = Field(repr=False)
     coverage: Literal["complete", "partial"]
 
 

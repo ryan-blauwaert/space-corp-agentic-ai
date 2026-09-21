@@ -959,24 +959,22 @@ identifier checks, scope disclosures, and cautious responses remain application-
 
 ### Status
 
-- [~] In progress — answer contracts, development expectations, deterministic evidence
-  checks, and cautious responses exist.
-- Answer requests preserve query context, resolved scope, and typed evidence; output
-  distinguishes answered and cautious states, including pending scope confirmation.
-- `answers-1` pins all 24 existing development questions and adds eight unsupported-claim
-  challenges. Historical 2.2 datasets and protocols remain unchanged.
-- [Answer-synthesis guidance](answer-synthesis.md) defines empty/partial/unknown evidence
-  semantics and acceptance thresholds before live tests.
-- Deterministic validation checks returned record membership, recognizable UUIDs in prose,
-  and exact explicit scalar claims. Cautious responses distinguish pending scope, missing
-  evidence, no matches, and empty pages. Partial answers receive a coverage notice.
-  Matching claims do not prove prose truth. The approved remaining plan replaces the
-  current free-prose draft path with evidence-fact selection and deterministic rendering;
-  this replacement, model selection, semantic evaluation, tracing, and live assessment
-  remain pending. See the [committable work plan](answer-synthesis.md#remaining-committable-work).
-- Verification: 1,143 tests passed with no failures or skips, including 69 new validation
-  tests and required PostgreSQL integration. Lint, formatting, and types passed; one existing
-  Starlette/AnyIO warning remains. No live answer calls were made.
+- [~] In progress — typed evidence facts, deterministic sentence rendering, selection
+  validation, cautious responses, and development expectations exist.
+- The renderer rebuilds facts from trusted query evidence and accepts only snapshot-bound
+  fact IDs for presentation order. All returned records and mandatory disclosures remain.
+  Free-form draft delivery is removed; model-provided values or prose cannot be rendered.
+- Rules cover all five domains, null/zero stock, distinct work-order relationships,
+  conditional recurrence, and empty/partial results. Unsupported selections and oversized
+  answers are withheld. No extra queries, framework, or database changes were added.
+- `answers-1` and the historical 2.2 fixtures/protocols remain unchanged. Rendering tests
+  replace obsolete free-prose validation tests and cover additional filter combinations.
+- Model selection calls, request-trace integration, and live answer assessment remain
+  pending. Deterministic rendering does not prove query correctness or eliminate possible
+  renderer bugs. See [answer guidance and remaining work](answer-synthesis.md).
+- Verification: 1,133 tests passed, including 103 answer-layer tests and required
+  PostgreSQL integration, with no failures or skips. Lint, formatting, and types passed;
+  one existing Starlette/AnyIO warning remains. No live model calls were made.
 
 ---
 
@@ -2254,11 +2252,10 @@ explicit scope confirmation, and repeatable evaluations are implemented. The fro
 Luna assessment passed 144/144 cases across six runs; earlier failures remain in the
 assessment history. The verified workflow requires caller review for unanchored plans,
 simulated in evaluation. Q1–Q5 remain examples alongside additional supported filters.
-Waypoint 2.2 was committed as `eb2fc19`. Waypoint 2.3 now has typed answer contracts,
-development expectations, deterministic evidence checks, and cautious responses;
-The approved next change replaces free-prose delivery with model-selected evidence
-facts and application-rendered sentences. Rendering, selection, and evaluation remain
-pending.
+Waypoint 2.2 was committed as `eb2fc19`. Waypoint 2.3 now renders sentences from evidence
+facts, with snapshot-bound selection
+validation and cautious responses. Model-prose delivery is removed. Model selection
+calls, trace integration, and answer assessment remain pending.
 Real-user coverage and confirmation usability remain future validation work.
 
 ---
