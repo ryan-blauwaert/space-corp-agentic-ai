@@ -17,7 +17,7 @@ from app.queries.contracts import (
 )
 from scripts.dataset_manifest import Key, Manifest, digest, load_manifest, operational_id, shared_id
 
-DEFAULT_EVALUATION = Path(__file__).resolve().parents[1] / "data/evaluations/queries-2.json"
+DEFAULT_EVALUATION = Path(__file__).resolve().parents[1] / "data/evaluations/queries-3.json"
 _REFERENCE = re.compile(r"@[a-z_]+:[A-Za-z0-9_-]+")
 
 
@@ -47,6 +47,7 @@ EvaluationCase = Annotated[SupportedCase | DeclinedCase, Field(discriminator="ki
 
 
 class EvaluationDataset(Frozen):
+    purpose: Literal["development", "holdout_candidate"] = "development"
     version: Key
     baseline_version: Key
     baseline_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")

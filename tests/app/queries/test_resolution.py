@@ -208,3 +208,107 @@ def test_resolution_failure_trace_omits_reference(query_data, caplog):
     assert events[-1]["error_kind"] == "not_found"
     assert reference not in caplog.text
     assert "query_execution" not in caplog.text
+
+
+def test_grounding_skips_database_without_uuid_mentions():
+    from app.database import Database
+    from app.queries.resolution import ground_references
+
+    database = Mock(spec=Database)
+    assert ground_references(database, context(uuid4()), "Stock at ZETA-DEPOT?") == {}
+    database.query_session.assert_not_called()
+
+
+def test_grounding_rejects_excess_mentions_before_database():
+    from app.database import Database
+    from app.queries.resolution import MAX_GROUNDED_REFERENCES, ground_references
+
+    database = Mock(spec=Database)
+    question = " ".join(str(uuid4()) for _ in range(MAX_GROUNDED_REFERENCES + 1))
+    with pytest.raises(QueryError, match="invalid_plan"):
+        ground_references(database, context(uuid4()), question)
+    database.query_session.assert_not_called()
+
+
+@pytest.mark.integration
+def test_grounding_returns_only_literal_scoped_types_for_all_entity_kinds(query_data):
+    from app.queries.resolution import ground_references
+
+    database, _, manifest, workspaces, other_model, other_component = query_data
+    workspace = workspaces[0]
+    ids = {
+        "facility": operational_id(workspace, manifest.version, "facilities", "LUN-OPS-01"),
+        "unit": operational_id(workspace, manifest.version, "units", "U001"),
+        "incident": operational_id(workspace, manifest.version, "incidents", "I001"),
+        "model": shared_id(manifest.catalog.version, "models", "M01"),
+        "component": shared_id(manifest.catalog.version, "components", "C01"),
+    }
+    hidden = [
+        operational_id(workspaces[1], manifest.version, collection, key)
+        for collection, key in [
+            ("facilities", "LUN-OPS-01"),
+            ("units", "U001"),
+            ("incidents", "I001"),
+        ]
+    ] + [other_model, other_component, uuid4()]
+    refs = [str(value) for value in [*ids.values(), *hidden]]
+    question = ", ".join(refs + [refs[0]])
+    hints = ground_references(database, context(workspace), question)
+    assert hints == {
+        **{str(value): [kind] for kind, value in ids.items()},
+        **{str(v): [] for v in hidden},
+    }
+    # Literal spelling survives; no names, codes, or neighboring identifiers are added.
+    assert ground_references(database, context(workspace), str(ids["unit"]).upper()) == {
+        str(ids["unit"]).upper(): ["unit"]
+    }
+    assert ground_references(database, context(workspace), ids["model"].hex) == {
+        ids["model"].hex: ["model"]
+    }
+    assert ground_references(database, context(workspace), "prefix_" + refs[0]) == {}
+
+
+@pytest.mark.integration
+def test_grounding_preserves_multiple_types_without_choosing(query_data):
+    from app.queries.resolution import ground_references
+
+    database, owner, manifest, workspaces, _, _ = query_data
+    identifier = shared_id(manifest.catalog.version, "models", "M01")
+    with owner.session() as session:
+        session.add(
+            FacilityRecord(
+                id=identifier,
+                workspace_id=workspaces[0],
+                code="TYPE-COLLISION",
+                name="Private label",
+                location="Private location",
+                facility_type="logistics_depot",
+                operational_status="operational",
+            )
+        )
+    assert ground_references(database, context(workspaces[0]), str(identifier)) == {
+        str(identifier): ["facility", "model"]
+    }
+
+
+@pytest.mark.integration
+def test_verified_type_reaches_planner_but_wrong_type_never_executes(query_data, caplog):
+    import logging
+
+    database, _, manifest, workspaces, _, _ = query_data
+    identifier = str(shared_id(manifest.catalog.version, "components", "C01"))
+    # Deliberately wrong field: identity hints never authorize automatic reinterpretation.
+    subject, provider = service(
+        database, json.dumps({"operation": "incidents", "equipment_unit_id": identifier})
+    )
+    subject.operations = Mock()
+    with caplog.at_level(logging.INFO), pytest.raises(QueryError, match="not_found"):
+        subject.ask(context(workspaces[0]), "Read records for " + identifier)
+    assert len(provider.requests) == 1
+    assert (
+        json.dumps({identifier: ["component"]}, separators=(",", ":"))
+        in provider.requests[0].prompt
+    )
+    subject.operations.execute.assert_not_called()
+    assert identifier not in caplog.text
+    assert '"event":"query_grounding"' in caplog.text

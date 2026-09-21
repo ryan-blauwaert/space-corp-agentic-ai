@@ -450,8 +450,10 @@ versioned baseline, core read-only APIs, PR checks, and controlled LLM integrati
 are implemented. Waypoint 2.2 is in progress: bounded query contracts and versioned
 evaluation fixtures, read-only workspace sessions, and executors for all five bounded
 query domains exist. Unit 5 adds model-guided planning, scoped entity resolution,
-and query tracing. The repeatable query evaluation command remains unit 6 work;
-live planning accuracy has not yet been measured. See
+and query tracing. Unit 6 adds the repeatable query evaluation command;
+the prior 23/24 result is development evidence. The frozen repeated development/
+holdout assessment in [the evaluation process](docs/query-evaluation.md) completed
+but missed the holdout targets. See
 [the roadmap](docs/roadmap.md) for authoritative completion status.
 
 Current priorities are to implement the documented query capabilities incrementally,

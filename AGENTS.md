@@ -4,11 +4,16 @@ This repository is a portfolio project for building a production-style agentic A
 
 ## Current Phase
 
-We are in Phase 2 — Minimum Viable Product, at Waypoint 2.2 — Structured Query Capability. Follow `docs/roadmap.md` for authoritative completion status. Unit 1 defines bounded query contracts and evaluation fixtures; unit 2 adds read-only workspace sessions. Unit 3 implements facility-equipment and compatible-stock execution. Unit 4 implements work-order, incident, and inventory execution. Unit 5 connects the model service to strict plan validation, exact scoped entity resolution, all five executors, and content-free query tracing. Repeatable model/query evaluation remains unit 6 work; controlled model responses in tests do not establish live planning accuracy. Do not implement later-waypoint AI features speculatively.
+We are in Phase 2 — Minimum Viable Product, at Waypoint 2.2 — Structured Query Capability. Follow `docs/roadmap.md` for authoritative completion status. Bounded query contracts, read-only execution, model planning, scoped entity resolution, tracing, and the repeatable evaluation command are implemented. The prior 23/24 result is development evidence. Completion now requires the frozen repeated assessment described in `docs/query-evaluation.md`; the first assessment completed but missed the holdout targets. Prompt version 4 adds
+scoped UUID type grounding and general capability guidance; live accuracy is unverified. Preserve the frozen
+reports; any tuning based on held-out results requires a fresh reviewed holdout for the
+next independent assessment. Do not implement later-waypoint features speculatively.
 
 ## Development Instructions
 
 - Make small, reviewable changes.
+- Describe roadmap progress by delivered capability and verification, not chat-specific numbered units of work.
+- Obtain explicit approval for each live evaluation run that sends fixture questions and query schemas to OpenAI. Approval applies to that single run only; do not infer permission for later runs.
 - Inspect the repository before editing.
 - Before editing, identify the files in scope; after editing, summarize the files changed and verification performed.
 - Run the relevant test suite and report failures, skips, and any remaining coverage gaps.
@@ -24,6 +29,7 @@ We are in Phase 2 — Minimum Viable Product, at Waypoint 2.2 — Structured Que
 
 ## Structured Query Guidance
 
+- Treat `queries-3` as development data, not independent acceptance evidence. Freeze the prompt/model/protocol before holdout runs; never tune on holdout results while retaining that set as held out. Preserve every planned run and report. Follow `docs/query-evaluation.md`; do not infer a live-call authorization from process work.
 - Treat Q1–Q5 as canonical acceptance examples, not an exhaustive intended-use list or production operation registry.
 - Use the bounded domain contracts in `app/queries/contracts.py`; [structured-query notes](docs/structured-queries.md) define their semantics and current limits.
 - Support combinations of approved typed filters. Do not add one hardcoded operation per natural-language question or silently apply canonical-example filters to broader requests.

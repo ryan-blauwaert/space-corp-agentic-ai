@@ -98,7 +98,10 @@ facility-equipment and compatible-stock execution; unit 4 completes work-order,
 incident, and inventory execution. Unit 5 adds model-guided planning, exact scoped
 entity resolution, and query tracing through the internal `QueryService`. See the
 [query workflow and usage](docs/structured-queries.md#model-guided-query-workflow-unit-5).
-The repeatable evaluation command remains unit 6 work.
+Unit 6 adds the [repeatable evaluation command](docs/structured-queries.md#repeatable-evaluation-unit-6); the prior 23/24 run is development evidence. The new
+[frozen evaluation process](docs/query-evaluation.md) separates development and
+candidate holdout data. Its first assessment passed the development targets but
+missed the holdout targets; Waypoint 2.2 remains in progress.
 See the [structured-query guide](docs/structured-queries.md) for capabilities and limits.
 
 The [dataset guide](docs/dataset.md) covers bootstrap and refresh,

@@ -33,7 +33,7 @@ from app.queries.planning import (
     parse_plan,
     planning_prompt,
 )
-from app.queries.resolution import resolve_plan
+from app.queries.resolution import ground_references, resolve_plan
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +42,7 @@ class QueryOutcome(Frozen):
     context: QueryContext
     planning_operation_id: UUID
     resolution_operation_id: UUID
+    returned_model_id: str | None = None
     plan: PlanningOutcome = Field(repr=False)
     response: QueryResponse | None = Field(default=None, repr=False)
 
@@ -99,6 +100,8 @@ class QueryService:
                 raise ValueError("Invalid question")
         except (ValueError, ValidationError):
             raise QueryError(context, QueryErrorKind.INVALID_PLAN) from None
+        with _trace(context, uuid4(), "query_grounding"):
+            reference_types = ground_references(self.database, context, question)
         planning_id, resolution_id = uuid4(), uuid4()
         with _trace(context, planning_id, "query_planning") as trace:
             trace.update(model_id=self.model_id, prompt_id=PROMPT_ID, prompt_version=PROMPT_VERSION)
@@ -112,7 +115,14 @@ class QueryService:
                             prompt_id=PROMPT_ID,
                             prompt_version=PROMPT_VERSION,
                         ),
-                        prompt=planning_prompt(question, datetime.now(UTC)),
+                        prompt=planning_prompt(
+                            question,
+                            datetime.now(UTC),
+                            {
+                                reference: list(kinds)
+                                for reference, kinds in reference_types.items()
+                            },
+                        ),
                         max_output_tokens=4096,
                         timeout_seconds=30.0,
                     )
@@ -145,6 +155,7 @@ class QueryService:
             context=context,
             planning_operation_id=planning_id,
             resolution_operation_id=resolution_id,
+            returned_model_id=result.returned_model_id,
             plan=plan,
             response=response,
         )

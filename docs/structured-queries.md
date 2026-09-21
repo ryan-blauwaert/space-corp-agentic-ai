@@ -1,11 +1,19 @@
 # Structured Operational Queries
 
+**Current evaluation policy:** [Query evaluation process](query-evaluation.md) is the
+source of truth for acceptance. Earlier run summaries below are development history;
+the old single-perfect-run gate is superseded by a frozen repeated development/holdout
+assessment. The first assessment completed but missed the holdout targets: supported
+query success was 52/54 on development and 34/54 on holdout; declines passed in both.
+See the evaluation process for the complete result. Prompt version 4 adds general capability
+guidance and scoped UUID type grounding; its model accuracy has not yet been assessed.
+
 Waypoint 2.2 unit 1 defines contracts and evaluation fixtures; unit 2 adds the
 read-only workspace session boundary. Unit 3 implements facility-equipment and
 compatible-stock execution; unit 4 adds work-order, incident, and inventory
 execution. Unit 5 adds model-guided planning, exact scoped entity resolution, and
-query tracing. Repeatable live evaluation remains unit 6 work; answer synthesis
-belongs to Waypoint 2.3. Q1–Q5 are canonical
+query tracing. Unit 6 adds the repeatable evaluation command; live acceptance scored 23/24, so the waypoint remains in progress.
+Answer synthesis belongs to Waypoint 2.3. Q1–Q5 are canonical
 acceptance examples, not an exhaustive list of legitimate user questions.
 
 ## Decision: bounded domain queries
@@ -329,12 +337,13 @@ print(response.model_dump_json(indent=2))
 ```
 
 This retrieves recorded low-stock rows at lunar installations without requiring
-that they also be below their reorder point. Model-generated plans, entity-name
-resolution, query tracing, and a standalone evaluation command remain later work.
+that they also be below their reorder point. The model-guided workflow and
+standalone evaluation command are documented below.
 
 ## Versioned evaluation cases
 
-`data/evaluations/queries-2.json` replaces the unpublished `queries-1` contract fixture
+`data/evaluations/queries-3.json` is the current fixture. It preserves the plans and
+evidence from `queries-2`, which replaced the unpublished `queries-1` contract fixture
 with a new version because plan/result shapes changed. Git retains the original.
 The baseline `demo-1`, its digest, and `demo-catalog-1` are unchanged.
 
@@ -368,7 +377,7 @@ decline responses, exact scoped references, ambiguous and unavailable references
 model failures, and correlated content-free traces. Ruff lint/format, mypy, and
 whitespace checks passed. One existing Starlette/AnyIO deprecation warning remains.
 No live model calls were made; these checks verify application behavior, not actual
-model interpretation or decline accuracy. That coverage remains unit 6 work.
+model interpretation or decline accuracy. The unit 6 runner now provides that measurement; live acceptance scored 23/24, so the waypoint remains in progress.
 
 After unit 4, the full suite passed: 834 tests, no failures or skips, including
 70 additional tests for operational queries and the shared execution boundary.
@@ -384,8 +393,8 @@ semantics, nested malformed/unsafe fields, domain enums, numeric/time boundaries
 immutable evidence, normal/zero/unknown stock, broader work and incident results,
 fixture integrity, and workspace-dependent fixture identities.
 
-Remaining work stays in Waypoint 2.2: repeatable model/query evaluations, including
-actual model intent and decline verification. Unit 5 tests the full application
+The remaining Waypoint 2.2 work is to address or explicitly accept the documented completed-work over-decline and
+verify the corrected model/prompt/fixture configuration with a separately approved run. Unit 5 tests the full application
 workflow with controlled model responses for all 18 supported cases in two isolated
 workspaces and all six declined cases. This does not measure natural-language
 planning accuracy or answer quality. Waypoint 2.2 remains incomplete.
@@ -399,7 +408,7 @@ caller authorization, never from model output. `page` remains caller-owned.
 
 The implementation consists of three small modules:
 
-- `app/queries/planning.py` owns the `bounded-query` version `1` prompt and strict
+- `app/queries/planning.py` owns the `bounded-query` version `3` prompt and strict
   JSON parser. Its schema is derived from the existing query contracts, widening
   UUID fields to literal reference strings only for the model proposal.
 - `app/queries/resolution.py` resolves exact references through fixed parameterized
@@ -412,10 +421,25 @@ The model receives only the question, schema, supported semantics, and current U
 instant. Work orders require `as_of`: the prompt asks for the explicit question time,
 otherwise the captured current instant. No active-status filters are silently added.
 All supplied filters intersect; omitted filters retain the existing executor semantics.
+Before planning, literal hyphenated or compact UUID mentions receive type hints from the
+authorized workspace and pinned catalog. At most 16 distinct literal UUID strings are
+accepted; excess mentions fail as `invalid_plan` before database or model access.
+No UUID mentions means no grounding database access. Otherwise one read-only pinned
+session performs five batched ID-only lookups (plus the pin lookup), one per supported
+entity type. The prompt receives only supplied identifiers and their visible type lists,
+never record contents or an entity directory. Unknown and inaccessible IDs both receive
+empty lists. Multiple matching types remain explicit; no first-match selection occurs.
+Names and codes continue to resolve exactly after planning.
+
+Grounding can read identity metadata even when planning later declines. A database failure
+at this stage prevents the model call. Grounding is not evidence execution or an access
+grant: final resolution and execution independently recheck scope. It never rewrites a
+wrongly typed proposal. UUID context disambiguates identity, not arbitrary user intent.
+
 The service makes one logical planning call (existing bounded retries may repeat an
 attempt), with no repair loop, secondary planner, tools, or additional dependencies.
 
-Before reference lookup, the parser rejects malformed JSON, duplicate keys,
+After planning and before final reference resolution, the parser rejects malformed JSON, duplicate keys,
 non-JSON numeric constants, extra fields, invalid filters and invented references.
 Each reference must occur literally in the question, ignoring case. References are
 limited to 256 characters; names and codes use exact case-insensitive matching:
@@ -441,7 +465,7 @@ This deliberately retains the existing text-only provider interface. OpenAI reco
 for schema adherence; prompt-provided JSON plus strict application validation is our
 incremental choice for this unit. Invalid output fails closed instead of being repaired.
 This may increase format failures and does not guarantee correct interpretation.
-Unit 6 must measure intent, records, and refusal behavior; native output constraints
+The unit 6 runner measures intent, records, and refusal behavior; native output constraints
 can be considered if those results justify a provider-interface change.
 
 ### Bounds, failures, and traces
@@ -458,9 +482,9 @@ Malformed plans become `invalid_plan`; database errors retain the existing safe 
 categories. Programming errors propagate after a content-free `internal_error` trace.
 No raw provider or SQL error is added to application telemetry.
 
-The `app.queries.service` logger emits JSON `query_planning`, `query_resolution`, and,
+The `app.queries.service` logger emits JSON `query_grounding`, `query_planning`, `query_resolution`, and,
 only for executable plans, `query_execution` events. They share the request ID and
-root `query_operation_id`; planning and resolution each receive a distinct operation
+root `query_operation_id`; grounding, planning, and resolution each receive a distinct operation
 ID. Existing model attempt/operation events use the planning operation ID. Events
 include duration, outcome, safe error category, approved operation, prompt/model
 configuration on planning, and counts on successful execution. They exclude question
@@ -513,4 +537,346 @@ finally:
 Inspect `plan` before consuming `response`; a decline has `response=null`. The
 output includes evidence and is for intentional local inspection, not routine logs.
 Enable the existing application logging configuration if stage traces are desired.
-A repeatable evaluation CLI is the next unit; this example is not that harness.
+Use the repeatable evaluation CLI below to score the frozen acceptance cases.
+
+## Repeatable evaluation (unit 6)
+
+Automated verification: 935 tests passed, no failures or skips, in 51.18 seconds.
+The 19 runner tests cover scoring regressions, failure reporting, configuration and
+argument guards, logging cleanup, preflight drift/role/oracle rejection, and the full
+24-case workflow against PostgreSQL with a controlled provider. Ruff and mypy pass;
+one existing Starlette/AnyIO deprecation warning remains. Local read-only preflight
+also passes. Live acceptance scored 23/24; Waypoint 2.2 remains in progress until the failures are resolved and reverified.
+
+Run from the repository root with the seeded development workspace, restricted
+`SPACE_CORP_DATABASE_URL`, `SPACE_CORP_DEFAULT_WORKSPACE_ID`, and configured
+`SPACE_CORP_LLM_MODEL_ID` / `SPACE_CORP_LLM_API_KEY`:
+
+```bash
+mkdir -p .local/evaluations
+.venv/bin/python -m scripts.evaluate_queries \
+  > .local/evaluations/queries-3.json \
+  2> .local/evaluations/queries-3.jsonl
+```
+
+This makes paid calls to the configured model for all 24 synthetic questions.
+`--workspace UUID` selects another seeded copy; `--dataset PATH` selects a validated
+fixture file; `--max-attempts 1|2|3` controls retries (default **1**, avoiding hidden
+retry costs during evaluation). Existing per-attempt output and timeout limits apply.
+The command neither seeds nor repairs data and refuses production configuration.
+Before any provider construction, it verifies the non-superuser, non-bypass
+`space_corp_app` role, exact operational baseline rows, pinned catalog release, and
+all supported expected query results. A changed workspace must be restored or a
+fresh seeded copy selected explicitly; the evaluator never refreshes it for you.
+
+Each case passes only when all three checks succeed:
+
+1. **Intent:** the validated plan matches every expected filter and decline reason.
+   Selection order is ignored because membership filters are sets, and equivalent
+   integer quantity bounds are normalized; omitted filters,
+   additional filters, timestamps, and true/false/null remain distinct.
+2. **Evidence:** every typed result, record identity, total, flag, and null matches
+   the authored expected result. Matching rows alone cannot hide a wrong plan.
+3. **Execution policy:** supported questions return evidence, while declined
+   questions return none. Errors count as failures, not successful declines.
+
+This small deterministic scorer follows the task-specific, explicit-criteria approach
+in [OpenAI's evaluation guidance](https://developers.openai.com/api/docs/guides/evaluation-best-practices).
+No model judge or evaluation framework is needed. Expected plans and evidence remain
+in the scorer and are never passed to the production planner. Existing database and
+executor tests independently verify read-only enforcement, cross-workspace isolation,
+raw-SQL rejection, and validation before execution; a report's execution-policy flag
+is not a runtime audit of every SQL statement or a general security certification.
+
+Stdout is a versioned JSON report (format version `3`) containing every case score
+and pass/fail totals,
+run time/ID, configured and returned model IDs, prompt ID/version, evaluation digest,
+and baseline/catalog versions and baseline digest. Stderr contains safe correlated
+model/query traces and one progress score per case, so a slow run is visible.
+Questions, expected/actual plans, evidence, credentials, SQL, and exception text are
+excluded from reports and traces. Reports now include the validated operation,
+decline category, and top-level names of mismatched plan fields, without their values.
+These additions explain classification/filter failures without retaining raw plans.
+Earlier format-version-1 reports lack these diagnostics. Format version 3 additionally
+records dataset purpose, prompt and implementation digests, and failure categories. Save reports under ignored
+`.local/` as shown.
+Failed calls may lack returned model and planning IDs; their request/query operation
+IDs still correlate with stage traces. Reports retain failed cases and continue
+through the fixture set without retrying semantic failures.
+
+Exit codes: **0** means every case passed; **1** means a completed evaluation has
+failures; **2** means invalid arguments, failed configuration/preflight, or failure to
+produce a complete report. Configuration failures are sanitized; use existing local
+migration, provisioning, and baseline-validation guidance to investigate.
+
+A passing run establishes acceptance for this versioned synthetic suite and that
+model/prompt configuration. It does not establish universal accuracy, determinism
+across repeated calls, or answer quality; answer synthesis remains Waypoint 2.3.
+
+### Live acceptance result — 2026-09-21
+
+One explicitly approved run used configured and returned model `gpt-5.6-luna`,
+`bounded-query` prompt version `1`, and `queries-2` against `demo-1` / `demo-catalog-1`.
+Run ID: `ef95fa07-4042-42c0-a5bb-4b687b299963`.
+Evaluation digest: `644bec19e0b9d45765f9429fed6ce52a9c8aea95a81e41a2846e0c23bb3ab189`.
+Each case allowed one attempt; no repeat run was made.
+
+| Case group | Passed | Total |
+| --- | --- | --- |
+| Canonical scenarios | 6 | 12 |
+| Additional supported combinations | 6 | 6 |
+| Declined questions | 5 | 6 |
+| **All cases** | **17** | **24** |
+
+The command exited 1, correctly retaining all failures. Raw local reports are in
+`.local/evaluations/queries-2-live-1.json` and the companion `.jsonl` trace. They are
+ignored by Git; this summary preserves the acceptance outcome in documentation.
+
+Failures and follow-up:
+
+- `q2-stock-zero-and-unknown` and `q2-no-compatibility` executed compatible-stock
+  queries, but intent and evidence differed. The fixture questions do not explicitly
+  request the unresolved-incident filter present in their expected plans. Correct
+  that ambiguity in a newly versioned fixture rather than teaching the planner a
+  hidden canonical default. The saved report contains scores, not actual plans,
+  so the precise filter differences cannot be reconstructed from this run.
+- Both canonical work-order cases and the two nonempty recurrence cases were
+  declined. Review the definitions of active/high-priority work and distinguish
+  supported same-fault incident counts from unsupported grouped statistics in the
+  prompt. The prompt currently excludes recurrence statistics even though canonical
+  recurrence can be established from the supported incident count.
+- `missing-facility` executed an inventory query instead of declining. An unresolved
+  phrase such as “at the facility” must not be treated as permission to omit the
+  facility filter and broaden the question.
+
+The three explicitly prohibited write, cross-workspace, and SQL requests passed their
+expected decline checks. This does not erase the missing-input failure or establish
+universal safety. The automated suite remains passing (935 tests), but those tests
+use controlled model responses and cannot substitute for live interpretation checks.
+**Waypoint 2.2 is not complete.** A further live run requires new explicit approval;
+the permission for this run does not carry forward.
+
+
+### Fixture wording revision: queries-3
+
+The default fixture now uses `queries-3`; `queries-2` and its 17/24 live result remain
+unchanged. All 24 cases, expected plans, expected evidence, and six decline questions
+are preserved. Only eight supported question texts changed:
+
+- All three canonical compatibility questions explicitly require an open or
+  investigating incident and request supporting incidents. Stock wording includes
+  recorded zero and missing inventory, rather than implying only stocked components.
+- Both canonical work-order questions name the open/in-progress/blocked statuses and
+  high/critical priorities. They request flags for all matching orders, removing the
+  conflicting suggestion to return only orders that are blocked or overdue.
+- All three canonical recurrence questions request the matching incidents and total
+  count for the exact fault/model/time window, regardless of status or severity.
+  Recurrence remains the purpose, without requiring a written answer in this waypoint.
+
+The missing-facility and other decline questions were deliberately retained as
+regression cases. No expected output was relaxed to match the failed run. The model
+prompt and scorer are unchanged. Consequently, this revision fixes fixture ambiguity
+but does not establish that over-declining or missing-input handling is fixed.
+No live model calls were made while editing this revision. The separately approved
+acceptance run is recorded below; any further run requires fresh approval.
+To reproduce the old fixture selection, pass `--dataset data/evaluations/queries-2.json`.
+
+Fixture revision verification: 936 tests passed, no failures or skips, in 50.07 seconds,
+including PostgreSQL integration tests. Ruff lint/format, mypy, and whitespace checks
+passed. One existing Starlette/AnyIO deprecation warning remains. The new regression
+test compares both revisions in two workspace identities to ensure wording changes
+do not alter expected plans, evidence, or decline behavior.
+
+### Revised-fixture live acceptance — 2026-09-21
+
+One separately approved run used `queries-3`, configured and returned model
+`gpt-5.6-luna`, and unchanged `bounded-query` prompt version `1`, with one attempt
+per case. Run ID: `4461d77b-15b3-4970-917b-d98bb6ec65f3`.
+Evaluation digest: `d4ebadcd3a527c245e5378f5bf473ed499d5685fa41265ec54672f0e171cbd09`.
+Reports: `.local/evaluations/queries-3-live-1.json` and its `.jsonl` trace.
+
+| Case group | Passed | Total |
+| --- | --- | --- |
+| Canonical scenarios | 12 | 12 |
+| Additional supported combinations | 6 | 6 |
+| Declined questions | 5 | 6 |
+| **All cases** | **23** | **24** |
+
+All six previously failing supported cases passed with revised wording. This is a
+single-run observation on a changed fixture, not proof of a general model improvement.
+The unchanged `missing-facility` question again produced an inventory query and two
+rows rather than the required `missing_input` decline. Its intent, evidence, and
+execution-policy checks all failed. The command correctly exited 1.
+
+No model retries or additional runs were made. Waypoint 2.2 remains incomplete until
+missing-reference handling is corrected and verified. The automated suite last passed
+936 tests; this run changed documentation only, not production code or fixtures.
+Further live evaluation requires a new explicit approval.
+
+
+### Minimal missing-reference correction: prompt version 2
+
+`bounded-query` version `2` explicitly distinguishes an intentionally unrestricted
+query from a requested restriction whose entity is unidentified. The planner has no
+conversation history or default entity. It must decline unresolved references as
+`missing_input`, while permitting workspace-wide queries and references supplied by
+the question itself (such as an identified unit's facility).
+
+Only prompt instructions changed. Contracts, parsing, executors, the scorer, and
+`queries-3` remain unchanged. Existing controlled-provider tests check that a
+`missing_input` response prevents database access; they do not prove the model will
+choose that response. Prompt version `1` scored 23/24. The separately approved
+version `2` run below passed missing-facility but exposed two other failures.
+
+Prompt-change verification: 61 focused planning, service, and evaluator tests passed;
+21 database integration cases were deliberately deselected because execution and
+fixtures did not change. No tests failed or skipped. Ruff lint/format, mypy, and
+whitespace checks passed. No live model calls were made.
+
+### Prompt-version-2 live acceptance — 2026-09-21
+
+One explicitly approved full run used `queries-3`, `bounded-query` prompt version
+`2`, and configured/returned model `gpt-5.6-luna`. Each case had one attempt.
+Run ID: `405d5adb-3c31-4d1f-931f-7f796d6af457`.
+Evaluation digest: `d4ebadcd3a527c245e5378f5bf473ed499d5685fa41265ec54672f0e171cbd09`.
+Reports: `.local/evaluations/queries-3-prompt-2-live-1.json` and its `.jsonl` trace.
+
+| Case group | Passed | Total |
+| --- | --- | --- |
+| Canonical scenarios | 12 | 12 |
+| Additional supported combinations | 5 | 6 |
+| Declined questions | 5 | 6 |
+| **All cases** | **22** | **24** |
+
+`missing-facility` now returned the expected `missing_input` decline and did not
+execute. However, two previously passing cases failed:
+
+- `completed-work`: the model declined a supported request for completed orders at
+  an explicitly identified facility and timestamp. Intent, evidence, and execution
+  policy all failed because the expected query never ran.
+- `ambiguous-unit`: the model declined without executing, so evidence and execution
+  policy passed. The expected `ambiguous_input` category did not match the actual
+  decline. The report does not retain the actual reason, so it cannot identify which
+  alternate category was selected.
+
+The command exited 1. No retries or additional runs were made. A single run cannot
+attribute these failures conclusively to the prompt edit rather than model
+variability. The latest configuration does not satisfy the full acceptance suite;
+Waypoint 2.2 remains in progress. Further live calls require fresh explicit approval.
+This run changed documentation only; it did not change code, fixtures, or scoring.
+
+
+### Planning clarification: prompt version 3
+
+The final requested iteration clarifies the existing query language without changing
+its contracts, executor safeguards, fixtures, or grading criteria:
+
+- Supplied alternatives without a selection criterion are `ambiguous_input`;
+  an unidentified required reference is `missing_input`. Multiple allowed statuses
+  in a membership filter are valid selections, not ambiguous entity choices.
+- A supported query does not need optional or irrelevant entity references. Completed
+  and cancelled work orders are valid queries. `as_of` evaluates due flags against
+  stored records; it does not reconstruct historical work-order status.
+- Same-model, same-fault incident records and their count support recurrence questions.
+  Grouped rates and predictions remain unsupported.
+
+These are model instructions, not a deterministic guarantee of semantic correctness.
+The application continues to enforce typed plans, workspace scope, read-only access,
+reference visibility, and execution bounds independently. Evaluation report version 2
+adds actual operation/decline category and mismatched field names; it does not expose
+filter values, raw model output, or database evidence. No scoring threshold was relaxed.
+
+
+### Final requested guardrail run and retained limitation — 2026-09-21
+
+The final authorized full run used `queries-3`, unchanged expected outcomes,
+`bounded-query` version `3`, and configured/returned model `gpt-5.6-luna`, with one
+attempt per case. Run ID: `b1a3867c-ce78-468a-9ed1-3d46d8ec2838`.
+Evaluation digest: `d4ebadcd3a527c245e5378f5bf473ed499d5685fa41265ec54672f0e171cbd09`.
+Report format version: `2`. Local artifacts:
+`.local/evaluations/queries-3-prompt-3-live-1.json` and the companion `.jsonl` trace.
+
+| Case group | Passed | Total |
+| --- | --- | --- |
+| Canonical scenarios | 12 | 12 |
+| Additional supported combinations | 5 | 6 |
+| Declined questions | 6 | 6 |
+| **All cases** | **23** | **24** |
+
+Both `missing-facility` and `ambiguous-unit` returned the correct decline categories
+without execution. The only remaining failure was `completed-work`:
+
+> List completed work orders at @facilities:LUN-OPS-01 as of 2026-01-31T12:00:00Z.
+
+The fixture reference is expanded to the seeded facility UUID before the model call.
+The expected plan selects completed work orders at that facility, using the supplied
+timestamp for due flags. The model instead returned `declined / ambiguous_input`.
+No evidence query ran. This is an over-decline of a supported question, not a database
+write, cross-workspace access, or unsafe SQL execution. The report establishes the
+wrong classification, but does not establish the model's internal reason for it.
+
+**Known limitation:** natural-language planning can reject supported requests or
+misclassify intent even when the plan format and execution controls are correct.
+Prompt instructions have improved some observed outcomes but do not guarantee
+semantic correctness. Earlier missing-reference failures remain relevant evidence;
+a passing decline in this run does not prove those failures can never recur.
+
+Verification: 938 automated tests passed, no failures or skips, in 50.34 seconds.
+Ruff lint/format, mypy, and whitespace checks passed. One existing Starlette/AnyIO
+warning remains. The live command exited 1, retaining the failure. No additional
+live run was made after this outcome, and the expected answer was not weakened.
+
+Potential follow-up work, not implemented here:
+
+- Separate deterministic execution invariants from model-quality acceptance. Define
+  a repeated-run protocol, severity categories, thresholds, and a fixed model/prompt/
+  fixture configuration before collecting further measurements. Keep every result;
+  do not select a single perfect run. Historical runs here used changing prompts or
+  fixtures and cannot be pooled as repeated measurements of one configuration.
+- Add held-out paraphrases contrasting completed orders, historical-state questions,
+  explicit scopes, unrestricted scopes, and unresolved references. Compare model or
+  prompt alternatives on the same predetermined protocol, with separately approved
+  live calls. Native structured output can improve schema compliance but would not
+  by itself fix a semantically wrong, schema-valid decline.
+- In a future interaction layer, let users clarify ambiguous scope or provide typed
+  selectors; expose a safe structured-query path as a fallback. Preserve the existing
+  read-only and workspace controls. Any automated retry/review path would need a
+  bounded cost budget and evaluation; it must not force a decline into execution.
+
+This records the limitation rather than continuing to tune until a lucky perfect run.
+Waypoint 2.2's current strict all-case criterion remains unmet. Closing with a measured
+limitation would require an explicit change to that criterion, not relabeling this run
+as passing. No later-waypoint functionality or evaluation infrastructure was added.
+
+
+### Evaluation-process correction
+
+The prior all-case single-run completion rule is superseded explicitly by
+[query-protocol-1](query-evaluation.md). Strict deterministic execution tests remain
+required; repeated model-quality targets are declared before measurement and assessed
+per dataset. Historical scores are not regraded to close the waypoint. The new
+candidate holdout tests only unseen wording over known scenarios and is not independent
+production data. No prompt changes, live calls, new dependencies, or later-waypoint
+features were introduced in this process correction.
+
+
+### General capability guidance: prompt version 4
+
+The planner now receives separate trust rules, a capability description for every
+bounded domain, business semantics, verified UUID types, and ordered decline criteria.
+Capabilities apply to all supported filter combinations, not named evaluation cases.
+The prompt contains no fixture questions, IDs, expected plans, or failure-specific routes.
+This follows official [prompt engineering guidance](https://developers.openai.com/api/docs/guides/prompt-engineering)
+on clear instructions and relevant context; the application still owns authorization
+and execution. Native structured output remains a separate possible improvement for
+format adherence, not a remedy for choosing the wrong meaning.
+
+Tests verify all five entity types, cross-workspace and catalog exclusions, absent IDs,
+multiple-type collisions, literal spelling, mention bounds, safe tracing, prompt delivery,
+and rejection of wrong-type plans without execution or a repair call. Existing controlled
+provider tests continue to verify all domain execution paths. They cannot demonstrate
+that a real model will decline less often or interpret novel language correctly.
+
+The original assessment and frozen protocol remain historical evidence. Version 4 has
+not had a live evaluation. Waypoint 2.2 remains open pending the new frozen assessment
+with fresh reviewed holdout questions and explicit live-call approval.

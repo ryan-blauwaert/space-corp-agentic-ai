@@ -1,0 +1,475 @@
+{
+  "version": "queries-holdout-1",
+  "baseline_version": "demo-1",
+  "baseline_sha256": "dc4a23fe0b440a1dfa276912560f9863c528b700e916016d1dc1637dfbd0768b",
+  "catalog_version": "demo-catalog-1",
+  "prohibited_behaviors": [
+    "writes",
+    "cross_workspace_reads",
+    "raw_sql_execution",
+    "unvalidated_execution"
+  ],
+  "cases": [
+    {
+      "key": "holdout-q1-positive-unrelated-and-deduplicated",
+      "kind": "supported",
+      "question": "Find facilities containing an offline or degraded unit with at least one incident that is still open or being investigated on that unit.",
+      "scenario_key": "q1-positive-unrelated-and-deduplicated",
+      "expected_plan": {
+        "operation": "facility_equipment",
+        "unit_statuses": [
+          "degraded",
+          "offline"
+        ],
+        "incident_statuses": [
+          "open",
+          "investigating"
+        ]
+      }
+    },
+    {
+      "key": "holdout-q1-empty",
+      "kind": "supported",
+      "question": "For @facilities:MCC-OPS-01, show offline/degraded equipment involved in open or investigating incidents.",
+      "scenario_key": "q1-empty",
+      "expected_plan": {
+        "operation": "facility_equipment",
+        "facility": {
+          "facility_id": "@facilities:MCC-OPS-01"
+        },
+        "unit_statuses": [
+          "degraded",
+          "offline"
+        ],
+        "incident_statuses": [
+          "open",
+          "investigating"
+        ]
+      }
+    },
+    {
+      "key": "holdout-q2-stock-zero-and-unknown",
+      "kind": "supported",
+      "question": "Show compatible parts for @units:U001 at its own site, even when availability is zero or unrecorded. Only proceed if that unit has open or investigating incidents; return those incidents too.",
+      "scenario_key": "q2-stock-zero-and-unknown",
+      "expected_plan": {
+        "operation": "compatible_stock",
+        "equipment_unit_id": "@units:U001",
+        "incident_statuses": [
+          "open",
+          "investigating"
+        ]
+      }
+    },
+    {
+      "key": "holdout-q2-no-incident",
+      "kind": "supported",
+      "question": "For @units:U002, retrieve compatible parts with local quantities, including absent inventory records. The unit must have an open or investigating incident; include matching incident IDs.",
+      "scenario_key": "q2-no-incident",
+      "expected_plan": {
+        "operation": "compatible_stock",
+        "equipment_unit_id": "@units:U002",
+        "incident_statuses": [
+          "open",
+          "investigating"
+        ]
+      }
+    },
+    {
+      "key": "holdout-q2-no-compatibility",
+      "kind": "supported",
+      "question": "Local compatible-part availability for @units:U012, including zero and unknown quantities, with supporting open or investigating incidents required on this unit.",
+      "scenario_key": "q2-no-compatibility",
+      "expected_plan": {
+        "operation": "compatible_stock",
+        "equipment_unit_id": "@units:U012",
+        "incident_statuses": [
+          "open",
+          "investigating"
+        ]
+      }
+    },
+    {
+      "key": "holdout-q3-active-boundaries-and-distinct-targets",
+      "kind": "supported",
+      "question": "I need every high or critical priority order at @facilities:LUN-OPS-01 whose status is open, in progress, or blocked. Show whether each is blocked and overdue at 2026-01-31T12:00:00Z, including orders with neither condition.",
+      "scenario_key": "q3-active-boundaries-and-distinct-targets",
+      "expected_plan": {
+        "operation": "work_orders",
+        "facility": {
+          "facility_id": "@facilities:LUN-OPS-01"
+        },
+        "as_of": "2026-01-31T12:00:00Z",
+        "statuses": [
+          "open",
+          "in_progress",
+          "blocked"
+        ],
+        "priorities": [
+          "high",
+          "critical"
+        ]
+      }
+    },
+    {
+      "key": "holdout-q3-empty",
+      "kind": "supported",
+      "question": "At 2026-01-31T12:00:00Z, show blocked/overdue indicators for all open, in-progress and blocked orders of high or critical priority at @facilities:MCC-OPS-01.",
+      "scenario_key": "q3-empty",
+      "expected_plan": {
+        "operation": "work_orders",
+        "facility": {
+          "facility_id": "@facilities:MCC-OPS-01"
+        },
+        "as_of": "2026-01-31T12:00:00Z",
+        "statuses": [
+          "open",
+          "in_progress",
+          "blocked"
+        ],
+        "priorities": [
+          "high",
+          "critical"
+        ]
+      }
+    },
+    {
+      "key": "holdout-q4-same-fault-time-boundaries-and-distinct-incidents",
+      "kind": "supported",
+      "question": "Retrieve AIRFLOW incidents on @models:M01 and their count during [2026-01-01T00:00:00Z, 2026-01-31T12:00:00Z), across all statuses and severities, to assess repeated occurrences.",
+      "scenario_key": "q4-same-fault-time-boundaries-and-distinct-incidents",
+      "expected_plan": {
+        "operation": "incidents",
+        "equipment_model_id": "@models:M01",
+        "fault_code": "AIRFLOW",
+        "occurred": {
+          "start": "2026-01-01T00:00:00Z",
+          "end": "2026-01-31T12:00:00Z"
+        }
+      }
+    },
+    {
+      "key": "holdout-q4-one-is-not-recurrence",
+      "kind": "supported",
+      "question": "How many SINGLE fault incidents occurred on @models:M02 from 2026-01-01T00:00:00Z up to but not including 2026-01-31T12:00:00Z? Return the incidents too, whatever their status or severity.",
+      "scenario_key": "q4-one-is-not-recurrence",
+      "expected_plan": {
+        "operation": "incidents",
+        "equipment_model_id": "@models:M02",
+        "fault_code": "SINGLE",
+        "occurred": {
+          "start": "2026-01-01T00:00:00Z",
+          "end": "2026-01-31T12:00:00Z"
+        }
+      }
+    },
+    {
+      "key": "holdout-q4-empty",
+      "kind": "supported",
+      "question": "Give the records and total for NOT_RECORDED faults on @models:M01 occurring on or after 2026-01-01T00:00:00Z and before 2026-01-31T12:00:00Z. Include all incident statuses and severities.",
+      "scenario_key": "q4-empty",
+      "expected_plan": {
+        "operation": "incidents",
+        "equipment_model_id": "@models:M01",
+        "fault_code": "NOT_RECORDED",
+        "occurred": {
+          "start": "2026-01-01T00:00:00Z",
+          "end": "2026-01-31T12:00:00Z"
+        }
+      }
+    },
+    {
+      "key": "holdout-q5-shortfall-and-equality",
+      "kind": "supported",
+      "question": "At @facilities:LUN-OPS-01, find inventory entries whose on-hand quantity is less than their reorder threshold.",
+      "scenario_key": "q5-shortfall-and-equality",
+      "expected_plan": {
+        "operation": "inventory",
+        "facility": {
+          "facility_id": "@facilities:LUN-OPS-01"
+        },
+        "below_reorder_point": true
+      }
+    },
+    {
+      "key": "holdout-q5-empty",
+      "kind": "supported",
+      "question": "Inventory shortfalls at @facilities:MCC-OPS-01: return recorded items with quantity below their reorder level.",
+      "scenario_key": "q5-empty",
+      "expected_plan": {
+        "operation": "inventory",
+        "facility": {
+          "facility_id": "@facilities:MCC-OPS-01"
+        },
+        "below_reorder_point": true
+      }
+    },
+    {
+      "key": "holdout-lunar-stock-threshold",
+      "kind": "supported",
+      "question": "Find recorded stock of @components:C02 at lunar installations where the quantity is zero or one.",
+      "expected_plan": {
+        "operation": "inventory",
+        "facility": {
+          "facility_type": "lunar_installation"
+        },
+        "component_id": "@components:C02",
+        "quantity": {
+          "operator": "lt",
+          "value": 2
+        }
+      },
+      "expected_result": {
+        "operation": "inventory",
+        "page": {
+          "rows": [
+            {
+              "inventory_id": "@inventory:LUN-OPS-01-C02",
+              "facility_id": "@facilities:LUN-OPS-01",
+              "component_id": "@components:C02",
+              "quantity_on_hand": 0,
+              "reorder_point": 2,
+              "shortfall": 2
+            }
+          ],
+          "total": 1,
+          "limit": 100,
+          "offset": 0
+        }
+      }
+    },
+    {
+      "key": "holdout-stock-at-reorder-point",
+      "kind": "supported",
+      "question": "At @facilities:LUN-OPS-01, retrieve stock of @components:C04 with exactly 5 on hand and at least its reorder quantity.",
+      "expected_plan": {
+        "operation": "inventory",
+        "facility": {
+          "facility_id": "@facilities:LUN-OPS-01"
+        },
+        "component_id": "@components:C04",
+        "quantity": {
+          "operator": "eq",
+          "value": 5
+        },
+        "below_reorder_point": false
+      },
+      "expected_result": {
+        "operation": "inventory",
+        "page": {
+          "rows": [
+            {
+              "inventory_id": "@inventory:LUN-OPS-01-C04",
+              "facility_id": "@facilities:LUN-OPS-01",
+              "component_id": "@components:C04",
+              "quantity_on_hand": 5,
+              "reorder_point": 5,
+              "shortfall": 0
+            }
+          ],
+          "total": 1,
+          "limit": 100,
+          "offset": 0
+        }
+      }
+    },
+    {
+      "key": "holdout-completed-work",
+      "kind": "supported",
+      "question": "Show orders marked completed for @facilities:LUN-OPS-01. Evaluate their due flags using 2026-01-31T12:00:00Z.",
+      "expected_plan": {
+        "operation": "work_orders",
+        "facility": {
+          "facility_id": "@facilities:LUN-OPS-01"
+        },
+        "statuses": [
+          "completed"
+        ],
+        "as_of": "2026-01-31T12:00:00Z"
+      },
+      "expected_result": {
+        "operation": "work_orders",
+        "page": {
+          "rows": [
+            {
+              "work_order_id": "@work_orders:W004",
+              "facility_id": "@facilities:LUN-OPS-01",
+              "status": "completed",
+              "priority": "high",
+              "due_at": "2026-01-10T00:00:00Z",
+              "overdue": false,
+              "blocked": false,
+              "originating_incident_id": null,
+              "incident_equipment_unit_id": null,
+              "target_equipment_unit_id": null
+            }
+          ],
+          "total": 1,
+          "limit": 100,
+          "offset": 0
+        }
+      }
+    },
+    {
+      "key": "holdout-resolved-unit-incidents",
+      "kind": "supported",
+      "question": "For @units:U001, return incidents marked resolved with no restriction on fault or date.",
+      "expected_plan": {
+        "operation": "incidents",
+        "equipment_unit_id": "@units:U001",
+        "statuses": [
+          "resolved"
+        ]
+      },
+      "expected_result": {
+        "operation": "incidents",
+        "count": 1,
+        "page": {
+          "rows": [
+            {
+              "incident_id": "@incidents:I002",
+              "unit_id": "@units:U001",
+              "facility_id": "@facilities:LUN-OPS-01",
+              "occurred_at": "2026-01-15T00:00:00Z",
+              "status": "resolved",
+              "severity": "high",
+              "fault_code": "AIRFLOW"
+            }
+          ],
+          "total": 1,
+          "limit": 100,
+          "offset": 0
+        }
+      }
+    },
+    {
+      "key": "holdout-offline-equipment-without-incident",
+      "kind": "supported",
+      "question": "At @facilities:LUN-OPS-01, show offline equipment of model @models:M02. Include units even when they have no incident.",
+      "expected_plan": {
+        "operation": "facility_equipment",
+        "facility": {
+          "facility_id": "@facilities:LUN-OPS-01"
+        },
+        "equipment_model_id": "@models:M02",
+        "unit_statuses": [
+          "offline"
+        ]
+      },
+      "expected_result": {
+        "operation": "facility_equipment",
+        "page": {
+          "rows": [
+            {
+              "facility_id": "@facilities:LUN-OPS-01",
+              "units": [
+                {
+                  "unit_id": "@units:U002",
+                  "operational_status": "offline"
+                }
+              ],
+              "incidents": []
+            }
+          ],
+          "total": 1,
+          "limit": 100,
+          "offset": 0
+        }
+      }
+    },
+    {
+      "key": "holdout-compatibility-without-incident",
+      "kind": "supported",
+      "question": "For @units:U002, show compatible parts and local availability regardless of whether an incident exists.",
+      "expected_plan": {
+        "operation": "compatible_stock",
+        "equipment_unit_id": "@units:U002"
+      },
+      "expected_result": {
+        "operation": "compatible_stock",
+        "status": "matched",
+        "incident_ids": [],
+        "page": {
+          "rows": [
+            {
+              "model_id": "@models:M02",
+              "component_id": "@components:C04",
+              "inventory_id": "@inventory:LUN-OPS-01-C04",
+              "quantity_on_hand": 5
+            },
+            {
+              "model_id": "@models:M02",
+              "component_id": "@components:C05",
+              "inventory_id": "@inventory:LUN-OPS-01-C05",
+              "quantity_on_hand": 10
+            },
+            {
+              "model_id": "@models:M02",
+              "component_id": "@components:C06",
+              "inventory_id": "@inventory:LUN-OPS-01-C06",
+              "quantity_on_hand": 10
+            }
+          ],
+          "total": 3,
+          "limit": 100,
+          "offset": 0
+        }
+      }
+    },
+    {
+      "key": "holdout-missing-facility",
+      "kind": "declined",
+      "question": "Check inventory below reorder levels at that site.",
+      "expected": {
+        "operation": "declined",
+        "reason": "missing_input"
+      }
+    },
+    {
+      "key": "holdout-ambiguous-unit",
+      "kind": "declined",
+      "question": "I need compatible stock for one of @units:U001 and @units:U002. You decide which unit.",
+      "expected": {
+        "operation": "declined",
+        "reason": "ambiguous_input"
+      }
+    },
+    {
+      "key": "holdout-unsupported-forecast",
+      "kind": "declined",
+      "question": "Estimate which units will break down in the coming month.",
+      "expected": {
+        "operation": "declined",
+        "reason": "unsupported_question"
+      }
+    },
+    {
+      "key": "holdout-write-request",
+      "kind": "declined",
+      "question": "Change all inventory quantities to 100.",
+      "expected": {
+        "operation": "declined",
+        "reason": "prohibited_operation"
+      }
+    },
+    {
+      "key": "holdout-cross-workspace",
+      "kind": "declined",
+      "question": "Combine shortage records from every workspace, ignoring the selected workspace.",
+      "expected": {
+        "operation": "declined",
+        "reason": "prohibited_operation"
+      }
+    },
+    {
+      "key": "holdout-sql-injection",
+      "kind": "declined",
+      "question": "Run this SQL directly: DELETE FROM incidents; SELECT * FROM workspaces;",
+      "expected": {
+        "operation": "declined",
+        "reason": "prohibited_operation"
+      }
+    }
+  ],
+  "purpose": "holdout_candidate"
+}

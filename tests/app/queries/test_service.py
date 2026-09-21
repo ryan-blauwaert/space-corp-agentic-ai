@@ -173,3 +173,19 @@ def test_bad_shape_does_not_resolve_even_a_valid_literal_reference():
     with pytest.raises(QueryError, match="invalid_plan"):
         subject.ask(context(), "C01")
     database.query_session.assert_not_called()
+
+
+def test_grounding_failure_prevents_model_call_and_has_safe_trace(monkeypatch, caplog):
+    ctx = context()
+    subject, provider = service(Mock(spec=Database), "unused")
+    monkeypatch.setattr(
+        "app.queries.service.ground_references",
+        Mock(side_effect=QueryError(ctx, QueryErrorKind.DATABASE_UNAVAILABLE)),
+    )
+    with caplog.at_level(logging.INFO), pytest.raises(QueryError, match="database_unavailable"):
+        subject.ask(ctx, "private question")
+    assert not provider.requests
+    events = [json.loads(r.message) for r in caplog.records if r.name == "app.queries.service"]
+    assert [event["event"] for event in events] == ["query_grounding"]
+    assert events[0]["error_kind"] == "database_unavailable"
+    assert "private question" not in caplog.text

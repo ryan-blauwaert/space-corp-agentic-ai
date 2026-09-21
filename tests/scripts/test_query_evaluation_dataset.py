@@ -19,7 +19,7 @@ def test_dataset_covers_baseline_and_declined_questions_without_mutating_baselin
     before = DEFAULT_MANIFEST.read_bytes()
     baseline = load_manifest()
     dataset = load_evaluation()
-    assert dataset.version == "queries-2"
+    assert dataset.version == "queries-3"
     assert dataset.baseline_version == "demo-1"
     supported = [case for case in dataset.cases if isinstance(case, SupportedCase)]
     declined = [case for case in dataset.cases if isinstance(case, DeclinedCase)]
@@ -195,3 +195,32 @@ def test_authored_plan_and_result_templates_are_validated(tmp_path, change):
     path.write_text(json.dumps(data))
     with pytest.raises(ValueError):
         load_evaluation(path)
+
+
+def test_reworded_revision_preserves_every_expected_plan_result_and_decline():
+    previous = load_evaluation(DEFAULT_EVALUATION.with_name("queries-2.json"))
+    current = load_evaluation()
+    assert previous.version == "queries-2" and current.version == "queries-3"
+    assert previous.baseline_sha256 == current.baseline_sha256
+    assert previous.catalog_version == current.catalog_version
+    assert previous.prohibited_behaviors == current.prohibited_behaviors
+    baseline = load_manifest()
+    changed = set()
+    for old, new in zip(previous.cases, current.cases, strict=True):
+        assert old.model_dump(exclude={"question"}) == new.model_dump(exclude={"question"})
+        if old.question != new.question:
+            changed.add(new.key)
+        for workspace in (UUID(int=1), UUID(int=2)):
+            before = resolve_case(old, baseline, workspace)
+            after = resolve_case(new, baseline, workspace)
+            assert before.model_dump(exclude={"question"}) == after.model_dump(exclude={"question"})
+    assert changed == {
+        "q2-stock-zero-and-unknown",
+        "q2-no-incident",
+        "q2-no-compatibility",
+        "q3-active-boundaries-and-distinct-targets",
+        "q3-empty",
+        "q4-same-fault-time-boundaries-and-distinct-incidents",
+        "q4-one-is-not-recurrence",
+        "q4-empty",
+    }

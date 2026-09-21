@@ -291,7 +291,22 @@ execute all five domains; unit 5 connects `ModelService` through `QueryService.a
 to strict JSON validation, exact entity resolution, and execution. Its versioned
 `bounded-query` prompt selects a domain and combines approved typed filters; Q1–Q5
 remain examples. It uses the existing text-only provider with application-side
-validation, not provider-native Structured Outputs or tool calling. The repeatable
-live evaluation journey remains unit 6 work.
+validation, not provider-native Structured Outputs or tool calling. Unit 6 adds the repeatable
+live evaluation command in `scripts/evaluate_queries.py`; the prior 23/24 run is development evidence and a completed-work over-decline remains. Reports record configured and returned model IDs, prompt version, and
+dataset digests. Alias IDs do not imply a reproducible model snapshot.
 The existing provider/service boundary remains responsible for model calls; query
 validation, workspace authority, and execution controls remain application-owned.
+
+
+The [frozen evaluation process](query-evaluation.md) now separates development
+regressions from a candidate wording holdout and evaluates repeated reports offline.
+Report format 3 records purpose, prompt/implementation digests, and failure categories.
+No new live calls are authorized or implied by that process, and no automatic repeat
+or repair loop was added to model execution.
+
+
+Query prompt version 4 includes scoped type hints for UUIDs already present in the
+question. These are application-owned identity facts, not record contents or evidence;
+planning still uses one logical model call. The query guide documents the bounded
+pre-planning lookup, failure handling, and independent final validation. The revised
+prompt has not been assessed live; the previous frozen assessment remains historical.
