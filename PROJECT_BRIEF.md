@@ -461,7 +461,9 @@ expectations, evidence-fact rendering, and cautious responses implemented. Free-
 model prose delivery has been removed; selection can prioritize returned facts but
 cannot change values or omit records. The internal answer service now connects query
 execution to rendering with correlated tracing and explicit scope confirmation. The
-fact-ordering model call has been dropped; answer evaluation remains pending. Frontend work remains
+fact-ordering model call has been dropped. Answer evaluation tooling is implemented;
+the approved live batch had one unnecessary decline (143/144 mechanical passes).
+The current acceptance target was missed, and human factual review remains pending. Frontend work remains
 in the following waypoint. Agents, RAG, vector databases, MCP, authentication, durable
 workflows, advanced evaluation infrastructure, and deployment gates remain later
 work; the initial query evaluation harness is required within Waypoint 2.2.
