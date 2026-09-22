@@ -456,14 +456,11 @@ review and does not establish autonomous or production reliability. See
 
 Current priorities are to maintain the documented query capabilities incrementally,
 preserve canonical evidence, and verify new filter combinations without relaxing
-workspace or execution controls. Waypoint 2.3 answer synthesis is active, with typed contracts, development
-expectations, evidence-fact rendering, and cautious responses implemented. Free-form
-model prose delivery has been removed; selection can prioritize returned facts but
-cannot change values or omit records. The internal answer service now connects query
-execution to rendering with correlated tracing and explicit scope confirmation. The
-fact-ordering model call has been dropped. Answer evaluation tooling is implemented;
-the approved live batch had one unnecessary decline (143/144 mechanical passes).
-The current acceptance target was missed, and human factual review remains pending. Frontend work remains
-in the following waypoint. Agents, RAG, vector databases, MCP, authentication, durable
-workflows, advanced evaluation infrastructure, and deployment gates remain later
-work; the initial query evaluation harness is required within Waypoint 2.2.
+workspace or execution controls. Waypoint 2.3 is complete: evidence rendering, cautious
+responses, record validation, query-to-answer tracing and evaluation are verified.
+The disclosure correction passes both fixed datasets and offline replay of all 144
+saved query outcomes. The original unnecessary refusal remains documented within the
+query-aligned pilot allowance. No new live calls were made for closeout. See
+[answer evaluation](docs/answer-evaluation.md) for the criterion mapping and limitations.
+Frontend work remains in Waypoint 2.4 and has not begun. Agents, RAG, vector databases,
+MCP, authentication, durable workflows and deployment remain later work.

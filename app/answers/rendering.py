@@ -171,6 +171,8 @@ def _summary(request: AnswerRequest) -> list[str]:
         lines.append(
             "Supporting incidents: " + ", ".join(str(i) for i in result.incident_ids) + "."
         )
+    if result.operation == "compatible_stock" and not result.incident_ids:
+        lines.append("No supporting incidents were returned for this query.")
     # A count alone does not imply recurrence: require the same fault in a declared
     # interval, under the executed filters, with the complete result available.
     if isinstance(plan, IncidentsPlan) and result.operation == "incidents":

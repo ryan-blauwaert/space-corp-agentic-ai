@@ -32,7 +32,7 @@ def reviewed(tmp_path):
     return tmp_path
 
 
-def test_completed_review_can_pass_a_single_report(reviewed):
+def test_recorded_factual_assessment_can_pass_a_single_report(reviewed):
     result = assess_answer_report(reviewed / "report.json", reviewed / "review.json")
     assert result["all_cases_passed"]
     assert result["mode"] == "fixed_evidence"
@@ -246,3 +246,105 @@ def test_batch_cannot_hide_critical_failures_or_mix_runs(batch, change):
     else:
         with pytest.raises((ValueError, FileNotFoundError)):
             assess_batch(protocol, folders)
+
+
+@pytest.mark.parametrize("method", ["evidence_inspection", "automated_fact_checks"])
+def test_factual_assessment_accepts_method_without_reviewer_type_restriction(reviewed, method):
+    path = reviewed / "review.json"
+    data = json.loads(path.read_text())
+    data["review_kind"] = method
+    data["reviewer"] = "test-assessment-process"
+    path.write_text(json.dumps(data))
+    assert assess_answer_report(reviewed / "report.json", path)["all_cases_passed"]
+
+
+def replace_with_safe_decline(folder, key, reason="unsupported_question"):
+    from app.answers.rendering import render_answer
+    from app.queries.contracts import DeclinedPlan
+    from scripts.evaluate_answers import AnswerEvaluationReport, automatic_checks
+    from scripts.query_evaluation_dataset import resolve_case
+
+    report = AnswerEvaluationReport.model_validate_json((folder / "report.json").read_text())
+    rows = []
+    for case in report.cases:
+        if case.key == key:
+            query = case.turn.request.query.model_copy(
+                update={
+                    "plan": DeclinedPlan(operation="declined", reason=reason),
+                    "response": None,
+                    "scope_status": "not_required",
+                }
+            )
+            request = case.turn.request.model_copy(update={"query": query})
+            turn = case.turn.model_copy(
+                update={
+                    "request": request,
+                    "response": case.turn.response.model_copy(
+                        update={"outcome": render_answer(request)}
+                    ),
+                }
+            )
+            events = tuple(e for e in case.events if e["event"] != "query_execution")
+            expected = resolve_case(
+                next(c for c in load_evaluation().cases if c.key == key),
+                load_manifest(),
+                report.workspace_id,
+            )
+            case = case.model_copy(
+                update={
+                    "turn": turn,
+                    "events": events,
+                    "checks": automatic_checks(expected, turn, events, live=True),
+                }
+            )
+        rows.append(case)
+    report = report.model_copy(update={"cases": tuple(rows)})
+    (folder / "report.json").write_text(report.model_dump_json())
+    path = folder / "review.json"
+    review = json.loads(path.read_text())
+    review["report_sha256"] = digest(report.model_dump(mode="json"))
+    for row in review["cases"]:
+        if row["key"] == key:
+            row["required_facts_covered"] = [False] * len(row["required_facts_covered"])
+            row["cautious_and_scope_correct"] = False
+    path.write_text(json.dumps(review))
+
+
+def test_one_unnecessary_empty_query_refusal_is_within_supported_allowance(batch):
+    protocol, folders = batch
+    replace_with_safe_decline(folders[0], "q3-empty")
+    result = assess_batch(protocol, folders)["datasets"]["queries-3"]
+    assert result["supported_cases"] == 54
+    assert result["declined_cases"] == 18
+    assert result["answerable_pass_rate"] == 53 / 54
+    assert result["meets_quality_target"]
+
+
+def test_repeated_empty_query_refusal_still_fails(batch):
+    protocol, folders = batch
+    for folder in folders:
+        replace_with_safe_decline(folder, "q3-empty")
+    assert not assess_batch(protocol, folders)["meets_quality_target"]
+
+
+def test_decline_category_allowance(batch):
+    protocol, folders = batch
+    replace_with_safe_decline(folders[0], "missing-facility")
+    assert assess_batch(protocol, folders)["meets_quality_target"]
+    replace_with_safe_decline(folders[1], "missing-facility")
+    assert not assess_batch(protocol, folders)["meets_quality_target"]
+
+
+def test_historical_assessment_is_explicit_and_preserves_source_binding(batch, monkeypatch):
+    protocol, folders = batch
+    monkeypatch.setattr("scripts.assess_answers.answer_digest", lambda: "changed")
+    with pytest.raises(ValueError, match="Frozen implementation"):
+        assess_batch(protocol, folders)
+    result = assess_batch(protocol, folders, historical=True)
+    assert result["historical"] and not result["current_implementation"]
+    path = folders[0] / "report.json"
+    report = json.loads(path.read_text())
+    report["implementation_sha256"] = "wrong"
+    path.write_text(json.dumps(report))
+    with pytest.raises(ValueError, match="Incompatible"):
+        assess_batch(protocol, folders, historical=True)

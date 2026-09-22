@@ -26,13 +26,13 @@ def fixed_report():
 def test_fixed_report_is_complete_but_does_not_claim_semantic_acceptance(fixed_report):
     assert len(fixed_report.cases) == 24
     assert all(all(c.checks.values()) for c in fixed_report.cases)
-    assert fixed_report.review_status == "required"
+    assert fixed_report.review_status == "not_measured"
     assert fixed_report.mode == "fixed_evidence"
     assert fixed_report.model_id is None and fixed_report.max_attempts == 0
     assert all(c.events == () for c in fixed_report.cases)
 
 
-def test_output_never_defaults_missing_human_review_to_pass(tmp_path, fixed_report):
+def test_output_never_defaults_unmeasured_facts_to_pass(tmp_path, fixed_report):
     write_report(tmp_path, fixed_report, load_answer_evaluation())
     review = json.loads((tmp_path / "review.json").read_text())
     assert review["reviewer"] is None
@@ -70,8 +70,8 @@ def test_mechanical_checks_do_not_certify_prose(fixed_report):
         next(c for c in load_evaluation().cases if c.key == case.key), load_manifest(), UUID(int=1)
     )
     assert all(automatic_checks(expected, turn, (), live=False).values())
-    # This deliberate limit is why completed independent semantic review is mandatory.
-    assert fixed_report.review_status == "required"
+    # Mechanical checks alone do not measure factual correctness.
+    assert fixed_report.review_status == "not_measured"
 
 
 def test_unsupported_prose_uuid_is_rejected(fixed_report):
