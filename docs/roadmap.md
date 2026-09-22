@@ -994,7 +994,7 @@ A user can explore the synthetic operational context, submit a question, and und
 
 The frontend build begins only after the first backend vertical slice is complete: the Phase 1 operational API and dataset, plus the controlled model, structured-query, and answer-synthesis capabilities in Waypoints 2.1 through 2.3. Do not defer the first frontend until later RAG, action, workflow, or observability phases; those capabilities should extend an already working interface when they exist.
 
-Before implementation, document the initial user journeys, route map, API error and empty-state behavior, and visual direction. This is a short readiness artifact for this waypoint, not a separate frontend implementation phase.
+Before implementation, document the initial user journeys, route map, API error and empty-state behavior, and visual direction. This is a short readiness artifact for this waypoint, not a separate frontend implementation phase. Before visual-identity implementation, agree on a documented design brief; exploration and design proposals do not authorize code or asset changes.
 
 ### Initial UI Scope
 
@@ -1004,6 +1004,7 @@ Before implementation, document the initial user journeys, route map, API error 
 - answer and supporting-record display
 - loading, empty, validation, and failure states
 - responsive and keyboard-accessible core flows
+- a cohesive, accessible visual identity applied to the completed query journey
 
 ### User Value
 
@@ -1012,6 +1013,22 @@ Transforms the first intelligent backend capability into a credible, usable prod
 ### Architectural Value
 
 Establishes a typed frontend/backend API boundary and validates that the backend's first complete vertical slice serves a real user workflow.
+
+### Visual Identity Refinement
+
+After the question-and-answer journey is functional and before final browser acceptance,
+refine the interface as a small, reviewable frontend increment. The goal is a credible,
+memorable operations product rather than decorative visual complexity.
+
+- document the approved product personality, visual direction, logo or wordmark approach,
+  color palette, typography, spacing, status treatment, and motion principles in
+  `docs/frontend-design.md`
+- establish reusable design tokens and apply the approved identity consistently to the
+  shell, operational context, question flow, answers, and meaningful states
+- validate color contrast, visible focus, non-color status indicators, keyboard use, and
+  desktop/narrow-viewport rendering
+- present visual directions and obtain explicit user approval before changing visual
+  identity, brand assets, or styling; preserve the agreed direction in `frontend/AGENTS.md`
 
 ### Frontend Organization and Contract
 
@@ -1036,6 +1053,8 @@ For either layout, use the backend OpenAPI schema as the API contract and genera
 - frontend client types match the documented backend contract, and the regeneration command is reproducible
 - component tests cover the primary query flow and meaningful client-side states
 - the paired frontend and backend pass an end-to-end question/answer and error-handling smoke test
+- the completed query journey uses the approved visual system consistently, with accessible
+  contrast, focus, status treatment, and responsive behavior verified
 
 ### Status
 
