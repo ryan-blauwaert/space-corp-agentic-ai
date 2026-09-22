@@ -1,8 +1,11 @@
 # Answer evaluation
 
 Waypoint 2.3 now has repeatable fixed-evidence and live end-to-end answer evaluation,
-plus an offline assessor for completed reviews. Acceptance remains pending: mechanical
-checks are not a factual review, and no live calls are authorized by this document.
+plus an offline assessor originally built around completed reviews. Human review is
+optional and is not a Waypoint 2.3 completion requirement. The roadmap requires
+evaluation of factual grounding, not human sign-off. Mechanical checks alone do not
+prove prose meaning; evidence-based renderer tests and recorded-output inspection
+remain relevant. No live calls are authorized by this document.
 
 ## Inputs and correction
 
@@ -52,8 +55,7 @@ contain full synthetic evidence/questions/answers, unlike application logs. Keep
 under ignored `.local/`, not in commits. No credentials are written.
 
 Exit 0 means a complete report with no mechanical failures, **not acceptance**. Exit 1
-means recorded mechanical failures. Exit 2 means setup/output failure. Every complete
-report still requires semantic review.
+means recorded mechanical failures. Exit 2 means setup/output failure. This exit status alone does not certify every roadmap criterion.
 
 ## What is checked
 
@@ -69,29 +71,22 @@ that limitation and that incomplete review cannot produce acceptance. The produc
 renderer has no free-prose input, but its wording could still be wrong. The scorer does
 not generate a second answer with the same renderer and call equality proof of truth.
 
-A human reviewer must inspect every delivered sentence against expected evidence and
-record, per case:
+### Factual grounding without mandatory human sign-off
 
-- one boolean for every required fact, including correct record association;
-- the count of supported atomic factual claims in the answer;
-- every unsupported claim, including plausible causes/actions or wrong values on real
-  records (an empty list only after inspecting all claims);
-- whether cautious behavior, scope, and completeness wording are correct;
-- notes explaining issues or non-obvious interpretations.
+Acceptance evidence combines expected-query/result checks, deterministic renderer tests
+against authored facts, reference/coverage checks, unsupported-input tests, and inspection
+of recorded outputs where needed. Human inspection may help, but a completed human
+review form is not required. Another model's agreement is also not proof of correctness.
+Record known omissions and limitations instead of treating unmeasured claim counts as zero.
+The roadmap's requirement to evaluate unsupported factual claims remains in force.
 
-The review identifies its reviewer and declares `review_kind: human`. Software verifies
-completeness and report binding, not the reviewer's identity or judgment. Automated
-agent review or another model's agreement is not a substitute for this declared gate.
-Synthetic review records used in tests are not real acceptance evidence.
-
-```bash
-.venv/bin/python -m scripts.assess_answers .local/evaluations/answers-fixed-development
-```
-
-The assessor rejects missing/null reviews, omitted or duplicate cases, incomplete fact
-coverage annotations, changed report/fixture/source hashes, and inconsistent automatic
-checks. Exit 0 is a reviewed single-report pass, 1 a reviewed failure, and 2 an
-incomplete/incompatible assessment. A single report cannot close the frozen live batch.
+**Tooling discrepancy:** `scripts.assess_answers` still requires `review_kind: human`
+and completed report-bound forms. Generated `review_status: required` fields and blank
+`review.json` files reflect that original implementation, not a current human approval
+gate. Its exit 2 for missing forms is not, by itself, a waypoint blocker. The assessor
+needs a separate implementation update to match this policy; do not fabricate human
+review records or describe the existing assessor as having passed. Its report integrity,
+source/fixture binding, duplicate detection, and mechanical checks remain useful.
 
 The eight prohibited-claim challenges are also tested as inadmissible free-prose inputs.
 That schema rejection is distinct from measuring the truth of the final sentences.
@@ -127,38 +122,45 @@ model or approves a mismatched broad query. This measures the guarded workflow, 
 human review usability or autonomous approval. Each case preserves its errors and
 traces; the command does not replace failures with extra attempts.
 
-Complete the report-bound human reviews for all six runs, then assess together:
+### Historical protocol and recommended alignment
 
-```bash
-.venv/bin/python -m scripts.assess_answers \
-  --protocol data/evaluations/answer-protocol-1.json \
-  .local/evaluations/answers-live-1/dev-1 \
-  .local/evaluations/answers-live-1/dev-2 \
-  .local/evaluations/answers-live-1/dev-3 \
-  .local/evaluations/answers-live-1/holdout-1 \
-  .local/evaluations/answers-live-1/holdout-2 \
-  .local/evaluations/answers-live-1/holdout-3
-```
+The original answer assessor required zero unsupported facts/references, zero call/trace
+errors or wrong queries/evidence, at least 95% fully correct nonempty answers, and 100%
+correct cautious cases and coverage disclosures. It grouped supported empty-result
+queries with declined requests. This was stricter than the query pilot and was not an
+explicit roadmap requirement. Preserve the original reports and protocol as history;
+do not describe their result as a pass under those original rules.
 
-Per dataset, the unchanged targets require zero delivered unsupported facts/references,
-zero call/trace errors or wrong queries/evidence, at least 95% fully correct answerable
-cases, and 100% correct cautious cases and coverage disclosures. A supported case failing
-all repetitions fails the batch. The answerable denominator is nonempty answer cases;
-empty queries and declined requests are cautious cases. Do not mix fixed and live runs,
-model configurations, partial batches, or duplicate reports. Never select only good runs
-or quietly weaken targets after seeing results. A report/review ledger remains a process
-requirement: software cannot detect deliberately withheld runs or a dishonest review.
+The recommended correction is to use the query pilot's categories and targets:
+
+| Outcome | Recommended target per dataset across all three runs |
+| --- | --- |
+| Supported questions, including valid empty-result queries | At least 95% correct intent, evidence, and answer behavior |
+| Requests expected to be declined | At least 90% correct decline classification, with no evidence execution |
+| Wrong executed query/evidence, unsupported operational claims/references, unsafe execution, or incorrect coverage disclosures | Zero observed failures |
+| Execution/model/trace errors | Zero; investigate before accepting |
+
+A supported case failing every repetition still needs investigation. An unnecessary
+refusal counts against supported-question success; it is not equivalent to executing
+a wrong query or inventing an operational fact. These are synthetic pilot targets,
+not guarantees for future inputs or production reliability. The 95%/90% alignment is
+recommended here, not implemented in the frozen protocol or assessor by this
+documentation change.
+
+Do not mix fixed and live runs, model configurations, partial batches, or duplicate
+reports. Preserve all planned runs, including failures. Any adopted policy change must
+be explicit and distinguish reassessment of existing evidence from a new live batch.
 
 ## Fixed-evidence preparation result
 
 The final fixed-evidence development and candidate-holdout reports each completed
 24/24 mechanical checks with no failures. They are stored under
 `.local/evaluations/answers-fixed-development-final/` and
-`.local/evaluations/answers-fixed-holdout-final/`. **Semantic reviews are blank and
-acceptance is not claimed.** An earlier development report is retained as a preparation
+`.local/evaluations/answers-fixed-holdout-final/`. **Human review forms are blank; this is not a completion blocker.** Mechanical
+success alone does not establish every factual-grounding criterion. An earlier development report is retained as a preparation
 artifact with its original source fingerprint; it is not current acceptance evidence.
 
-The approved live batch is recorded below; completed human reviews remain outstanding. A passing pilot still would
+The approved live batch is recorded below. A passing pilot still would
 not establish production reliability or correct source data/query interpretation for
 all future inputs. Preserve limitations in the answer guide and roadmap.
 
@@ -168,7 +170,7 @@ mypy, and whitespace checks passed. One existing Starlette/AnyIO warning remains
 Tests include fake-provider live-flow evaluation, fixed default without external calls,
 report/review tampering, incomplete/duplicate batches, critical failures, repeated-case
 failure gates, and inadmissible prose challenges. These tests do not constitute completed
-human factual reviews or live acceptance results.
+a measured live unsupported-claim rate or complete waypoint acceptance.
 
 
 ## Approved live batch result
@@ -191,12 +193,13 @@ a cautious unsupported-capability response and did not execute the query. This i
 unnecessary decline, not a fabricated inventory/work-order result or a failed API call.
 
 The case failed query agreement and answer-state checks; reference, coverage, and trace
-checks passed. The frozen target requires correct cautious/empty behavior in every
+checks passed. The original frozen target required correct cautious/empty behavior in every
 case: mechanical cautious-state success was 35/36 on holdout, below that target.
-Do not silently count this as the expected no-results response or rerun until it passes.
-Possible future remedies are a separately evaluated general planner improvement or an
-explicit prospective reconsideration of the tolerance for safe unnecessary declines.
-Neither is implemented or used to retroactively pass this batch.
+Do not count this as the expected no-results response or rerun until it passes.
+Under the recommended query-aligned classification, supported-query behavior would
+be 54/54 development and 53/54 holdout (98.1%); expected declines were 18/18 in each.
+Those counts address query/answer-state behavior, not independently certified factual
+completeness. They explain why this refusal should not alone block a 95% pilot target.
 
 Full evidence is under `.local/evaluations/answers-live-1/`: the frozen ledger,
 six report/review directories, per-case incremental records, runner output, and
@@ -204,9 +207,53 @@ six report/review directories, per-case incremental records, runner output, and
 unique case/outcome combinations, retaining their questions, occurrence mapping,
 expected evidence, and delivered content. Grouping does not omit the failed case.
 
-**Waypoint 2.3 remains in progress.** Human review forms are still blank, so unsupported
-semantic claim counts have not been certified and the offline assessor correctly exits
-2 (incomplete). The known mechanical failure would also prevent passing the current
-batch even after reviews are completed. No zero-hallucination or production-reliability
+**Waypoint 2.3 remains in progress.** Missing human forms no longer block completion.
+The original assessor still exits 2 for those forms and retains the stricter historical
+thresholds; this documentation update does not change its behavior or certify a pass.
+Remaining work is to reconcile the assessor with the agreed acceptance policy and
+resolve factual-coverage findings below. No zero-hallucination or production-reliability
 claim follows from these results. The batch authorization is consumed; obtain fresh
-approval for any additional live calls. No commits were made.
+approval for any additional live calls.
+
+## Assistant review of saved answers
+
+An assistant inspected all 25 distinct case/outcome combinations in the saved
+`review-summary.md`, comparing delivered sentences with authored expected evidence,
+required facts, prohibited claims, and both question wordings where present. These
+groups represent all 144 observations, including the failed outcome. This is a review
+aid: no human review forms were completed, no
+acceptance score was certified, and no additional model calls were made.
+
+| Area | Finding |
+| --- | --- |
+| Facility/equipment | Counts refer to facilities, statuses remain attached to the correct units, and supporting incidents are not treated as additional facilities. Queries without an incident condition disclose that distinction. |
+| Compatible stock | Recorded zero and missing inventory remain distinct. Compatibility does not imply that replacement will fix a fault. Conditional no-incident and no-compatibility results have different explanations. |
+| Work orders | Status, priority, dates, and flags match evidence. Exact-as-of and missing-date cases are not called overdue. Incident-affected units and direct targets remain distinct. Completed orders are not called overdue solely because their due date is old. |
+| Incidents | Recurrence is limited to the specified fault, interval, and executed filters. One incident is not called recurrence; resolved incidents are not presented as unresolved. No prediction is added. |
+| Inventory | Quantities, reorder points, and shortfalls match evidence, including equality and zero. No purchasing action is claimed. |
+| Empty and declined outcomes | Successful empty queries limit absence claims to the requested scope and filters. Missing/ambiguous references request clarification; prohibited requests claim no execution. The known supported-query refusal remains incorrect. |
+
+No fabricated operational values, relationships, causes, or actions were identified in
+this inspection. That finding applies only to the inspected outputs and does not
+certify an unsupported-claim rate or future reliability.
+
+Two items require attention in the acceptance review:
+
+1. **Incorrect capability refusal:** `ah-q3-empty` in holdout run 3 says the question
+   is outside supported capabilities. The question is supported. No database query ran,
+   so this cannot be credited as a correct empty answer. This remains the known
+   mechanical failure and an incorrect explanation to the caller.
+2. **Potential required-fact omission:** all six `compatibility-without-incident`
+   outcomes correctly state that incident evidence was not required and give the three
+   component quantities. They do not explicitly state that no supporting incidents
+   were returned, although the second authored required fact includes that statement.
+   Absence of an incident list should not automatically receive credit for explicitly
+   covering this fact. Record this omission when assessing required-fact coverage; human
+   sign-off is not needed to identify or correct it. It is not evidence that the unit has no incidents.
+
+The remaining acceptance work is to reconcile the assessor with the documented policy
+and resolve the factual-coverage omission. Any rendering or planner correction must preserve
+these historical reports and be verified as a new implementation; the current frozen
+batch cannot certify changed code. No fixture-specific planner exception or replacement run was introduced by this review.
+The removal of mandatory human review is an explicit policy correction requested by
+the user; the threshold alignment above remains a recommendation. Waypoint 2.3 remains open.
