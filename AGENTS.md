@@ -22,7 +22,8 @@ no failures or skips. See `docs/answer-evaluation.md` for evidence and limitatio
 Preserve historical reports and source attribution. Additional live calls require fresh
 approval. Waypoint 2.4 is active: the question/confirmation HTTP boundary is implemented;
 the frontend shell and facility/equipment context are implemented under `frontend/`.
-Question submission and paired question/answer browser acceptance remain pending. Keep this a
+Question submission, explicit scope review, and answer/evidence display are implemented.
+Repeatable paired browser acceptance and waypoint closeout remain pending. Keep this a
 lightweight local MVP; see `docs/api.md` for the single-process confirmation contract.
 
 ## Development Instructions

@@ -1059,8 +1059,19 @@ For either layout, use the backend OpenAPI schema as the API contract and genera
   type generation/check, and formatting passed. Browser checks used the real local
   API at 1280px and 390px widths, including equipment pagination and keyboard return.
   One existing backend deprecation warning remains. See `frontend/README.md` for setup.
-- Question/answer display, scope-review usability, and paired question/answer smoke
-  acceptance remain pending. Ask is a labeled placeholder; this waypoint is not complete.
+- The operations desk now submits questions and presents explicit scope review,
+  expiry/revision handling, grounded answers, supporting evidence, and safe failures.
+  Browser rendering preserves backend text and coverage without another model call.
+  Duplicate sends and stale responses are guarded; no chat history or automatic
+  retries/page fetching were introduced.
+- Question-interface verification: 45 frontend tests and 66 relevant backend tests
+  passed with no failures or skips. Production build/type checking, contract drift,
+  formatting, and whitespace checks passed. Browser checks completed submission,
+  scope confirmation, and evidence inspection with a fake planner and real local
+  data at desktop/narrow widths. No live model calls were made. The existing backend
+  deprecation warning remains.
+- Repeatable paired question/answer smoke acceptance and final waypoint verification
+  remain pending; this waypoint is not complete.
 
 ---
 
@@ -2281,8 +2292,8 @@ remains within the query-aligned pilot allowance. Full verification passed 1,210
 with no failures or skips. See [answer completion evidence](answer-evaluation.md#completion-evidence).
 Waypoint 2.4 exposes the internal answer workflow over HTTP with exact-plan scope
 confirmation, typed outcomes/evidence, and safe failures. The local frontend now
-provides facility and equipment context. Question/answer UI, paired question/answer
-acceptance, and confirmation usability validation remain pending.
+provides facility/equipment context and question/answer UI with explicit scope review.
+Repeatable paired question/answer acceptance and final waypoint verification remain pending.
 
 ---
 

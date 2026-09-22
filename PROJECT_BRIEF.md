@@ -463,5 +463,6 @@ saved query outcomes. The original unnecessary refusal remains documented within
 query-aligned pilot allowance. No new live calls were made for closeout. See
 [answer evaluation](docs/answer-evaluation.md) for the criterion mapping and limitations.
 Waypoint 2.4 now includes a local frontend shell and read-only facility/equipment context;
-question submission and full browser acceptance remain pending. Agents, RAG, vector databases,
+the operations desk now supports question submission, scope review, and grounded answers.
+Repeatable paired browser acceptance remains pending. Agents, RAG, vector databases,
 MCP, authentication, durable workflows and deployment remain later work.

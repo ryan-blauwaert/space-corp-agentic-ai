@@ -125,14 +125,14 @@ describe("operational context", () => {
     ).toBeInTheDocument();
     expect(fetcher).not.toHaveBeenCalled();
   });
-  it("offers keyboard navigation and an honest Ask placeholder without model calls", async () => {
+  it("offers keyboard navigation and opens Ask without making model calls", async () => {
     const { user, fetcher } = setup();
     await screen.findByText("Selene Base");
     await user.tab();
     expect(screen.getByRole("link", { name: "Skip to content" })).toHaveFocus();
     await user.click(screen.getByRole("link", { name: /Ask a question/ }));
     expect(
-      screen.getByRole("heading", { name: "Question interface coming next" }),
+      screen.getByRole("heading", { name: "Ask the operations desk" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("main")).toHaveFocus();
     expect(

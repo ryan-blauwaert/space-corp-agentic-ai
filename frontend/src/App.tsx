@@ -1,3 +1,4 @@
+import { QuestionScreen } from "./QuestionScreen";
 import { useCallback, useEffect, useRef } from "react";
 import {
   Link,
@@ -306,9 +307,7 @@ export function App() {
           >
             Operations <span aria-hidden="true">↗</span>
           </NavLink>
-          <NavLink to="/ask">
-            Ask a question <span className="soon">Soon</span>
-          </NavLink>
+          <NavLink to="/ask">Ask a question</NavLink>
         </nav>
         <div className="sidebar-note">
           <span className="signal" aria-hidden="true" /> LOCAL DEMO
@@ -330,23 +329,7 @@ export function App() {
               path="/facilities/:facilityId"
               element={<OperationsRoute />}
             />
-            <Route
-              path="/ask"
-              element={
-                <>
-                  <p className="eyebrow">QUESTIONS</p>
-                  <h1>Ask about operations</h1>
-                  <div className="panel placeholder">
-                    <h2>Question interface coming next</h2>
-                    <p>
-                      For now, explore facility records and their equipment in
-                      Operations.
-                    </p>
-                    <Link to="/">Explore facilities →</Link>
-                  </div>
-                </>
-              }
-            />
+            <Route path="/ask" element={<QuestionScreen />} />
             <Route
               path="*"
               element={

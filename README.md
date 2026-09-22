@@ -111,7 +111,8 @@ factual assessment, historical results and limitations. Full verification passed
 tests with no failures or skips at 2.3 closeout. Waypoint 2.4 now exposes the
 [question and scope-confirmation API](docs/api.md#operational-questions-waypoint-24).
 The [local frontend](frontend/README.md) now provides facility and equipment browsing.
-Question submission and paired question/answer browser acceptance remain pending.
+The operations desk supports questions, scope review, and grounded answers with
+supporting records. Repeatable paired browser acceptance remains pending.
 
 The [dataset guide](docs/dataset.md) covers bootstrap and refresh,
 [API documentation](docs/api.md) covers existing endpoints, and the

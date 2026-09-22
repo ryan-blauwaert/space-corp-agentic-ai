@@ -1,8 +1,8 @@
 # Space Corp interface
 
 The lightweight Waypoint 2.4 frontend lives alongside the FastAPI backend. It currently
-provides read-only facilities and scoped equipment. The Ask screen is a placeholder;
-question submission and paired question/answer acceptance remain the next work.
+provides read-only facility/equipment browsing and an operations question screen.
+The repeatable paired browser acceptance suite remains the next work.
 The [root roadmap](../docs/roadmap.md) remains authoritative.
 
 ## Local setup
@@ -29,7 +29,10 @@ Open http://127.0.0.1:5173. Both development and local build preview proxy `/api
 to the backend on port 8000. Browser requests stay on the frontend origin; no CORS
 or backend change is needed. The frontend never reads backend secrets or chooses a
 workspace. The existing server configuration supplies that scope. This is a local
-demo, not a deployment setup. No live model calls are made by these views.
+demo, not a deployment setup. Browsing makes no model calls. Submitting a question
+uses the configured backend model; confirmation adds no model call. Configure the
+backend as described in the [question API guide](../docs/api.md#operational-questions-waypoint-24).
+Live evaluation still requires fresh authorization.
 
 ## Verification and build
 
@@ -83,5 +86,44 @@ Component tests exercise browsing/detail, facility pagination, empty/error/retry
 invalid navigation, keyboard entry, focus, and stale-request cancellation. Manual browser
 checks cover the real baseline facilities/equipment and equipment pagination at desktop
 and narrow widths. These checks support the roadmap's shell, operational-context,
-contract, and meaningful-state criteria. They do not constitute question-flow or full
-waypoint acceptance; those await the next slices. No new CI configuration is added.
+contract, and meaningful-state criteria. The question coverage below complements these checks; full waypoint acceptance
+remains pending. No new CI configuration is added.
+
+## Asking the operations desk
+
+`/ask` accepts a new question of up to 4,000 characters. It sends only that question
+and a fixed first page (50 records, offset zero). Facility navigation never silently
+scopes the question. Questions are independent; no chat history or local storage is
+introduced. Loading/error states use accessible announcements, and focus moves to
+the result or error. Nothing submits on navigation or mount.
+
+Unanchored proposals show all plan fields, including unrestricted fields, exact IDs,
+comparison operators, booleans, timestamps, and pagination. All filters intersect;
+listed alternatives within one filter mean any listed value. Review before selecting
+**Confirm scope and retrieve**. The browser sends only the opaque server handle.
+Editing or revising the question discards the review. Expiry is conservatively timed
+from request start; the server remains authoritative. Failed, expired, or consumed
+reviews require a fresh submission, never an automatic confirmation retry.
+
+Answer text is displayed verbatim as plain text, with complete/partial coverage and
+all scope disclosures preserved. Expand supporting records and references to inspect
+the original returned evidence, including nested relationships and null/zero values.
+No page fetching, extra record reads, or prose rewriting happens in the browser.
+Cautious outcomes distinguish no results, insufficient evidence, declined questions,
+and withheld answers. Server errors are mapped to safe local messages.
+
+Requests are sent from explicit user actions. In-flight buttons are disabled and a
+synchronous guard prevents double sends. Stop waiting or route navigation aborts the
+browser request and discards late responses, following [React effect cleanup guidance](https://react.dev/reference/react/useEffect#fetching-data-with-effects)
+and the [AbortController API](https://developer.mozilla.org/en-US/docs/Web/API/AbortController).
+This cannot guarantee server-side cancellation. Waiting is bounded to two minutes;
+there is no automatic retry, and a dismissed confirmation cannot be reused. Handles
+are never shown in the page, saved in browser storage, or included in URLs.
+
+Question component tests cover direct answers, explicit review/confirmation, validation,
+expiry, failed confirmations, duplicate sends, timeout, stale responses, route cleanup,
+keyboard submission, safe errors, literal text rendering, partial/cautious outcomes,
+and supporting evidence across all five domains. Manual browser verification used a
+temporary fake planning provider with real local database execution at 1280px and
+390px widths. No live model calls were made. This does not replace the repeatable paired
+smoke suite and full waypoint closeout planned for the next increment.

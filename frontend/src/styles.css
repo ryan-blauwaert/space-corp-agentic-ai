@@ -515,3 +515,220 @@ footer span {
     transition: none !important;
   }
 }
+
+.question-form,
+.question-result {
+  padding: 26px;
+}
+.question-form label {
+  display: block;
+  font-size: 17px;
+  font-weight: 650;
+}
+.scope-note,
+.question-hint,
+.scope-page {
+  font-size: 12px;
+  color: #52675f;
+  line-height: 1.8;
+}
+.question-form textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 120px;
+  border: 1px solid #a9b9af;
+  border-radius: 5px;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #20383d;
+  padding: 14px;
+  background: #fbfcf9;
+}
+.question-form textarea:focus-visible,
+summary:focus-visible {
+  outline: 3px solid #c27622;
+  outline-offset: 3px;
+}
+.question-form textarea:disabled {
+  opacity: 0.7;
+}
+.question-form-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin-top: 15px;
+}
+.question-form-footer > span {
+  font-size: 11px;
+  color: #62736c;
+}
+.question-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+button.primary-button {
+  background: #254b42;
+  border-color: #254b42;
+  color: #fff;
+}
+button.primary-button:hover:not(:disabled) {
+  background: #17392f;
+}
+.question-hint {
+  margin: 20px 0 0;
+}
+.question-result {
+  margin-top: 25px;
+  overflow-wrap: anywhere;
+}
+.question-result:focus {
+  outline: none;
+}
+.question-result h2 {
+  font-size: 21px;
+}
+.question-result > p {
+  font-size: 13px;
+}
+.submitted-question {
+  white-space: pre-wrap;
+  border-bottom: 1px solid #dce3db;
+  padding-bottom: 18px;
+  margin: 0 0 25px;
+  color: #52675f;
+}
+.submitted-question strong {
+  display: block;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 5px;
+}
+.scope-warning {
+  border-left: 3px solid #bd8b3a;
+  background: #fff6e6;
+  padding: 12px 15px;
+  color: #624918;
+}
+.record-fields {
+  margin: 12px 0;
+  font-size: 12px;
+}
+.record-fields > div {
+  display: grid;
+  grid-template-columns: minmax(130px, 1fr) minmax(0, 2fr);
+  border-bottom: 1px solid #e6ebe4;
+  padding: 9px 0;
+  gap: 15px;
+}
+.record-fields dt {
+  color: #52675f;
+}
+.record-fields dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.record-fields .record-fields {
+  margin: 0;
+}
+.record-fields .record-fields > div {
+  grid-template-columns: minmax(80px, 1fr) minmax(0, 2fr);
+}
+.record-fields .record-fields > div:first-child {
+  padding-top: 0;
+}
+.nested-records {
+  padding-left: 18px;
+}
+.muted {
+  color: #62736c;
+}
+.answer-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+}
+.coverage {
+  font-size: 11px;
+  padding: 5px 10px;
+  border-radius: 4px;
+  background: #ecf3e9;
+  color: #37663d;
+}
+.coverage.partial {
+  background: #fff2da;
+  color: #875811;
+}
+.answer-text {
+  white-space: pre-wrap;
+  line-height: 1.9;
+  font-size: 14px !important;
+  margin: 20px 0 28px;
+}
+.answer-disclosure {
+  border-top: 1px solid #dce3db;
+  padding: 16px 0;
+}
+.answer-disclosure summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+.evidence-records {
+  list-style: none;
+  padding: 0;
+}
+.evidence-records > li {
+  background: #f8faf6;
+  border: 1px solid #e1e7dd;
+  padding: 16px;
+  border-radius: 5px;
+  margin: 15px 0;
+}
+.evidence-records h3 {
+  font-size: 13px;
+  margin: 0;
+}
+.reference-list {
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+.reference-list li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 8px 0;
+}
+.reference-list strong {
+  font-weight: 500;
+  min-width: 120px;
+}
+@media (max-width: 650px) {
+  .question-form,
+  .question-result {
+    padding: 20px 16px;
+  }
+  .question-form-footer,
+  .answer-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .question-actions button {
+    font-size: 12px;
+  }
+  .record-fields > div,
+  .record-fields .record-fields > div {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+  .record-fields .record-fields {
+    padding-left: 12px;
+    border-left: 2px solid #dce3db;
+  }
+}
