@@ -87,7 +87,7 @@ No particular agent framework, workflow framework, vector database, or deploymen
 
 ## Current Status
 
-**Phase 2 — Minimum Viable Product; Waypoint 2.2 complete**
+**Phase 2 — Minimum Viable Product; Waypoint 2.3 in progress**
 
 The operational backend, versioned dataset, read-only API, PR checks, and controlled
 [LLM integration](docs/llm-integration.md) are implemented. Bounded queries support
@@ -100,6 +100,14 @@ passed all 144 cases using `gpt-5.6-luna` with medium reasoning. Unanchored plan
 require explicit caller confirmation before execution; the evaluator simulates this
 review. These synthetic pilot results do not guarantee model interpretation on unseen
 requests. See the [query guide](docs/structured-queries.md) for capabilities and limits.
+
+Waypoint 2.2 is complete. [Answer synthesis](docs/answer-synthesis.md) now has typed
+evidence-fact rendering, selection validation, development expectations, and cautious
+responses. `AnswerService` connects the query flow to rendered answers with correlated
+tracing and scope confirmation. Only query planning calls the model; fact-ordering calls
+are dropped. [Answer evaluation](docs/answer-evaluation.md) now produces fixed-evidence
+and live reports with required factual review. The live batch passed 143/144 mechanical
+checks, with one supported question incorrectly declined; acceptance and reviews remain pending.
 
 The [dataset guide](docs/dataset.md) covers bootstrap and refresh,
 [API documentation](docs/api.md) covers existing endpoints, and the

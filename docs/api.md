@@ -105,7 +105,10 @@ an HTTP query endpoint. Units 3–4 expose direct typed-plan executors for all f
 domains; unit 5 adds internal model-guided orchestration through `QueryService.ask()`.
 Unanchored proposals now require exact-plan confirmation through the internal
 `QueryService.confirm_scope()` boundary before evidence execution. This does not
-introduce a natural-language or confirmation HTTP endpoint. FastAPI's generated schema
+introduce a natural-language or confirmation HTTP endpoint. The internal `AnswerService`
+now composes this same query/confirmation flow with deterministic answer rendering and
+tracing; see [internal answer usage](answer-synthesis.md#internal-workflow-and-tracing).
+It adds no HTTP routes or request parameters. FastAPI's generated schema
 remains authoritative for these existing endpoints. Equipment status and incident status support Q1. Exact model compatibility
 and local inventory support Q2. Work-order status, priority, and due times support
 Q3. Unit model references and incident fault/time filters support Q4. Inventory

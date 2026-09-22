@@ -927,6 +927,8 @@ Use deterministic checks for query results and prohibited operations. Phase 8 ex
 ### Capability
 
 Structured database results are converted into a useful natural-language answer.
+The existing model plans the query; application code renders the returned evidence.
+Free-form model prose is not an approved delivery path.
 
 ### User Value
 
@@ -935,6 +937,9 @@ A user can ask an operational question conversationally instead of using an API 
 ### Completion Criteria
 
 - answer is based only on returned structured data
+- delivered sentences are rendered by application code from validated evidence facts;
+  model output cannot inject prose, replace values, or suppress mandatory scope/coverage
+  disclosures; rendering supports domain/filter combinations rather than Q1–Q5 templates
 - empty-result behavior is handled correctly
 - answer record identifiers are deterministically checked against returned evidence; unsupported references are rejected before delivery
 - evaluation measures unsupported factual claims, including plausible claims about valid records, against documented acceptance thresholds
@@ -948,13 +953,39 @@ These checks provide measurable grounding guarantees; they do not claim that a g
 
 ### Possible Framework Use
 
-LangChain output parsers or runnable composition may assist with answer formatting,
-but evidence selection, identifier checks, grounding decisions, and cautious
-fallbacks remain application-owned.
+No framework is required. Reuse the existing query planner and typed domain renderers;
+no additional model call is needed for answer ordering or prose. Evidence values, sentence wording,
+identifier checks, scope disclosures, and cautious responses remain application-owned.
 
 ### Status
 
-- [ ] Complete
+- [~] In progress — typed evidence facts, deterministic sentence rendering, selection
+  validation, cautious responses, development expectations, and traced query-to-answer
+  orchestration exist.
+- The renderer rebuilds facts from trusted query evidence and accepts only snapshot-bound
+  fact IDs for presentation order. All returned records and mandatory disclosures remain.
+  Free-form draft delivery is removed; model-provided values or prose cannot be rendered.
+- Rules cover all five domains, null/zero stock, distinct work-order relationships,
+  conditional recurrence, and empty/partial results. Unsupported selections and oversized
+  answers are withheld. No extra queries, framework, or database changes were added.
+- `answers-1` and the historical 2.2 fixtures/protocols remain unchanged. Rendering tests
+  replace obsolete free-prose validation tests and cover additional filter combinations.
+- `AnswerService` connects query execution directly to rendering, preserves exact-plan
+  scope confirmation, and links planning/execution/results/answers through content-free
+  tracing. The fact-ordering model call is dropped; only query planning calls the model.
+- Answer evaluation now produces fixed/live reports with independently reviewed factual
+  checks. The assessor rejects incomplete reviews, drift, duplicates, and incompatible
+  batches. Fixed development and candidate holdout each pass 24/24 mechanical checks;
+  the approved frozen live batch then scored 72/72 development and 71/72 holdout on
+  mechanical checks. One valid empty work-order query was incorrectly declined as
+  unsupported. All 144 calls completed in one attempt. This misses the current 100%
+  cautious/empty-state target; semantic reviews are also pending. See the
+  [assessment record](answer-evaluation.md#approved-live-batch-result).
+  Do not equate mechanical checks with factual acceptance or replace the failed run.
+- Deterministic rendering does not prove query correctness or eliminate renderer bugs.
+- Verification before live answer assessment: 1,203 tests passed with no failures or
+  skips, including required PostgreSQL integration and evaluator/review-gate coverage.
+  Lint, formatting, and types passed; one existing Starlette/AnyIO warning remains.
 
 ---
 
@@ -2225,16 +2256,21 @@ Current phase:
 
 Current waypoint:
 
-**Waypoint 2.2 — Structured Query Capability (complete, 2026-09-21)**
+**Waypoint 2.3 — Structured Answer Synthesis (in progress)**
 
 Bounded contracts, all five read-only executors, scoped model planning, tracing,
 explicit scope confirmation, and repeatable evaluations are implemented. The frozen
 Luna assessment passed 144/144 cases across six runs; earlier failures remain in the
 assessment history. The verified workflow requires caller review for unanchored plans,
 simulated in evaluation. Q1–Q5 remain examples alongside additional supported filters.
-Changes remain uncommitted at the user's direction. Waypoint 2.3 answer synthesis is
-next and has not been started; begin it only when requested. Real-user coverage and
-confirmation usability remain future validation work.
+Waypoint 2.2 was committed as `eb2fc19`. Waypoint 2.3 now renders sentences from evidence
+facts, with snapshot-bound selection
+validation and cautious responses. The internal service connects queries to rendered
+answers with tracing and scope confirmation. Model-prose delivery and the planned
+fact-ordering call are removed. Evaluation tooling is implemented; live assessment and
+completed human factual reviews remain pending. The approved live batch had one safe
+unnecessary decline (143/144 mechanical passes), so 2.3 is not complete.
+Real-user coverage and confirmation usability remain future validation work.
 
 ---
 
