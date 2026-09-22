@@ -1050,8 +1050,17 @@ For either layout, use the backend OpenAPI schema as the API contract and genera
   cases in two workspaces using a fake provider, plus confirmation expiry/replay,
   authority rejection, pagination, safe failures, and generated documentation.
   No live model calls were made; browser acceptance is outside this backend change.
-- Frontend setup, operational context, question/answer display, accessibility, and
-  paired browser smoke acceptance remain pending. This waypoint is not complete.
+- A separate `frontend/` application now provides the operations shell, facility
+  list/detail and scoped equipment with pagination, safe loading/empty/error states,
+  responsive layouts, and keyboard navigation. Client types are generated from
+  FastAPI OpenAPI with backend revision/schema attribution and a drift check.
+- Frontend verification: 12 component tests and 38 relevant backend tests passed
+  with no failures or skips; clean frozen-lockfile installation, production build,
+  type generation/check, and formatting passed. Browser checks used the real local
+  API at 1280px and 390px widths, including equipment pagination and keyboard return.
+  One existing backend deprecation warning remains. See `frontend/README.md` for setup.
+- Question/answer display, scope-review usability, and paired question/answer smoke
+  acceptance remain pending. Ask is a labeled placeholder; this waypoint is not complete.
 
 ---
 
@@ -2271,8 +2280,9 @@ only the six corrected incident disclosures changed. The original unnecessary re
 remains within the query-aligned pilot allowance. Full verification passed 1,210 tests
 with no failures or skips. See [answer completion evidence](answer-evaluation.md#completion-evidence).
 Waypoint 2.4 exposes the internal answer workflow over HTTP with exact-plan scope
-confirmation, typed outcomes/evidence, and safe failures. Frontend implementation,
-paired browser acceptance, and confirmation usability validation remain pending.
+confirmation, typed outcomes/evidence, and safe failures. The local frontend now
+provides facility and equipment context. Question/answer UI, paired question/answer
+acceptance, and confirmation usability validation remain pending.
 
 ---
 

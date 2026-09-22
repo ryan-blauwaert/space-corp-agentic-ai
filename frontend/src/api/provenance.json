@@ -1,0 +1,5 @@
+{
+  "backend_revision": "c5b4d4729a4fe27d4a6fd2077018cc6c1c600737",
+  "schema_sha256": "c36aa5147c5ddaa93b1eaee0f8d295bee38215d9d685da3a82d2ae5b8b269a0d",
+  "source": "app.main.create_app().openapi()"
+}

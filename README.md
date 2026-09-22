@@ -110,7 +110,8 @@ query-aligned pilot allowance. See [answer evaluation](docs/answer-evaluation.md
 factual assessment, historical results and limitations. Full verification passed 1,210
 tests with no failures or skips at 2.3 closeout. Waypoint 2.4 now exposes the
 [question and scope-confirmation API](docs/api.md#operational-questions-waypoint-24).
-Frontend implementation and browser acceptance remain pending.
+The [local frontend](frontend/README.md) now provides facility and equipment browsing.
+Question submission and paired question/answer browser acceptance remain pending.
 
 The [dataset guide](docs/dataset.md) covers bootstrap and refresh,
 [API documentation](docs/api.md) covers existing endpoints, and the

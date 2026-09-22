@@ -462,5 +462,6 @@ The disclosure correction passes both fixed datasets and offline replay of all 1
 saved query outcomes. The original unnecessary refusal remains documented within the
 query-aligned pilot allowance. No new live calls were made for closeout. See
 [answer evaluation](docs/answer-evaluation.md) for the criterion mapping and limitations.
-Frontend work remains in Waypoint 2.4 and has not begun. Agents, RAG, vector databases,
+Waypoint 2.4 now includes a local frontend shell and read-only facility/equipment context;
+question submission and full browser acceptance remain pending. Agents, RAG, vector databases,
 MCP, authentication, durable workflows and deployment remain later work.

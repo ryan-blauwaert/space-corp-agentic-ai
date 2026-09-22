@@ -21,7 +21,8 @@ Full verification passed 1,210 tests, including required PostgreSQL integration,
 no failures or skips. See `docs/answer-evaluation.md` for evidence and limitations.
 Preserve historical reports and source attribution. Additional live calls require fresh
 approval. Waypoint 2.4 is active: the question/confirmation HTTP boundary is implemented;
-frontend implementation and paired browser acceptance remain pending. Keep this a
+the frontend shell and facility/equipment context are implemented under `frontend/`.
+Question submission and paired question/answer browser acceptance remain pending. Keep this a
 lightweight local MVP; see `docs/api.md` for the single-process confirmation contract.
 
 ## Development Instructions
