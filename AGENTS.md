@@ -19,7 +19,12 @@ from trusted evidence. Selection changes order without hiding records or mandato
 scope/coverage disclosures. Use domain evidence shapes, not Q1–Q5 templates. Model
 ordering calls are dropped. `AnswerService` connects planning/execution to rendering
 and traces the full flow, preserving exact-plan scope confirmation with no additional
-model call. Answer evaluation remains pending. Follow
+model call. Answer evaluation tooling and a frozen protocol are implemented, with fixed
+reports ready for review. The approved six-run live batch scored 72/72 development and
+71/72 holdout on mechanical checks; one valid empty work-order query was incorrectly
+declined. This misses the frozen cautious-state target, and human factual reviews remain
+pending. Preserve the batch; do not silently relax criteria or repeat failed runs.
+Authorization is consumed; obtain fresh approval before additional live calls. Follow
 `docs/answer-synthesis.md`; do not implement later-waypoint features until requested.
 
 ## Development Instructions

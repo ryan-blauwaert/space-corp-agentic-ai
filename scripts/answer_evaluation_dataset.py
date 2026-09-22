@@ -2,12 +2,13 @@
 
 from pathlib import Path
 from typing import Annotated, Literal
+from uuid import UUID
 
 from pydantic import Field, model_validator
 
 from app.queries.contracts import Frozen
-from scripts.dataset_manifest import Key, digest
-from scripts.query_evaluation_dataset import DEFAULT_EVALUATION, load_evaluation
+from scripts.dataset_manifest import Key, digest, load_manifest
+from scripts.query_evaluation_dataset import DEFAULT_EVALUATION, load_evaluation, resolve_case
 
 DEFAULT_ANSWERS = Path(__file__).resolve().parents[1] / "data/evaluations/answers-1.json"
 Fact = Annotated[str, Field(min_length=1, pattern=r"\S")]
@@ -31,7 +32,7 @@ class AnswerEvaluationDataset(Frozen):
     version: Key
     query_dataset_version: Key
     query_dataset_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
-    purpose: Literal["development"] = "development"
+    purpose: Literal["development", "holdout_candidate"] = "development"
     cases: tuple[AnswerExpectation, ...] = Field(min_length=1)
     challenges: tuple[GroundingChallenge, ...] = Field(min_length=1)
 
@@ -57,4 +58,19 @@ def load_answer_evaluation(
         raise ValueError("Answer expectations must match the frozen query dataset")
     if {c.query_case for c in answers.cases} != {c.key for c in queries.cases}:
         raise ValueError("Answer expectations must cover every query case exactly once")
+    if answers.purpose != queries.purpose:
+        raise ValueError("Answer and query dataset purposes must agree")
+    manifest = load_manifest()
+    by_key = {c.query_case: c for c in answers.cases}
+    for case in queries.cases:
+        resolved = resolve_case(case, manifest, UUID(int=1))
+        outcome = (
+            "declined"
+            if resolved.expected_result is None
+            else "no_results"
+            if resolved.expected_result.page.total == 0
+            else "answered"
+        )
+        if by_key[case.key].outcome != outcome:
+            raise ValueError("Answer outcome contradicts expected query evidence")
     return answers

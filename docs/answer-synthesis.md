@@ -4,7 +4,8 @@ Waypoint 2.3 is in progress. Typed evidence facts, deterministic sentence render
 selection validation, cautious responses, and internal query-to-answer orchestration with
 correlated tracing are implemented. Free-form model-prose delivery is removed. The model
 call for fact ordering has been dropped; only existing query planning uses the model.
-There is no answer HTTP endpoint or live answer assessment yet. The query service is unchanged.
+There is no answer HTTP endpoint. Answer evaluation tooling now exists; live acceptance
+and semantic reviews remain pending. The query service is unchanged.
 
 ## Implemented direction: render answers from evidence
 
@@ -177,15 +178,13 @@ Unexpected errors also produce content-free failure metadata and propagate for h
 at the future API boundary. Cautious renderer results remain typed outcomes (including
 oversized output withheld as `invalid_answer`). Trace metadata is not a semantic grader.
 
-## Remaining committable work
+## Remaining acceptance work
 
-**`test: verify evidence-rendered answers`** — Extend the existing evaluator to score
-required facts, correct record associations, cautious behavior, and delivered sentences.
-Separate fixed-evidence deterministic rendering checks from end-to-end planning accuracy.
-Freeze the full implementation and fresh assessment data, obtain approval before live
-planning calls, retain all results, and publish limitations before completing 2.3.
-No ordering/synthesis model call is planned. The original six-run acceptance plan below
-applies to end-to-end planning; fixed-evidence renderer evaluation needs no model calls.
+The [answer evaluator and assessor](answer-evaluation.md) are implemented. Fixed-evidence
+reports are ready for semantic review; the frozen live assessment is recorded in the
+evaluation guide. Complete the reviews and approved live runs, preserve every
+result, and assess the complete batch before marking 2.3 complete. No additional model
+ordering/synthesis call is planned. A mechanical pass alone is not answer acceptance.
 
 ## Acceptance thresholds set before live answer testing
 
@@ -227,8 +226,8 @@ work-order relationships, recurrence conditions and time boundaries, partial/emp
 pages, state/context consistency, snapshot drift, selection tampering, literal escaping,
 and oversized output. Removed free-prose and explicit-claim tests were replaced with
 renderer and selection coverage; test totals therefore need not increase monotonically.
-Live end-to-end answer quality and the full semantic evaluator remain unimplemented
-and unverified. Model ordering is no longer planned. Waypoint 2.3 remains in progress.
+Live end-to-end answer quality and completed semantic review remain unverified; the
+evaluator and report-bound review gates are now implemented. Model ordering is no longer planned. Waypoint 2.3 remains in progress.
 
 Historical verification: the contracts revision passed 1,074 tests; the explicit-claim
 validation revision passed 1,143 tests, both including required PostgreSQL integration
@@ -251,3 +250,10 @@ retry limit of one; confirmation/rendering add none. This verifies orchestration
 live interpretation or answer semantic quality. Ruff, formatting, mypy, and whitespace
 checks passed; one existing Starlette/AnyIO warning remains. No live calls or commits
 were made for this change.
+
+
+The approved live batch completed all 144 single-attempt planning calls and passed
+143/144 mechanical checks. One supported empty work-order query was incorrectly
+classified as unsupported. This misses the frozen cautious/empty-state target;
+human factual reviews remain incomplete. See the [full record](answer-evaluation.md#approved-live-batch-result).
+No further live calls are authorized by that completed batch.

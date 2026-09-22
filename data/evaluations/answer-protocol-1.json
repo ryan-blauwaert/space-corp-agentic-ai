@@ -1,0 +1,26 @@
+{
+  "version": "answer-protocol-1",
+  "implementation_sha256": "70788ea027c5fbab1e15c98157918283ac0ed1141e4a68e749d89bcb4d7ba3ab",
+  "prompt_sha256": "e331b624334440807abf91e073f9adceb5908b4516a5548a249c8699b263c206",
+  "renderer_version": "1",
+  "model_id": "gpt-5.6-luna",
+  "reasoning_effort": "medium",
+  "repetitions": 3,
+  "minimum_answerable_pass_rate": 0.95,
+  "datasets": {
+    "queries-3": {
+      "query_path": "data/evaluations/queries-3.json",
+      "answer_path": "data/evaluations/answers-1.json",
+      "query_sha256": "b50d855a1872cf73a60424cf2ee2699cd2a0f078bb7c466a8fa580a7d18054e9",
+      "answer_version": "answers-1",
+      "answer_sha256": "cfe1b6bf927685cbaf62f6d599566279c23f8e1660f71ecf10a627b38d286a67"
+    },
+    "queries-holdout-3": {
+      "query_path": "data/evaluations/queries-holdout-3.json",
+      "answer_path": "data/evaluations/answers-holdout-1.json",
+      "query_sha256": "e201df7db6f5b9350513b2451a00b2f0a2084faf89989df677deea0fa3397af8",
+      "answer_version": "answers-holdout-1",
+      "answer_sha256": "cd14dcd43cca0157b968ac331095ae84ca5497feb2c29e9cc8f1ac0e70f19f98"
+    }
+  }
+}

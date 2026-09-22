@@ -973,12 +973,19 @@ identifier checks, scope disclosures, and cautious responses remain application-
 - `AnswerService` connects query execution directly to rendering, preserves exact-plan
   scope confirmation, and links planning/execution/results/answers through content-free
   tracing. The fact-ordering model call is dropped; only query planning calls the model.
-- Answer evaluation and live acceptance remain pending. Deterministic rendering does not
-  prove query correctness or eliminate renderer bugs. See [answer guidance](answer-synthesis.md).
-- Verification: 1,175 tests passed, including 42 new workflow tests and required
-  PostgreSQL integration in two workspaces, with no failures or skips. Full-flow tests
-  use a fake provider and confirm no extra model calls. Lint, formatting, and types passed;
-  one existing Starlette/AnyIO warning remains. No live model calls were made.
+- Answer evaluation now produces fixed/live reports with independently reviewed factual
+  checks. The assessor rejects incomplete reviews, drift, duplicates, and incompatible
+  batches. Fixed development and candidate holdout each pass 24/24 mechanical checks;
+  the approved frozen live batch then scored 72/72 development and 71/72 holdout on
+  mechanical checks. One valid empty work-order query was incorrectly declined as
+  unsupported. All 144 calls completed in one attempt. This misses the current 100%
+  cautious/empty-state target; semantic reviews are also pending. See the
+  [assessment record](answer-evaluation.md#approved-live-batch-result).
+  Do not equate mechanical checks with factual acceptance or replace the failed run.
+- Deterministic rendering does not prove query correctness or eliminate renderer bugs.
+- Verification before live answer assessment: 1,203 tests passed with no failures or
+  skips, including required PostgreSQL integration and evaluator/review-gate coverage.
+  Lint, formatting, and types passed; one existing Starlette/AnyIO warning remains.
 
 ---
 
@@ -2260,7 +2267,9 @@ Waypoint 2.2 was committed as `eb2fc19`. Waypoint 2.3 now renders sentences from
 facts, with snapshot-bound selection
 validation and cautious responses. The internal service connects queries to rendered
 answers with tracing and scope confirmation. Model-prose delivery and the planned
-fact-ordering call are removed. Answer assessment remains pending.
+fact-ordering call are removed. Evaluation tooling is implemented; live assessment and
+completed human factual reviews remain pending. The approved live batch had one safe
+unnecessary decline (143/144 mechanical passes), so 2.3 is not complete.
 Real-user coverage and confirmation usability remain future validation work.
 
 ---
