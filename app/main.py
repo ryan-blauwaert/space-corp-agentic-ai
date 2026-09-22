@@ -7,6 +7,7 @@ from sqlalchemy.exc import OperationalError
 from starlette.exceptions import HTTPException
 
 from app.api.errors import database_unavailable, http_problem
+from app.api.pending_answers import PendingAnswers
 from app.api.routes import (
     catalog,
     equipment_units,
@@ -14,6 +15,7 @@ from app.api.routes import (
     health,
     incidents,
     inventory_items,
+    questions,
     work_orders,
 )
 from app.config import Settings
@@ -66,6 +68,7 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
     try:
         yield
     finally:
+        application.state.pending_answers.clear()
         if application.state.manages_database:
             application.state.database.dispose()
             application.state.database = None
@@ -84,6 +87,7 @@ def create_app(
     application.state.settings = configured_settings
     application.state.database = database
     application.state.manages_database = False
+    application.state.pending_answers = PendingAnswers()
     application.add_exception_handler(HTTPException, http_problem)
     application.add_exception_handler(OperationalError, database_unavailable)
     application.include_router(health.router)
@@ -93,6 +97,7 @@ def create_app(
     application.include_router(incidents.router)
     application.include_router(work_orders.router)
     application.include_router(catalog.router)
+    application.include_router(questions.router)
 
     return application
 

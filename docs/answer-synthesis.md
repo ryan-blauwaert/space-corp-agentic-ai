@@ -4,7 +4,8 @@ Waypoint 2.3 is complete. Typed evidence facts, deterministic sentence rendering
 selection validation, cautious responses, and internal query-to-answer orchestration with
 correlated tracing are implemented. Free-form model-prose delivery is removed. The model
 call for fact ordering has been dropped; only existing query planning uses the model.
-There is no answer HTTP endpoint. See [completion evidence](answer-evaluation.md#completion-evidence)
+Waypoint 2.4 now exposes this service through the [question API](api.md#operational-questions-waypoint-24).
+See [completion evidence](answer-evaluation.md#completion-evidence)
 for fixed factual assessments, saved-outcome replay, live query results and limitations.
 The query service is unchanged.
 
@@ -158,7 +159,8 @@ exact-plan checking to `QueryService.confirm_scope`, and renders the returned ev
 It rejects nonpending turns and changed request/operation/workspace contexts. It does
 not persist turns, authenticate callers, or strengthen the query layer's replay policy.
 The retained pending value is not a one-use token. Do not expose it directly as an
-untrusted HTTP approval payload when building 2.4.
+untrusted HTTP approval payload. The 2.4 API retains this value server-side and adds
+a bounded, expiring, one-use confirmation handle without changing the internal service.
 
 `answer_operation` covers the complete ask/confirmation operation; `answer_render`
 covers rendering. Both record a synthesis operation ID (returned on `AnswerResponse`),

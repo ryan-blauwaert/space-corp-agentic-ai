@@ -11,7 +11,7 @@ When the local API is running, use:
 - [ReDoc](http://127.0.0.1:8000/redoc)
 - [OpenAPI schema](http://127.0.0.1:8000/openapi.json)
 
-Documentation groups endpoints by resource: health, facilities, equipment units,
+Documentation groups endpoints by resource: questions, health, facilities, equipment units,
 inventory items, incidents, work orders, equipment models, and components.
 Model compatibility appears in the equipment-models group.
 
@@ -97,19 +97,11 @@ advanced catalog search remain outside this waypoint.
 
 ### Relationship and Question Semantics
 
-The API supplies records for bounded operational queries, with Q1–Q5 serving as
-canonical examples rather than an exhaustive list of use cases. It does not introduce
-analytical answer endpoints. The [query layer](structured-queries.md) has its own
-typed domain filters; those contracts do not add or change HTTP parameters or imply
-an HTTP query endpoint. Units 3–4 expose direct typed-plan executors for all five
-domains; unit 5 adds internal model-guided orchestration through `QueryService.ask()`.
-Unanchored proposals now require exact-plan confirmation through the internal
-`QueryService.confirm_scope()` boundary before evidence execution. This does not
-introduce a natural-language or confirmation HTTP endpoint. The internal `AnswerService`
-now composes this same query/confirmation flow with deterministic answer rendering and
-tracing; see [internal answer usage](answer-synthesis.md#internal-workflow-and-tracing).
-It adds no HTTP routes or request parameters. FastAPI's generated schema
-remains authoritative for these existing endpoints. Equipment status and incident status support Q1. Exact model compatibility
+The operational read endpoints supply records for bounded questions, with Q1–Q5 as
+canonical examples rather than an exhaustive list of use cases. The question routes
+below wrap the existing [query layer](structured-queries.md) and `AnswerService`;
+they do not change the filters or semantics of operational GET endpoints.
+Equipment status and incident status support Q1. Exact model compatibility
 and local inventory support Q2. Work-order status, priority, and due times support
 Q3. Unit model references and incident fault/time filters support Q4. Inventory
 quantity and reorder point support Q5. Consumers must paginate through all relevant
@@ -224,6 +216,93 @@ stable; the facility-detail route is additive. Existing consumers of the earlier
 additional problem fields; the string `detail` remains available. Database-unavailable messages now refer to the operational API rather than only
 Facilities; clients should branch on status codes rather than exact prose. No frontend
 consumer exists in this repository yet.
+
+## Operational Questions (Waypoint 2.4)
+
+`POST /questions` (`askQuestion`) accepts a question and optional bounded page
+(`limit` 1–100, default 50; nonnegative `offset`, default 0). Unknown fields are
+rejected, including workspace, model, plan, and evidence inputs. The server chooses
+the configured default workspace, correlation IDs, and execution controls.
+Question text must contain a non-whitespace character and be at most 4,000 characters.
+
+A `200` response contains the typed answered/cautious outcome, resolved plan,
+scope status, requested page, returned evidence (or null), and correlation IDs.
+Answered outcomes carry deterministic text, record references, and complete/partial
+coverage. Cautious outcomes distinguish no results, insufficient evidence, declined
+questions, pending review, and withheld answers. A decline's category is in the
+plan. Clients must render text safely and preserve scope/coverage disclosures.
+Evidence is the bounded result used for this answer, not a live record view.
+There is no automatic page fetching or conversation history.
+
+Unanchored scope returns `awaiting_confirmation`, null evidence, and an opaque
+confirmation handle. Display the entire resolved plan, including all filters,
+entity IDs, time boundaries/as-of values, and the requested page before offering
+confirmation. Do not confirm automatically. To revise scope, submit a new question.
+
+`POST /questions/confirm` (`confirmQuestionScope`) accepts only `confirmation_id`
+in its JSON body. It executes the exact server-retained plan and page in the
+original context; no new model call occurs. A handle is consumed atomically before
+execution, even if execution fails. Concurrent/repeated submissions cannot execute
+it twice. Missing, expired, consumed, or wrong-workspace handles return the same
+safe `404`; submit a new question and review its plan again. Handles stay out of URLs
+and application traces; successful responses use `Cache-Control: no-store`.
+Treat handles as private bearer values. They are not authenticated reviewer sessions.
+
+The necessary MVP bridge uses an in-memory store capped at 128 pending questions,
+expiring after 300 seconds. Live entries are not evicted to admit new ones; capacity
+returns `503`. Expired entries are pruned on insertion or access, and shutdown clears
+the store. Run one backend process on a trusted local machine. Restart/reload loses
+pending questions; multiple workers and public multi-user access are unsupported.
+This is an intentional local-MVP limit, not a persistence or authentication system.
+
+### Configuration and errors
+
+Keep the existing database/workspace setup and set `SPACE_CORP_LLM_API_KEY`,
+`SPACE_CORP_LLM_MODEL_ID=gpt-5.6-luna`, and `SPACE_CORP_LLM_REASONING_EFFORT=medium`
+in local environment configuration. The provider remains configurable. Question
+requests return `503` if model configuration is missing; ordinary operational reads
+and application startup still work without it. A request-owned provider client is
+closed on success or failure using FastAPI's
+[yield dependency lifecycle](https://fastapi.tiangolo.com/tutorial/dependencies/dependencies-with-yield/).
+Existing bounded model retries apply to planning only; confirmation/rendering add none.
+
+Malformed bodies use the existing FastAPI `422` JSON validation response. Query
+execution limits return `400`, unavailable references `404`, invalid model proposals
+`502`, planning/database/configuration/capacity failures `503`, query execution timeouts
+`504`, and unexpected service failures safe `500` problems. These failures are not
+empty results. All problem responses use `application/problem+json`. Planning timeouts
+currently arrive as the query layer's generic model failure (`503`).
+
+Successful/service-failed operations expose `X-Request-ID`; successful bodies also
+include query and synthesis operation IDs. Confirmation retains the original request
+and query IDs and produces a new synthesis ID. Pre-operation validation, missing
+configuration, and unknown-handle errors do not have an operation trace ID.
+
+### Local manual smoke flow
+
+Use the existing versioned baseline bootstrap and start the API as documented above.
+With fresh authorization for any live evaluation, a local request can be made through
+Swagger or, for example:
+
+```bash
+curl -sS -X POST http://127.0.0.1:8000/questions \
+  -H 'Content-Type: application/json' \
+  -d '{"question":"List inventory below its reorder point.","page":{"limit":50,"offset":0}}'
+```
+
+Review the returned plan, then explicitly confirm its handle:
+
+```bash
+curl -sS -X POST http://127.0.0.1:8000/questions/confirm \
+  -H 'Content-Type: application/json' \
+  -d '{"confirmation_id":"<handle from the reviewed response>"}'
+```
+
+The first call uses the configured model; this documentation grants no live-run
+authorization. Automated route tests instead use fake providers with real restricted
+database execution across both workspaces and all 24 development cases. Existing GET
+contracts remain unchanged. OpenAPI is generated directly from typed route models;
+there is no second hand-maintained schema.
 
 ## Documentation Maintenance
 

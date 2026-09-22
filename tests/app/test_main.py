@@ -150,4 +150,6 @@ def test_operational_read_openapi_and_documentation_pages() -> None:
         "/health",
         "/facilities",
         "/facilities/{facility_id}",
+        "/questions",
+        "/questions/confirm",
     }

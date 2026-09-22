@@ -1039,7 +1039,19 @@ For either layout, use the backend OpenAPI schema as the API contract and genera
 
 ### Status
 
-- [ ] Complete
+- [~] In progress — question and scope-confirmation endpoints expose the existing
+  answer service with typed evidence, safe failures, and generated OpenAPI contracts.
+- Necessary API bridge: pending plans are held briefly in a bounded process-local
+  store and consumed once on explicit confirmation. No authentication, durable
+  sessions, new query capabilities, or additional model calls were introduced.
+- Verification: 1,276 tests passed with required PostgreSQL integration, no failures
+  or skips; Ruff formatting/lint, mypy, and whitespace checks passed. One existing
+  Starlette/AnyIO deprecation warning remains. Question routes cover all 24 development
+  cases in two workspaces using a fake provider, plus confirmation expiry/replay,
+  authority rejection, pagination, safe failures, and generated documentation.
+  No live model calls were made; browser acceptance is outside this backend change.
+- Frontend setup, operational context, question/answer display, accessibility, and
+  paired browser smoke acceptance remain pending. This waypoint is not complete.
 
 ---
 
@@ -2251,15 +2263,16 @@ Current phase:
 
 Current waypoint:
 
-**Waypoint 2.3 — Structured Answer Synthesis (complete)**
+**Waypoint 2.4 — Operational Query Interface (in progress)**
 
 The structured query-to-answer workflow is verified. Current rendering passes both
 24-case fixed datasets; all 144 saved live query outcomes were replayed offline with
 only the six corrected incident disclosures changed. The original unnecessary refusal
 remains within the query-aligned pilot allowance. Full verification passed 1,210 tests
 with no failures or skips. See [answer completion evidence](answer-evaluation.md#completion-evidence).
-Waypoint 2.4 is next and has not been started. Real-user coverage and confirmation
-usability remain future validation work.
+Waypoint 2.4 exposes the internal answer workflow over HTTP with exact-plan scope
+confirmation, typed outcomes/evidence, and safe failures. Frontend implementation,
+paired browser acceptance, and confirmation usability validation remain pending.
 
 ---
 

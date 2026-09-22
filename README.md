@@ -87,7 +87,7 @@ No particular agent framework, workflow framework, vector database, or deploymen
 
 ## Current Status
 
-**Phase 2 — Minimum Viable Product; Waypoint 2.3 complete**
+**Phase 2 — Minimum Viable Product; Waypoint 2.4 in progress**
 
 The operational backend, versioned dataset, read-only API, PR checks, and controlled
 [LLM integration](docs/llm-integration.md) are implemented. Bounded queries support
@@ -108,7 +108,9 @@ answer datasets pass 24/24; offline replay verifies the disclosure correction ag
 all 144 saved live outcomes. One original unnecessary refusal remains within the
 query-aligned pilot allowance. See [answer evaluation](docs/answer-evaluation.md) for
 factual assessment, historical results and limitations. Full verification passed 1,210
-tests with no failures or skips. Waypoint 2.4 has not started.
+tests with no failures or skips at 2.3 closeout. Waypoint 2.4 now exposes the
+[question and scope-confirmation API](docs/api.md#operational-questions-waypoint-24).
+Frontend implementation and browser acceptance remain pending.
 
 The [dataset guide](docs/dataset.md) covers bootstrap and refresh,
 [API documentation](docs/api.md) covers existing endpoints, and the
