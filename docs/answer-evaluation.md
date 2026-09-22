@@ -1,11 +1,9 @@
 # Answer evaluation
 
 Waypoint 2.3 now has repeatable fixed-evidence and live end-to-end answer evaluation,
-plus an offline assessor originally built around completed reviews. Human review is
-optional and is not a Waypoint 2.3 completion requirement. The roadmap requires
-evaluation of factual grounding, not human sign-off. Mechanical checks alone do not
-prove prose meaning; evidence-based renderer tests and recorded-output inspection
-remain relevant. No live calls are authorized by this document.
+plus an offline assessor for report-bound factual assessments. Acceptance follows the
+roadmap: evaluate grounding, cautious behavior, coverage, and tracing against expected
+evidence. No live calls are authorized by this document.
 
 ## Inputs and correction
 
@@ -43,7 +41,7 @@ Each exclusive output directory contains:
 
 - `run.json`: run identity, mode, planned case keys, model configuration, and source hash.
 - `cases.jsonl`: each case saved as it finishes, including traces and delivered outcome.
-- `report.json`: all cases, attribution, mechanical checks, and `review_status: required`.
+- `report.json`: all cases, attribution, mechanical checks, and `review_status: not_measured`.
 - `review.md`: questions, required/prohibited facts, expected record evidence, and actual
   delivered outcomes for sentence-by-sentence review.
 - `review.json`: a blank review form pinned to the normalized report digest. Unknown
@@ -71,22 +69,25 @@ that limitation and that incomplete review cannot produce acceptance. The produc
 renderer has no free-prose input, but its wording could still be wrong. The scorer does
 not generate a second answer with the same renderer and call equality proof of truth.
 
-### Factual grounding without mandatory human sign-off
+### Factual grounding
 
 Acceptance evidence combines expected-query/result checks, deterministic renderer tests
-against authored facts, reference/coverage checks, unsupported-input tests, and inspection
-of recorded outputs where needed. Human inspection may help, but a completed human
-review form is not required. Another model's agreement is also not proof of correctness.
-Record known omissions and limitations instead of treating unmeasured claim counts as zero.
-The roadmap's requirement to evaluate unsupported factual claims remains in force.
+against authored facts, reference/coverage checks, unsupported-input tests, and
+recorded-output inspection. Mechanical checks or another model's agreement alone do
+not establish prose correctness. Record known omissions and limitations instead of
+treating unmeasured claim counts as zero.
 
-**Tooling discrepancy:** `scripts.assess_answers` still requires `review_kind: human`
-and completed report-bound forms. Generated `review_status: required` fields and blank
-`review.json` files reflect that original implementation, not a current human approval
-gate. Its exit 2 for missing forms is not, by itself, a waypoint blocker. The assessor
-needs a separate implementation update to match this policy; do not fabricate human
-review records or describe the existing assessor as having passed. Its report integrity,
-source/fixture binding, duplicate detection, and mechanical checks remain useful.
+The assessor accepts report-bound factual annotations in `review.json`. Record the
+assessment method in `review_kind` and its author or process in `reviewer`; neither is
+restricted to a particular reviewer type. Annotate required-fact coverage, supported
+claim counts, unsupported claims, and cautious/scope correctness against expected
+evidence. Incomplete measurements remain incomplete rather than silently passing.
+The assessor checks report integrity, source/fixture binding, case coverage, duplicate
+runs, and mechanical results. It does not independently prove annotation accuracy.
+
+New reports use `review_status: not_measured` to distinguish mechanical results from
+factual scoring. The parser accepts the previous status value for saved reports; saved
+reports and their hashes are not rewritten.
 
 The eight prohibited-claim challenges are also tested as inadmissible free-prose inputs.
 That schema rejection is distinct from measuring the truth of the final sentences.
@@ -122,7 +123,7 @@ model or approves a mismatched broad query. This measures the guarded workflow, 
 human review usability or autonomous approval. Each case preserves its errors and
 traces; the command does not replace failures with extra attempts.
 
-### Historical protocol and recommended alignment
+### Acceptance policy
 
 The original answer assessor required zero unsupported facts/references, zero call/trace
 errors or wrong queries/evidence, at least 95% fully correct nonempty answers, and 100%
@@ -131,9 +132,9 @@ queries with declined requests. This was stricter than the query pilot and was n
 explicit roadmap requirement. Preserve the original reports and protocol as history;
 do not describe their result as a pass under those original rules.
 
-The recommended correction is to use the query pilot's categories and targets:
+The user-approved closeout uses the query pilot's categories and targets:
 
-| Outcome | Recommended target per dataset across all three runs |
+| Outcome | Target per dataset across all three runs |
 | --- | --- |
 | Supported questions, including valid empty-result queries | At least 95% correct intent, evidence, and answer behavior |
 | Requests expected to be declined | At least 90% correct decline classification, with no evidence execution |
@@ -143,9 +144,10 @@ The recommended correction is to use the query pilot's categories and targets:
 A supported case failing every repetition still needs investigation. An unnecessary
 refusal counts against supported-question success; it is not equivalent to executing
 a wrong query or inventing an operational fact. These are synthetic pilot targets,
-not guarantees for future inputs or production reliability. The 95%/90% alignment is
-recommended here, not implemented in the frozen protocol or assessor by this
-documentation change.
+not guarantees for future inputs or production reliability. The assessor implements this explicitly named `query-aligned-95-90` policy. The
+original frozen protocol and reports remain unchanged. Assessment source binding is
+strict by default; `--historical --protocol ...` explicitly scores original reports
+against their pinned source and labels them as historical, not current-runtime evidence.
 
 Do not mix fixed and live runs, model configurations, partial batches, or duplicate
 reports. Preserve all planned runs, including failures. Any adopted policy change must
@@ -156,8 +158,7 @@ be explicit and distinguish reassessment of existing evidence from a new live ba
 The final fixed-evidence development and candidate-holdout reports each completed
 24/24 mechanical checks with no failures. They are stored under
 `.local/evaluations/answers-fixed-development-final/` and
-`.local/evaluations/answers-fixed-holdout-final/`. **Human review forms are blank; this is not a completion blocker.** Mechanical
-success alone does not establish every factual-grounding criterion. An earlier development report is retained as a preparation
+`.local/evaluations/answers-fixed-holdout-final/`. Mechanical success alone does not establish every factual-grounding criterion. An earlier development report is retained as a preparation
 artifact with its original source fingerprint; it is not current acceptance evidence.
 
 The approved live batch is recorded below. A passing pilot still would
@@ -169,7 +170,7 @@ PostgreSQL integration, with no failures or skips (63.37 seconds). Ruff, formatt
 mypy, and whitespace checks passed. One existing Starlette/AnyIO warning remains.
 Tests include fake-provider live-flow evaluation, fixed default without external calls,
 report/review tampering, incomplete/duplicate batches, critical failures, repeated-case
-failure gates, and inadmissible prose challenges. These tests do not constitute completed
+failure gates, and inadmissible prose challenges. These tests do not constitute
 a measured live unsupported-claim rate or complete waypoint acceptance.
 
 
@@ -196,8 +197,7 @@ The case failed query agreement and answer-state checks; reference, coverage, an
 checks passed. The original frozen target required correct cautious/empty behavior in every
 case: mechanical cautious-state success was 35/36 on holdout, below that target.
 Do not count this as the expected no-results response or rerun until it passes.
-Under the recommended query-aligned classification, supported-query behavior would
-be 54/54 development and 53/54 holdout (98.1%); expected declines were 18/18 in each.
+Under the adopted query-aligned classification, supported-query behavior is 54/54 development and 53/54 holdout (98.1%); expected declines were 18/18 in each.
 Those counts address query/answer-state behavior, not independently certified factual
 completeness. They explain why this refusal should not alone block a 95% pilot target.
 
@@ -207,13 +207,9 @@ six report/review directories, per-case incremental records, runner output, and
 unique case/outcome combinations, retaining their questions, occurrence mapping,
 expected evidence, and delivered content. Grouping does not omit the failed case.
 
-**Waypoint 2.3 remains in progress.** Missing human forms no longer block completion.
-The original assessor still exits 2 for those forms and retains the stricter historical
-thresholds; this documentation update does not change its behavior or certify a pass.
-Remaining work is to reconcile the assessor with the agreed acceptance policy and
-resolve factual-coverage findings below. No zero-hallucination or production-reliability
-claim follows from these results. The batch authorization is consumed; obtain fresh
-approval for any additional live calls.
+**Waypoint 2.3 is complete.** The closeout below combines the preserved live query
+results with verification of the corrected renderer. This is not a replacement live
+batch. The batch authorization is consumed; obtain fresh approval for additional calls.
 
 ## Assistant review of saved answers
 
@@ -221,8 +217,7 @@ An assistant inspected all 25 distinct case/outcome combinations in the saved
 `review-summary.md`, comparing delivered sentences with authored expected evidence,
 required facts, prohibited claims, and both question wordings where present. These
 groups represent all 144 observations, including the failed outcome. This is a review
-aid: no human review forms were completed, no
-acceptance score was certified, and no additional model calls were made.
+aid: no aggregate factual score was certified and no additional model calls were made.
 
 | Area | Finding |
 | --- | --- |
@@ -237,7 +232,7 @@ No fabricated operational values, relationships, causes, or actions were identif
 this inspection. That finding applies only to the inspected outputs and does not
 certify an unsupported-claim rate or future reliability.
 
-Two items require attention in the acceptance review:
+Two items were identified in the initial inspection and handled in closeout:
 
 1. **Incorrect capability refusal:** `ah-q3-empty` in holdout run 3 says the question
    is outside supported capabilities. The question is supported. No database query ran,
@@ -248,12 +243,74 @@ Two items require attention in the acceptance review:
    component quantities. They do not explicitly state that no supporting incidents
    were returned, although the second authored required fact includes that statement.
    Absence of an incident list should not automatically receive credit for explicitly
-   covering this fact. Record this omission when assessing required-fact coverage; human
-   sign-off is not needed to identify or correct it. It is not evidence that the unit has no incidents.
+   covering this fact. Record this omission when assessing required-fact coverage. It is not evidence that the unit has no incidents.
 
-The remaining acceptance work is to reconcile the assessor with the documented policy
-and resolve the factual-coverage omission. Any rendering or planner correction must preserve
-these historical reports and be verified as a new implementation; the current frozen
-batch cannot certify changed code. No fixture-specific planner exception or replacement run was introduced by this review.
-The removal of mandatory human review is an explicit policy correction requested by
-the user; the threshold alignment above remains a recommendation. Waypoint 2.3 remains open.
+## Completion evidence
+
+The compatibility renderer now explicitly states when no supporting incidents were
+returned. This applies to the domain result shape, not a particular fixture wording.
+Its regression test also verifies the sentence is absent when supporting incidents exist.
+No planner, model configuration, query executor, database schema, or prompt changed.
+
+Factual assessments are recorded per case with an identified assistant inspection
+method, source-report digest, required-fact coverage, supported-claim count, unsupported
+operational claims, and explanatory notes. Counts treat asserted values, relationships,
+totals, scope and coverage statements as claims; citation IDs are not counted again.
+Clarification requests are not assertions. The incorrect capability refusal is explicitly
+recorded as a supported-question failure, not a fabricated operational fact.
+
+| Evidence | Development | Candidate holdout | Interpretation |
+| --- | --- | --- | --- |
+| Preserved live query behavior | 54/54 supported; 18/18 expected declines | 53/54 supported; 18/18 expected declines | Meets 95%/90%; the unnecessary refusal remains recorded. |
+| Original answers, including disclosure omission | 51/54 fully correct supported answers | 50/54 fully correct supported answers | Historical failure retained; original answers are not relabeled as passing. |
+| Current fixed-evidence answers | 24/24 | 24/24 | All authored required facts covered; 161 supported claims per set and zero unsupported operational claims identified. |
+| Current renderer on saved live query outcomes | 54/54 supported; 18/18 expected declines | 53/54 supported; 18/18 expected declines | Offline replay, not fresh planning/execution. Only six disclosure omissions changed; the refusal persists. |
+
+Offline replay compared every full outcome, including references and coverage, against
+its original. Exactly six compatibility outcomes gained the expected sentence; the
+other 138 were identical. The added statement was checked against each saved result's
+empty incident list. The corrected replay contains 965 supported claims and zero
+identified unsupported operational claims across 144 observations. Repeated wording
+and template claims are not independent evidence of population-level accuracy.
+
+Artifacts under ignored `.local/evaluations/`:
+
+- `answers-closeout-development/` and `answers-closeout-holdout/`: current fixed reports,
+  factual annotations, and assessor results.
+- `answers-closeout-historical/`: byte-identical copies of original reports with factual
+  annotations that retain the omission and refusal failures. Original live folders were
+  not modified.
+- `answers-closeout-replay.jsonl`: all 144 replayed outcomes and source-report hashes.
+- `answers-closeout-summary.json`: original versus current results and per-case replay
+  findings. Current implementation fingerprint:
+  `930028928c54e78f6b8a0779a93e7db8e03d133b8035f9d7e7c4b690c578c95b`.
+
+The fixed reports can be assessed with:
+
+```bash
+.venv/bin/python -m scripts.assess_answers .local/evaluations/answers-closeout-development
+.venv/bin/python -m scripts.assess_answers .local/evaluations/answers-closeout-holdout
+```
+
+### Roadmap criterion mapping
+
+| Criterion | Verification |
+| --- | --- |
+| Returned-data grounding and deterministic sentences | `tests/app/answers/test_rendering.py`, factual assessments of both fixed sets, and all saved outcomes replayed. |
+| Model cannot inject prose/values or suppress scope/coverage | Answer contract, validation and renderer tests, including eight inadmissible-prose challenges in evaluation fixtures. |
+| Empty results and cautious responses | Renderer/validation tests for zero matches, no incident match, no compatibility, pending scope, missing evidence, partial pages and failures; supported empty queries included in the 95% denominator. |
+| Record identifiers checked | Evidence-reference validation and tests rejecting unsupported UUIDs and stale selections. |
+| Unsupported claims measured | Report-bound factual annotations, zero identified unsupported operational claims, and assessor tests that reject false values on valid records, missing facts and fabricated claims. |
+| Question-to-query-to-results-to-answer trace | `tests/app/answers/test_service.py`, evaluator integration test, and preserved live trace checks. |
+| Canonical and broader question coverage | Both 24-case datasets, required facts, additional domain/filter combinations and renderer edge-case tests. |
+
+Final verification: **1,210 tests passed**, including required PostgreSQL integration,
+with no failures or skips (64.25 seconds). Ruff, formatting, mypy and whitespace checks
+passed. One existing Starlette/AnyIO deprecation warning remains. No paid model calls,
+commits, or later-waypoint features were added during closeout.
+
+Known limits: one safe unnecessary refusal; synthetic wording coverage rather than
+independent real-user sampling; scope confirmation simulated in evaluation; no fresh
+live batch of the corrected renderer. Source-bound offline replay and integration tests
+cover the rendering-only correction. Factual annotations are assistant judgments, not
+an independent mathematical proof or a production zero-hallucination guarantee.

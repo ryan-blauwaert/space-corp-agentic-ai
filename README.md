@@ -87,7 +87,7 @@ No particular agent framework, workflow framework, vector database, or deploymen
 
 ## Current Status
 
-**Phase 2 — Minimum Viable Product; Waypoint 2.3 in progress**
+**Phase 2 — Minimum Viable Product; Waypoint 2.3 complete**
 
 The operational backend, versioned dataset, read-only API, PR checks, and controlled
 [LLM integration](docs/llm-integration.md) are implemented. Bounded queries support
@@ -101,13 +101,14 @@ require explicit caller confirmation before execution; the evaluator simulates t
 review. These synthetic pilot results do not guarantee model interpretation on unseen
 requests. See the [query guide](docs/structured-queries.md) for capabilities and limits.
 
-Waypoint 2.2 is complete. [Answer synthesis](docs/answer-synthesis.md) now has typed
-evidence-fact rendering, selection validation, development expectations, and cautious
-responses. `AnswerService` connects the query flow to rendered answers with correlated
-tracing and scope confirmation. Only query planning calls the model; fact-ordering calls
-are dropped. [Answer evaluation](docs/answer-evaluation.md) now produces fixed-evidence
-and live reports with required factual review. The live batch passed 143/144 mechanical
-checks, with one supported question incorrectly declined; acceptance and reviews remain pending.
+Waypoints 2.2 and 2.3 are complete. [Answer synthesis](docs/answer-synthesis.md) renders
+validated evidence with cautious responses, record references, correlated tracing and
+scope confirmation. Only query planning calls the model. Both current fixed-evidence
+answer datasets pass 24/24; offline replay verifies the disclosure correction against
+all 144 saved live outcomes. One original unnecessary refusal remains within the
+query-aligned pilot allowance. See [answer evaluation](docs/answer-evaluation.md) for
+factual assessment, historical results and limitations. Full verification passed 1,210
+tests with no failures or skips. Waypoint 2.4 has not started.
 
 The [dataset guide](docs/dataset.md) covers bootstrap and refresh,
 [API documentation](docs/api.md) covers existing endpoints, and the

@@ -1,11 +1,12 @@
 # Structured answer synthesis
 
-Waypoint 2.3 is in progress. Typed evidence facts, deterministic sentence rendering,
+Waypoint 2.3 is complete. Typed evidence facts, deterministic sentence rendering,
 selection validation, cautious responses, and internal query-to-answer orchestration with
 correlated tracing are implemented. Free-form model-prose delivery is removed. The model
 call for fact ordering has been dropped; only existing query planning uses the model.
-There is no answer HTTP endpoint. Answer evaluation tooling now exists; live acceptance
-and semantic reviews remain pending. The query service is unchanged.
+There is no answer HTTP endpoint. See [completion evidence](answer-evaluation.md#completion-evidence)
+for fixed factual assessments, saved-outcome replay, live query results and limitations.
+The query service is unchanged.
 
 ## Implemented direction: render answers from evidence
 
@@ -226,8 +227,8 @@ work-order relationships, recurrence conditions and time boundaries, partial/emp
 pages, state/context consistency, snapshot drift, selection tampering, literal escaping,
 and oversized output. Removed free-prose and explicit-claim tests were replaced with
 renderer and selection coverage; test totals therefore need not increase monotonically.
-Live end-to-end answer quality and completed semantic review remain unverified; the
-evaluator and report-bound review gates are now implemented. Model ordering is no longer planned. Waypoint 2.3 remains in progress.
+The evaluator and report-bound factual assessment are implemented. The live batch
+results and remaining acceptance work are recorded below. Model ordering is no longer planned. These implementation results preceded closeout.
 
 Historical verification: the contracts revision passed 1,074 tests; the explicit-claim
 validation revision passed 1,143 tests, both including required PostgreSQL integration
@@ -254,6 +255,8 @@ were made for this change.
 
 The approved live batch completed all 144 single-attempt planning calls and passed
 143/144 mechanical checks. One supported empty work-order query was incorrectly
-classified as unsupported. This misses the frozen cautious/empty-state target;
-human factual reviews remain incomplete. See the [full record](answer-evaluation.md#approved-live-batch-result).
+classified as unsupported. The original batch remains recorded. Closeout adopts the
+query-aligned pilot allowance and verifies the corrected disclosure offline. Current
+fixed factual assessments pass 24/24 each; full verification passed 1,210 tests without
+failures or skips. Waypoint 2.3 is complete. See the [full record](answer-evaluation.md#approved-live-batch-result).
 No further live calls are authorized by that completed batch.

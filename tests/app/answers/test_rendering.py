@@ -276,3 +276,12 @@ def test_recurrence_does_not_ignore_an_explicit_unit_constraint():
     request = request_for("q4-same-fault-time-boundaries-and-distinct-incidents")
     request = change_request(request, lambda q: q["plan"].update(equipment_unit_id=str(uuid4())))
     assert "establish recurrence" not in render_answer(request).answer.text
+
+
+def test_compatible_stock_discloses_absent_support_without_claiming_no_incidents_exist():
+    outcome = render_answer(request_for("compatibility-without-incident"))
+    assert "No supporting incidents were returned for this query." in outcome.answer.text
+    assert "Incident evidence was not required" in outcome.answer.text
+    with_incidents = render_answer(request_for("q2-stock-zero-and-unknown"))
+    assert "Supporting incidents:" in with_incidents.answer.text
+    assert "No supporting incidents" not in with_incidents.answer.text

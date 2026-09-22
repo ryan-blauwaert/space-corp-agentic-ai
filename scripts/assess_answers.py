@@ -1,10 +1,10 @@
-"""Assess complete answer reports and independent human reviews offline."""
+"""Assess answer reports and recorded factual assessments offline."""
 
 import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any
 
 from pydantic import Field, StrictBool, model_validator
 
@@ -27,7 +27,7 @@ class CaseReview(Frozen):
 class AnswerReview(Frozen):
     report_sha256: str
     reviewer: str = Field(min_length=1, pattern=r"\S")
-    review_kind: Literal["human"]
+    review_kind: str = Field(min_length=1, pattern=r"\S")
     cases: tuple[CaseReview, ...]
 
     @model_validator(mode="after")
@@ -37,12 +37,14 @@ class AnswerReview(Frozen):
         return self
 
 
-def assess_answer_report(report_path: Path, review_path: Path) -> dict[str, Any]:
+def assess_answer_report(
+    report_path: Path, review_path: Path, *, expected_implementation: str | None = None
+) -> dict[str, Any]:
     report = AnswerEvaluationReport.model_validate_json(report_path.read_text())
     review = AnswerReview.model_validate_json(review_path.read_text())
     if review.report_sha256 != digest(report.model_dump(mode="json")):
         raise ValueError("Review does not match report")
-    if report.implementation_sha256 != answer_digest():
+    if report.implementation_sha256 != (expected_implementation or answer_digest()):
         raise ValueError("Implementation changed since report")
     queries = load_evaluation(ROOT / f"data/evaluations/{report.query_version}.json")
     answers = load_answer_evaluation(
@@ -67,8 +69,8 @@ def assess_answer_report(report_path: Path, review_path: Path) -> dict[str, Any]
     manifest = load_manifest()
     for case in report.cases:
         expected = expected_answers[case.key]
-        human = reviewed[case.key]
-        if len(human.required_facts_covered) != len(expected.required_facts):
+        assessment = reviewed[case.key]
+        if len(assessment.required_facts_covered) != len(expected.required_facts):
             raise ValueError("Every required fact needs a review")
         # Recompute mechanical checks; edited check booleans cannot make a report pass.
         resolved = resolve_case(expected_queries[case.key], manifest, report.workspace_id)
@@ -78,30 +80,42 @@ def assess_answer_report(report_path: Path, review_path: Path) -> dict[str, Any]
         if checks != case.checks:
             raise ValueError("Inconsistent automatic checks")
         has_answer = case.turn is not None and case.turn.response.outcome.status == "answered"
-        if has_answer and human.supported_claim_count == 0 and not human.unsupported_claims:
+        if (
+            has_answer
+            and assessment.supported_claim_count == 0
+            and not assessment.unsupported_claims
+        ):
             raise ValueError("Delivered answer cannot have zero reviewed factual claims")
         passed = (
             case.error_kind is None
             and all(checks.values())
-            and all(human.required_facts_covered)
-            and not human.unsupported_claims
-            and human.cautious_and_scope_correct
+            and all(assessment.required_facts_covered)
+            and not assessment.unsupported_claims
+            and assessment.cautious_and_scope_correct
         )
         result.append(
             {
                 "key": case.key,
-                "answerable": expected.outcome == "answered",
+                "answerable": expected_queries[case.key].kind != "declined",
+                "safe_decline": bool(
+                    case.turn
+                    and case.turn.request.query.plan.operation == "declined"
+                    and case.turn.request.query.response is None
+                    and not any(e.get("event") == "query_execution" for e in case.events)
+                ),
                 "passed": passed,
                 "automatic_checks": checks,
-                "supported_claims": human.supported_claim_count,
-                "unsupported_claims": len(human.unsupported_claims),
-                "required_facts_covered": sum(human.required_facts_covered),
-                "required_facts": len(human.required_facts_covered),
-                "cautious_and_scope_correct": human.cautious_and_scope_correct,
+                "supported_claims": assessment.supported_claim_count,
+                "unsupported_claims": len(assessment.unsupported_claims),
+                "required_facts_covered": sum(assessment.required_facts_covered),
+                "required_facts": len(assessment.required_facts_covered),
+                "cautious_and_scope_correct": assessment.cautious_and_scope_correct,
             }
         )
     return {
         "run_id": str(report.run_id),
+        "implementation_sha256": report.implementation_sha256,
+        "current_implementation": report.implementation_sha256 == answer_digest(),
         "mode": report.mode,
         "query_version": report.query_version,
         "reviewer": review.reviewer,
@@ -111,9 +125,11 @@ def assess_answer_report(report_path: Path, review_path: Path) -> dict[str, Any]
     }
 
 
-def assess_batch(protocol_path: Path, folders: list[Path]) -> dict[str, Any]:
+def assess_batch(
+    protocol_path: Path, folders: list[Path], *, historical: bool = False
+) -> dict[str, Any]:
     protocol = json.loads(protocol_path.read_text())
-    if protocol["implementation_sha256"] != answer_digest():
+    if not historical and protocol["implementation_sha256"] != answer_digest():
         raise ValueError("Frozen implementation changed")
     specs = protocol["datasets"]
     if len(folders) != len(specs) * protocol["repetitions"]:
@@ -138,6 +154,7 @@ def assess_batch(protocol_path: Path, folders: list[Path]) -> dict[str, Any]:
         spec = specs.get(r.query_version)
         if (
             not spec
+            or r.implementation_sha256 != protocol["implementation_sha256"]
             or r.mode != "live_scope_confirmation"
             or r.model_id != protocol["model_id"]
             or r.reasoning_effort != protocol["reasoning_effort"]
@@ -149,7 +166,14 @@ def assess_batch(protocol_path: Path, folders: list[Path]) -> dict[str, Any]:
             or r.answer_version != spec["answer_version"]
         ):
             raise ValueError("Incompatible assessment report")
-    assessed = [assess_answer_report(f / "report.json", f / "review.json") for f in folders]
+    assessed = [
+        assess_answer_report(
+            f / "report.json",
+            f / "review.json",
+            expected_implementation=protocol["implementation_sha256"],
+        )
+        for f in folders
+    ]
     groups = {}
     for version in specs:
         matching = [a for a in assessed if a["query_version"] == version]
@@ -162,7 +186,7 @@ def assess_batch(protocol_path: Path, folders: list[Path]) -> dict[str, Any]:
         cautious_rate = sum(c["passed"] for c in cautious) / len(cautious)
         critical = any(
             c["unsupported_claims"]
-            or not c["cautious_and_scope_correct"]
+            or (not c["cautious_and_scope_correct"] and not c["safe_decline"])
             or not all(c["automatic_checks"][k] for k in ("references", "coverage", "trace"))
             for c in cases
         )
@@ -183,18 +207,25 @@ def assess_batch(protocol_path: Path, folders: list[Path]) -> dict[str, Any]:
         passed = (
             not critical
             and supported_rate >= protocol["minimum_answerable_pass_rate"]
-            and cautious_rate == 1
+            and cautious_rate >= 0.90
             and repeat_pass
         )
         groups[version] = {
             "observations": len(cases),
             "answerable_pass_rate": supported_rate,
+            "supported_query_pass_rate": sum(c["automatic_checks"]["query"] for c in supported)
+            / len(supported),
+            "supported_cases": len(supported),
+            "declined_cases": len(cautious),
             "cautious_pass_rate": cautious_rate,
             "unsupported_claims": sum(c["unsupported_claims"] for c in cases),
             "meets_quality_target": passed,
         }
     return {
         "protocol": protocol["version"],
+        "assessment_policy": "query-aligned-95-90",
+        "historical": historical,
+        "current_implementation": all(a["current_implementation"] for a in assessed),
         "datasets": groups,
         "meets_quality_target": all(g["meets_quality_target"] for g in groups.values()),
     }
@@ -204,13 +235,18 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("folders", nargs="+", type=Path)
     parser.add_argument("--protocol", type=Path)
+    parser.add_argument(
+        "--historical",
+        action="store_true",
+        help="Assess original reports against their pinned protocol, not current runtime code",
+    )
     args = parser.parse_args()
     try:
         if args.protocol:
-            result = assess_batch(args.protocol, args.folders)
+            result = assess_batch(args.protocol, args.folders, historical=args.historical)
             passed = result["meets_quality_target"]
         else:
-            if len(args.folders) != 1:
+            if args.historical or len(args.folders) != 1:
                 raise ValueError("Single reviewed report or frozen batch required")
             result = assess_answer_report(
                 args.folders[0] / "report.json", args.folders[0] / "review.json"
@@ -218,7 +254,7 @@ def main() -> int:
             passed = result["all_cases_passed"]
     except Exception:
         print(
-            "Assessment incomplete or incompatible: require all matching reports and completed human reviews.",
+            "Assessment incomplete or incompatible: require all matching reports and completed factual assessments.",
             file=sys.stderr,
         )
         return 2

@@ -83,7 +83,7 @@ class AnswerEvaluationReport(Frozen):
     reasoning_effort: str | None
     max_attempts: int
     cases: tuple[AnswerCaseReport, ...]
-    review_status: Literal["required"] = "required"
+    review_status: Literal["not_measured", "required"] = "not_measured"
 
 
 def answer_digest() -> str:
@@ -328,7 +328,7 @@ def write_report(
     review: dict[str, Any] = {
         "report_sha256": digest(report.model_dump(mode="json")),
         "reviewer": None,
-        "review_kind": "human",
+        "review_kind": "evidence_inspection",
         "cases": [],
     }
     lines = [
@@ -449,7 +449,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 {
                     "cases": len(report.cases),
                     "automatic_failures": failures,
-                    "semantic_review": "required",
+                    "factual_assessment": "not_measured",
                     "output": str(options.output),
                 }
             )
