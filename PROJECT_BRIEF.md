@@ -6,13 +6,18 @@ This project is a portfolio-grade demonstration of full-stack agentic AI enginee
 
 The goal is to build a production-style AI operations platform that can answer user questions across both structured and unstructured data, coordinate multiple tools and reasoning steps, execute governed actions, pause for human input when required, persist workflow state, and later resume execution from the saved state.
 
-The application domain will be a fictional near-future space operations company. The domain is intentionally synthetic so the project can control its data model, documents, policies, failure cases, and evaluation ground truth without depending on proprietary or sensitive datasets.
+The application domain is Space Corp, a fictional bootstrapped interplanetary maintenance and repair company. It keeps remote facilities, research stations, and transit infrastructure working: advanced equipment, ordinary maintenance problems, and a practical business model. The current synthetic baseline covers Earth and cislunar sites; the broader company premise does not imply implemented interplanetary transport capabilities. The domain is intentionally synthetic so the project can control its data model, documents, policies, failure cases, and evaluation ground truth without depending on proprietary or sensitive datasets.
 
-The platform should feel like an internal mission-operations copilot rather than a generic chatbot.
+The platform should feel like an internal maintenance-operations copilot. Its initial user is a maintenance coordinator overseeing equipment, incidents, spare parts, and work orders across facilities. The interface remains clear and professional; understated humor and world-building belong primarily in operational descriptions and future scenarios.
 
 The system should favor modular, service-oriented architecture. Capabilities should be separated behind clear interfaces and independently testable boundaries where practical. Microservices may be introduced when they provide meaningful isolation, ownership, scaling, deployment, security, or failure-containment benefits, but the project should avoid splitting functionality into separate services solely for architectural appearance.
 
 ## Primary User Experience
+
+A future product possibility is a shared platform serving technicians, dispatchers,
+supervisors, and coordinators, with role-based permissions demonstrating their different
+responsibilities. This is an exploration direction, not an implemented capability or
+a scheduled roadmap commitment; the current MVP does not introduce these roles.
 
 A user should be able to ask questions such as:
 
