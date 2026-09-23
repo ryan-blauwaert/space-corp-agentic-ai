@@ -1105,6 +1105,13 @@ The interface grows only when an underlying backend capability is complete:
 
 This sequencing keeps the project backend-first while ensuring that each major backend capability is exercised through an appropriate user experience rather than accumulated as API-only infrastructure.
 
+Possible future exploration: Phases 5–6, when governed actions and human approvals
+arrive, may be a useful point to explore role-based experiences for maintenance
+coordinators, technicians, dispatchers, and supervisors. A shared platform could
+present relevant work and demonstrate different permissions for each role, with
+authorization enforced outside the model. This is an optional product direction,
+not a completion criterion or a commitment to implement roles in those phases.
+
 ---
 
 # MVP MILESTONE

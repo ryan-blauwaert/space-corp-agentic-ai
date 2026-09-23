@@ -2,7 +2,7 @@
 
 A portfolio-grade project for designing and building a production-style agentic AI system with structured and unstructured data access, governed tool use, durable workflows, human-in-the-loop controls, evaluation, observability, and service-oriented architecture.
 
-The application domain is a fictional near-future space operations company. The synthetic domain provides a controlled environment for demonstrating complex AI workflows without depending on proprietary or sensitive data.
+The application domain is Space Corp, a fictional bootstrapped interplanetary maintenance and repair company that keeps remote facilities, research stations, and transit infrastructure working. The synthetic domain provides a controlled environment for demonstrating complex AI workflows without depending on proprietary or sensitive data.
 
 ## Project Goals
 
@@ -28,7 +28,7 @@ The project will be built incrementally through small, reviewable changes rather
 
 ## Example Future Workflow
 
-A mission operator may eventually ask:
+A maintenance coordinator may eventually ask:
 
 > Environmental Control Unit ECS-14 is reporting a fault. What does it mean, has it happened before, do we have compatible replacement parts available, and what should we do next?
 
