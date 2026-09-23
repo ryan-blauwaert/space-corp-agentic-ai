@@ -1,3 +1,4 @@
+import { Brand } from "./Brand";
 import { QuestionScreen } from "./QuestionScreen";
 import { useCallback, useEffect, useRef } from "react";
 import {
@@ -287,12 +288,7 @@ export function App() {
       </a>
       <aside className="sidebar">
         <Link className="brand" to="/" aria-label="Space Corp home">
-          <span className="brand-mark" aria-hidden="true">
-            S<span>·</span>C
-          </span>
-          <span>
-            SPACE CORP<small>Operations platform</small>
-          </span>
+          <Brand />
         </Link>
         <p className="nav-label">WORKSPACE</p>
         <nav aria-label="Main navigation">

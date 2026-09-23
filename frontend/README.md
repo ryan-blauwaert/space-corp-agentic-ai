@@ -127,3 +127,34 @@ and supporting evidence across all five domains. Manual browser verification use
 temporary fake planning provider with real local database execution at 1280px and
 390px widths. No live model calls were made. This does not replace the repeatable paired
 smoke suite and full waypoint closeout planned for the next increment.
+
+## Current visual preview
+
+Flight Manual (palette 01) is applied for owner review using the approved Space Corp
+lockups: stacked in the desktop sidebar and horizontal on narrow screens. The current
+layout and query behavior are unchanged. See the [design brief](../docs/frontend-design.md)
+for the approval record and remaining identity decisions.
+
+Fonts are served from `public/fonts/`, with their original OFL notices. The unmodified
+variable TrueType files were obtained from the official Google Fonts repository:
+`ofl/spacegrotesk/SpaceGrotesk[wght].ttf` and `ofl/orbitron/Orbitron[wght].ttf`.
+The mark in `public/brand/space-corp.webp` is the lossless encoding extracted unchanged
+from the approved design study. CSS reproduces the reference crop and color overlay;
+a production vector export remains pending. No runtime font service or package was added.
+
+### Switching palettes in code
+
+Change only `ACTIVE_PALETTE` in `src/palette.ts`, then reload the development page
+(or rebuild and relaunch a production preview). The available names are:
+
+- `flight-manual` (default)
+- `lunar-workshop`
+- `remote-station`
+- `deep-space-service`
+- `field-repair`
+
+That setting supplies the page colors, both logo lockups, and browser theme color.
+The four approved swatches remain exact; panel, muted text, border, hover, and active
+button colors are derived centrally. Flight Manual retains its existing reviewed
+supporting tones. Semantic status colors stay consistent between themes. There is
+no palette dropdown, browser preference, backend setting, or new dependency.

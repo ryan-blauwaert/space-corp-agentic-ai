@@ -157,3 +157,34 @@ Before accepting a visual implementation, confirm that it:
 - communicates status without relying only on color
 - has been checked at desktop and narrow viewport sizes
 - does not alter API behavior, workspace scope, evidence content, or safety disclosures
+
+## Local Flight Manual Preview — 2026-09-22
+
+The owner requested applying the approved identity and palette 01 to the existing
+web app for review. Flight Manual is the current preview, not a permanent winner;
+the other four palettes remain retained. This request narrows the initial comparison
+to one palette and leaves the existing page layout and operational behavior intact.
+
+The desktop sidebar uses the stacked lockup; below 650px the header uses the horizontal
+lockup with the documented proportions and optical lift. Space Grotesk and Orbitron
+are served locally with their OFL notices. No font service or new dependency is used.
+The ivory surface, navy text, orange interaction accents, and restrained gold rule
+are supported by neutral panel, border, hover, and secondary-text tokens. Existing
+explicit status labels and semantic status colors remain; no new motion is introduced.
+
+For this local preview, the CSS mark uses the unchanged lossless WebP already embedded
+in the approved HTML study, with its reference crop and two-color overlay. This is an
+intentional interim asset approach to preserve the selected geometry, not a production
+vector export. Exact vector color separation, favicon treatment, and formal minimum-size
+rules remain pending. No simplified or redrawn mark is introduced.
+
+### Code-selected palette comparison
+
+The owner subsequently requested all five documented palettes behind a single code
+setting, without an interface selector. `frontend/src/palette.ts` now owns the
+approved swatches and `ACTIVE_PALETTE` selection (initially `flight-manual`). Page
+styles, logo filters, and browser theme metadata use this same configuration.
+Supporting neutral tones are derived from the selected ink and surface; hover accent
+is darkened. Flight Manual retains its earlier supporting tones. Brand swatches are
+not modified. Semantic status colors remain independent of brand colors. This makes
+the other retained options available for review without choosing a permanent winner.
