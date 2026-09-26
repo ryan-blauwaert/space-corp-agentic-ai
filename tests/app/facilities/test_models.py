@@ -217,3 +217,17 @@ def test_database_preserves_nonblank_text_surrounded_by_whitespace(
     integration_session.add(facility)
     integration_session.flush()
     assert facility.name == " \tLunar Operations\u00a0"
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("value", ["", "\u2003", "x" * 129])
+def test_body_or_system_database_constraints(integration_session, value):
+    from sqlalchemy.exc import DataError
+
+    workspace = WorkspaceRecord()
+    integration_session.add(workspace)
+    integration_session.flush()
+    with pytest.raises((IntegrityError, DataError)):
+        with integration_session.begin_nested():
+            integration_session.add(make_facility_record(workspace.id, body_or_system=value))
+            integration_session.flush()

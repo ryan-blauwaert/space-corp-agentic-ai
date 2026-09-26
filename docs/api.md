@@ -337,3 +337,17 @@ No model calls, schema migrations, or new query-language capabilities are introd
 Frozen query comparisons ignore only display fields absent from their original
 expectations; explicit label expectations are checked. Dedicated database tests verify
 label fidelity across workspaces. Historical datasets and reports remain unchanged.
+
+## Facility body or system context
+
+Facility list/detail responses include nullable `body_or_system` (up to 128 characters),
+independent of facility type and the existing exact-match `location`. Examples are
+`Earth’s Moon`, `Earth`, and `Earth–Moon system`; future records can use a qualified
+satellite name such as `Europa (Jupiter)`. Null means unspecified, never an inferred
+body. The frontend displays this context before the local location. For the known
+Earth–Moon L1 entry it suppresses the repeated system prefix in display only.
+
+Migration `0012_facility_body_or_system` adds the field and backfills the five known
+facility code/name/location combinations. Unknown or edited combinations remain null.
+It preserves existing IDs, location strings, statuses, and timestamps. This is display
+metadata, not a new structured-query filter or a change to facility-name resolution.

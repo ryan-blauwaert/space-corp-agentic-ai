@@ -174,3 +174,22 @@ describe("operational context", () => {
     expect(signal?.aborted).toBe(true);
   });
 });
+
+it.each([
+  ["Earth’s Moon", "Mare Imbrium", "Earth’s Moon · Mare Imbrium"],
+  ["Earth–Moon system", "Earth-Moon L1", "Earth–Moon system · L1"],
+  [null, "Unknown region", "Unknown region"],
+])(
+  "shows recorded body/system context with the location",
+  async (body, location, expected) => {
+    setup(
+      "/",
+      vi
+        .fn()
+        .mockResolvedValue(
+          response(page([{ ...facility, body_or_system: body, location }])),
+        ),
+    );
+    expect(await screen.findByText(expected)).toBeInTheDocument();
+  },
+);

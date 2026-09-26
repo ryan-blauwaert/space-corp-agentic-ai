@@ -146,7 +146,7 @@ def test_migrations_apply(integration_migration_database_url: str) -> None:
                 text("SELECT version_num FROM alembic_version")
             ).scalar_one()
 
-        assert revision == "0011_query_catalog_pin"
+        assert revision == "0012_facility_body_or_system"
     finally:
         engine.dispose()
 
@@ -410,28 +410,34 @@ def test_required_text_migration_rejects_existing_invalid_data_without_rewriting
         command.downgrade(config, "0003_facility_workspace_rls")
         with database.session() as session:
             # This intentionally targets the pre-baseline schema. Do not use
-            # today's ORM workspace columns to construct historical test data.
+            # today's ORM columns to construct historical test data.
             session.execute(text("INSERT INTO workspaces (id) VALUES (:id)"), {"id": workspace_id})
-            session.add(
-                FacilityRecord(
-                    id=facility_id,
-                    workspace_id=workspace_id,
-                    code=" ",
-                    name="Legacy",
-                    facility_type="orbital_station",
-                    location="Orbit",
-                    operational_status="operational",
-                )
+            session.execute(
+                text(
+                    "INSERT INTO facilities "
+                    "(id, workspace_id, code, name, facility_type, location, operational_status) "
+                    "VALUES (:id, :workspace_id, ' ', 'Legacy', 'orbital_station', "
+                    "'Orbit', 'operational')"
+                ),
+                {"id": facility_id, "workspace_id": workspace_id},
             )
         with pytest.raises(IntegrityError):
             command.upgrade(config, "head")
         with database.session() as session:
-            assert session.get(FacilityRecord, facility_id).code == " "
+            assert (
+                session.execute(
+                    text("SELECT code FROM facilities WHERE id = :id"), {"id": facility_id}
+                ).scalar_one()
+                == " "
+            )
             assert (
                 session.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
                 == "0003_facility_workspace_rls"
             )
-            session.get(FacilityRecord, facility_id).code = "LEGACY-01"
+            session.execute(
+                text("UPDATE facilities SET code = 'LEGACY-01' WHERE id = :id"),
+                {"id": facility_id},
+            )
         command.upgrade(config, "head")
         with database.session() as session:
             assert session.get(FacilityRecord, facility_id).code == "LEGACY-01"

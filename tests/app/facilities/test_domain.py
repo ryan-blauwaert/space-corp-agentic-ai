@@ -150,3 +150,14 @@ def test_new_facility_rejects_invalid_enum_types(
 
     with pytest.raises(ValueError, match=field_name):
         replace(facility, **{field_name: invalid_value})
+
+
+@pytest.mark.parametrize("value", [None, "Earth’s Moon", "Europa (Jupiter)", "Earth–Moon system"])
+def test_facility_accepts_explicit_body_or_system(value):
+    assert replace(make_facility(), body_or_system=value).body_or_system == value
+
+
+@pytest.mark.parametrize("value", ["", " \t\n", "\u2003", "x" * 129])
+def test_facility_rejects_invalid_body_or_system(value):
+    with pytest.raises(ValueError, match="body_or_system"):
+        replace(make_facility(), body_or_system=value)

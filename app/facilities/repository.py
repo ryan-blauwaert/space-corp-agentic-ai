@@ -43,6 +43,7 @@ class SqlAlchemyFacilityRepository(FacilityRepository):
             name=facility.name,
             facility_type=facility.facility_type.value,
             location=facility.location,
+            body_or_system=facility.body_or_system,
             operational_status=facility.operational_status.value,
         )
         self._session.add(record)
@@ -91,6 +92,7 @@ def _to_domain(record: FacilityRecord) -> Facility:
         name=record.name,
         facility_type=FacilityType(record.facility_type),
         location=record.location,
+        body_or_system=record.body_or_system,
         operational_status=FacilityOperationalStatus(record.operational_status),
         created_at=record.created_at,
         updated_at=record.updated_at,

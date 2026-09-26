@@ -6,6 +6,7 @@ from uuid import UUID
 FACILITY_CODE_MAX_LENGTH = 64
 FACILITY_NAME_MAX_LENGTH = 256
 FACILITY_LOCATION_MAX_LENGTH = 256
+FACILITY_BODY_OR_SYSTEM_MAX_LENGTH = 128
 
 
 class FacilityType(StrEnum):
@@ -31,7 +32,10 @@ class NewFacility:
     location: str
     operational_status: FacilityOperationalStatus
 
+    body_or_system: str | None = None
+
     def __post_init__(self) -> None:
+        _validate_body_or_system(self.body_or_system)
         _validate_required_text(self.code, self.name, self.location)
         _validate_enum_values(self.facility_type, self.operational_status)
 
@@ -50,7 +54,10 @@ class Facility:
     created_at: datetime
     updated_at: datetime
 
+    body_or_system: str | None = None
+
     def __post_init__(self) -> None:
+        _validate_body_or_system(self.body_or_system)
         _validate_required_text(self.code, self.name, self.location)
         _validate_enum_values(self.facility_type, self.operational_status)
 
@@ -77,3 +84,8 @@ def _validate_enum_values(
     ):
         if not isinstance(value, expected_type):
             raise ValueError(f"Facility {field_name} must be a {expected_type.__name__}.")
+
+
+def _validate_body_or_system(value: str | None) -> None:
+    if value is not None and (not value.strip() or len(value) > FACILITY_BODY_OR_SYSTEM_MAX_LENGTH):
+        raise ValueError("Facility body_or_system must be nonblank and at most 128 characters.")

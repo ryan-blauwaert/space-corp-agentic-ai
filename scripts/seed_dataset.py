@@ -20,6 +20,7 @@ from app.facilities.models import FacilityRecord
 from app.operations.models import IncidentRecord, WorkOrderRecord
 from app.workspaces.models import WorkspaceRecord
 from scripts.dataset_manifest import Manifest, Named, digest, operational_id, shared_id
+from scripts.facility_locations import facility_body_or_system
 from scripts.seed_support import SeedConfigurationError, require_migration_owner
 
 type OperationalRecord = (
@@ -160,6 +161,7 @@ def baseline_rows(
             name=r.name,
             facility_type=r.facility_type,
             location=r.location,
+            body_or_system=facility_body_or_system(r.key, r.name, r.location),
             operational_status=r.operational_status,
         )
         for r in manifest.facilities

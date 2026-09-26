@@ -31,6 +31,7 @@ def make_new_facility(code: str) -> NewFacility:
         name=f"Facility {code}",
         facility_type=FacilityType.LUNAR_INSTALLATION,
         location="Mare Imbrium",
+        body_or_system="Earth’s Moon",
         operational_status=FacilityOperationalStatus.OPERATIONAL,
     )
 
@@ -119,6 +120,7 @@ def test_list_facilities_returns_the_configured_workspaces_page(
             "ORB-OPS-01",
         ]
         assert response.json()["pagination"] == {"limit": 50, "offset": 0, "total": 2}
+        assert all(row["body_or_system"] == "Earth’s Moon" for row in response.json()["items"])
     finally:
         database.dispose()
 

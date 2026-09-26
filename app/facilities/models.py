@@ -16,6 +16,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.facilities.domain import (
+    FACILITY_BODY_OR_SYSTEM_MAX_LENGTH,
     FACILITY_CODE_MAX_LENGTH,
     FACILITY_LOCATION_MAX_LENGTH,
     FACILITY_NAME_MAX_LENGTH,
@@ -41,6 +42,10 @@ class FacilityRecord(Base):
 
     __tablename__ = "facilities"
     __table_args__ = (
+        CheckConstraint(
+            f"body_or_system IS NULL OR char_length(btrim(body_or_system, U&'{_REQUIRED_TEXT_WHITESPACE}')) > 0",
+            name="ck_facilities_body_or_system_not_blank",
+        ),
         CheckConstraint(
             f"char_length(btrim(code, U&'{_REQUIRED_TEXT_WHITESPACE}')) > 0",
             name="ck_facilities_code_not_blank",
@@ -77,6 +82,9 @@ class FacilityRecord(Base):
     name: Mapped[str] = mapped_column(String(FACILITY_NAME_MAX_LENGTH), nullable=False)
     facility_type: Mapped[str] = mapped_column(String(64), nullable=False)
     location: Mapped[str] = mapped_column(String(FACILITY_LOCATION_MAX_LENGTH), nullable=False)
+    body_or_system: Mapped[str | None] = mapped_column(
+        String(FACILITY_BODY_OR_SYSTEM_MAX_LENGTH), nullable=True
+    )
     operational_status: Mapped[str] = mapped_column(String(32), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

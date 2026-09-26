@@ -1,5 +1,5 @@
 {
-  "backend_revision": "972bcad4fa5320ef94371e3919299d3f2981a213",
-  "schema_sha256": "be12506ee4d0f7a18842db73d66200d123f10e8df1d2d405ac6c044e33a56096",
+  "backend_revision": "bc8b4ec08ba43ba18f74a656e75786b3fcd0028c",
+  "schema_sha256": "61c9d8fa490828b9565b9290ee6c6052c587a6f1ed9eb3e97bae5c5482af14f0",
   "source": "app.main.create_app().openapi()"
 }

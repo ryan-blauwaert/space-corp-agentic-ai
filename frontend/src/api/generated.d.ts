@@ -144,7 +144,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Facilities */
+        /**
+         * List Facilities
+         * @description List scoped facilities with stored body/system context and local location.
+         */
         get: operations["listFacilities"];
         put?: never;
         post?: never;
@@ -161,7 +164,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Facility */
+        /**
+         * Get Facility
+         * @description Read a scoped facility; body_or_system is null when not recorded.
+         */
         get: operations["getFacility"];
         put?: never;
         post?: never;
@@ -715,6 +721,11 @@ export interface components {
          * @description Public representation of a Facility record.
          */
         FacilityResponse: {
+            /**
+             * Body Or System
+             * @description Stored celestial body or system context, e.g. Earth’s Moon or Earth–Moon system. Null means unspecified; not inferred from facility type.
+             */
+            body_or_system?: string | null;
             /** Code */
             code: string;
             /**

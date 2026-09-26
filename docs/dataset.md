@@ -231,3 +231,28 @@ while candidate holdout supported queries passed 34/54. Expected declines passed
 18/18 in each dataset. See [the preserved assessment](query-evaluation.md#first-frozen-assessment--2026-09-21)
 for failure details and an entity-type ambiguity concern in the holdout recurrence
 wording. No fixture was changed or excluded after the assessment.
+
+## Additive facility location context
+
+Waypoint 2.4 adds `body_or_system` display metadata while preserving the frozen
+`demo-1` manifest, its digest, and all historical query/answer assessment files.
+`scripts/facility_locations.py` supplies explicit values for the five known
+code/name/location tuples during seeding; unmatched facilities receive null.
+The matching frozen backfill is in migration `0012_facility_body_or_system`.
+No body is guessed from a facility's type. Existing local location strings remain
+unchanged so historical exact-location filters retain their meaning.
+
+To migrate an existing configured development database and verify its baseline:
+
+```sh
+.venv/bin/python -m scripts.bootstrap_development --validate
+```
+
+Use ordinary bootstrap without `--refresh`: this change does not require replacing
+workspace records. If a workspace has intentional edits, `--validate` can report a
+baseline mismatch even after a successful migration; it does not undo those edits.
+
+The display uses NASA's terminology “Earth’s Moon” and identifies both bodies for
+Lagrange points (e.g. Earth–Moon L1). Naming references:
+[NASA Moon facts](https://science.nasa.gov/moon/facts/) and
+[NASA/JPL lunar trajectories](https://descanso.jpl.nasa.gov/monograph/series12/LunarTraj--Overall.pdf).

@@ -24,6 +24,7 @@ def make_new_facility(code: str = "LUN-OPS-01") -> NewFacility:
         name="Lunar Operations One",
         facility_type=FacilityType.LUNAR_INSTALLATION,
         location="Mare Imbrium",
+        body_or_system="Earth’s Moon",
         operational_status=FacilityOperationalStatus.OPERATIONAL,
     )
 

@@ -16,6 +16,19 @@ import type { components } from "./api/generated";
 
 type Pagination = components["schemas"]["PaginationMetadata"];
 const PAGE_SIZE = 10;
+function facilityLocation(
+  facility: components["schemas"]["FacilityResponse"],
+): string {
+  const body = facility.body_or_system;
+  // Keep the stored exact-match location intact; avoid repeating its system prefix.
+  const prefix = "Earth-Moon ";
+  const local =
+    body === "Earth–Moon system" && facility.location.startsWith(prefix)
+      ? facility.location.slice(prefix.length)
+      : facility.location;
+  return body ? `${body} · ${local}` : local;
+}
+
 const label = (value: string) => value.replaceAll("_", " ");
 
 function Status({ value }: { value: string }) {
@@ -132,7 +145,7 @@ function Facilities({ offset }: { offset: number }) {
                     <h3>{facility.name}</h3>
                     <p>{label(facility.facility_type)}</p>
                     <div className="card-bottom">
-                      <span>{facility.location}</span>
+                      <span>{facilityLocation(facility)}</span>
                       <span aria-hidden="true">↗</span>
                     </div>
                   </Link>
@@ -238,7 +251,8 @@ function Facility({
               <p className="eyebrow">FACILITY / {state.data.code}</p>
               <h1>{state.data.name}</h1>
               <p className="lede">
-                {state.data.location} · {label(state.data.facility_type)}
+                {facilityLocation(state.data)} ·{" "}
+                {label(state.data.facility_type)}
               </p>
             </div>
             <Status value={state.data.operational_status} />

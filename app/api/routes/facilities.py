@@ -35,6 +35,7 @@ def list_facilities(
     workspace_id: Annotated[UUID, Depends(get_default_workspace_id)],
     pagination: Annotated[PaginationQuery, Query()],
 ) -> FacilityListResponse:
+    """List scoped facilities with stored body/system context and local location."""
     with database.workspace_session(workspace_id) as session:
         repository = SqlAlchemyFacilityRepository(session)
         facilities = repository.list_by_workspace(
@@ -70,6 +71,7 @@ def get_facility(
     database: Annotated[Database, Depends(get_database)],
     workspace_id: Annotated[UUID, Depends(get_default_workspace_id)],
 ) -> FacilityResponse:
+    """Read a scoped facility; body_or_system is null when not recorded."""
     with database.workspace_session(workspace_id) as session:
         facility = SqlAlchemyFacilityRepository(session).get_by_id(workspace_id, facility_id)
 
