@@ -470,6 +470,7 @@ describe("faithful answer presentation", () => {
             operation: "compatible_stock",
             status: "matched",
             incident_ids: ["incident-a"],
+            incident_codes: ["INC-A"],
             page: {
               limit: 50,
               offset: 0,

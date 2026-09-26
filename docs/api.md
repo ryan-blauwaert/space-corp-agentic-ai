@@ -317,3 +317,23 @@ When adding or changing a route:
 The generated OpenAPI schema remains the detailed contract. This document should
 explain stable conventions and how to use the API without becoming a second
 hand-maintained schema.
+
+## Readable answer labels
+
+Waypoint 2.4 adds optional stored names/codes to executed query evidence for readable
+answer prose: facility names and codes, equipment asset tags, model/component names
+and codes, and incident/work-order reference codes. Labels are selected under the
+same workspace and catalog constraints as the evidence, within the same query
+transaction. They do not change filters, record counts, pagination, or authority.
+
+Answer templates prefer these labels, using codes to distinguish duplicate names.
+UUIDs remain in the evidence and exact record references; older saved evidence without
+labels falls back to UUID wording. Labels are quoted plain-text literals, with control
+characters escaped, and must never be rendered as HTML or Markdown. The frontend
+continues to display backend prose verbatim. Scope confirmation still shows the exact
+plan IDs; it does not execute evidence queries to obtain display labels.
+
+No model calls, schema migrations, or new query-language capabilities are introduced.
+Frozen query comparisons ignore only display fields absent from their original
+expectations; explicit label expectations are checked. Dedicated database tests verify
+label fidelity across workspaces. Historical datasets and reports remain unchanged.

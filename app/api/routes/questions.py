@@ -98,7 +98,11 @@ def ask_question(
     workspace_id: Annotated[UUID, Depends(get_default_workspace_id)],
     pending: Annotated[PendingAnswers, Depends(get_pending_answers)],
 ) -> QuestionResponse:
-    """Plan one bounded question; unanchored scope returns for review without execution."""
+    """Plan one bounded question; unanchored scope returns for review without execution.
+
+    Executed evidence includes stored display names/codes where available. Answer prose
+    prefers those labels; exact UUIDs remain in evidence and record references.
+    """
     context = QueryContext(request_id=uuid4(), operation_id=uuid4(), workspace_id=workspace_id)
     with question_errors(context, response):
         return public_response(answers.ask(context, body.question, body.page), pending)

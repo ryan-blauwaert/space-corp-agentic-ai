@@ -13,7 +13,12 @@ from app.llm.service import ModelService
 from app.queries.contracts import QueryPageRequest
 from app.queries.errors import QueryError, QueryErrorKind
 from app.queries.service import QueryService
-from scripts.query_evaluation_dataset import SupportedCase, load_evaluation, resolve_case
+from scripts.query_evaluation_dataset import (
+    SupportedCase,
+    evidence_matches,
+    load_evaluation,
+    resolve_case,
+)
 from tests.app.answers.test_validation import change_request, request_for
 from tests.app.queries import conftest as query_fixtures
 from tests.app.queries.test_service import FakeProvider, context
@@ -57,7 +62,7 @@ def test_question_to_database_to_answer_in_two_workspaces(query_data, case, capl
                     for e in answer_events(caplog)
                 )
         assert len(provider.requests) == 1  # No ordering/synthesis/confirmation model call.
-        assert turn.request.query.response.result == expected.expected_result
+        assert evidence_matches(turn.request.query.response.result, expected.expected_result)
         assert turn.response.context == ctx
         assert turn.request.question == expected.question
         assert AnswerTurn.model_validate_json(turn.model_dump_json()) == turn

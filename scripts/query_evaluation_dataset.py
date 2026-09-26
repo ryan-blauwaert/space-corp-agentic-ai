@@ -200,3 +200,43 @@ def load_evaluation(
     for case in dataset.cases:
         resolve_case(case, baseline, UUID(int=1))
     return dataset
+
+
+# Frozen query protocols assess record selection and facts, before display labels
+# existed. Compare their original fields strictly; label correctness is covered by
+# dedicated database tests. A protocol that supplies labels also checks those labels.
+_DISPLAY_FIELDS = frozenset(
+    {
+        "asset_tag",
+        "reference_code",
+        "facility_name",
+        "facility_code",
+        "component_name",
+        "component_code",
+        "model_name",
+        "model_code",
+        "originating_incident_code",
+        "incident_equipment_asset_tag",
+        "target_equipment_asset_tag",
+        "incident_codes",
+    }
+)
+
+
+def evidence_matches(actual: QueryResult | None, expected: QueryResult | None) -> bool:
+    def matches(value: object, target: object) -> bool:
+        if isinstance(target, dict) and isinstance(value, dict):
+            return value.keys() == target.keys() and all(
+                (key in _DISPLAY_FIELDS and wanted in (None, [])) or matches(value[key], wanted)
+                for key, wanted in target.items()
+            )
+        if isinstance(target, list) and isinstance(value, list):
+            return len(value) == len(target) and all(
+                matches(item, wanted) for item, wanted in zip(value, target, strict=True)
+            )
+        return value == target
+
+    return matches(
+        actual.model_dump(mode="json") if actual is not None else None,
+        expected.model_dump(mode="json") if expected is not None else None,
+    )

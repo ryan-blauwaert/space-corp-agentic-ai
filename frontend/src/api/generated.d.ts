@@ -274,6 +274,9 @@ export interface paths {
         /**
          * Ask Question
          * @description Plan one bounded question; unanchored scope returns for review without execution.
+         *
+         *     Executed evidence includes stored display names/codes where available. Answer prose
+         *     prefers those labels; exact UUIDs remain in evidence and record references.
          */
         post: operations["askQuestion"];
         delete?: never;
@@ -377,18 +380,26 @@ export interface components {
         };
         /** CompatibleStockEvidence */
         CompatibleStockEvidence: {
+            /** Component Code */
+            component_code?: string | null;
             /**
              * Component Id
              * Format: uuid
              */
             component_id: string;
+            /** Component Name */
+            component_name?: string | null;
             /** Inventory Id */
             inventory_id: string | null;
+            /** Model Code */
+            model_code?: string | null;
             /**
              * Model Id
              * Format: uuid
              */
             model_id: string;
+            /** Model Name */
+            model_name?: string | null;
             /** Quantity On Hand */
             quantity_on_hand: number | null;
         };
@@ -409,6 +420,11 @@ export interface components {
         };
         /** CompatibleStockResult */
         CompatibleStockResult: {
+            /**
+             * Incident Codes
+             * @default []
+             */
+            incident_codes: string[];
             /** Incident Ids */
             incident_ids: string[];
             /**
@@ -630,11 +646,15 @@ export interface components {
         };
         /** FacilityEquipmentEvidence */
         FacilityEquipmentEvidence: {
+            /** Facility Code */
+            facility_code?: string | null;
             /**
              * Facility Id
              * Format: uuid
              */
             facility_id: string;
+            /** Facility Name */
+            facility_name?: string | null;
             /** Incidents */
             incidents: components["schemas"]["UnitIncidentEvidence"][];
             /** Units */
@@ -739,11 +759,17 @@ export interface components {
         };
         /** IncidentEvidence */
         IncidentEvidence: {
+            /** Asset Tag */
+            asset_tag?: string | null;
+            /** Facility Code */
+            facility_code?: string | null;
             /**
              * Facility Id
              * Format: uuid
              */
             facility_id: string;
+            /** Facility Name */
+            facility_name?: string | null;
             /** Fault Code */
             fault_code: string | null;
             /**
@@ -756,6 +782,8 @@ export interface components {
              * Format: date-time
              */
             occurred_at: string;
+            /** Reference Code */
+            reference_code?: string | null;
             severity: components["schemas"]["IncidentSeverity"];
             status: components["schemas"]["IncidentStatus"];
             /** Unit Id */
@@ -850,16 +878,24 @@ export interface components {
         };
         /** InventoryEvidence */
         InventoryEvidence: {
+            /** Component Code */
+            component_code?: string | null;
             /**
              * Component Id
              * Format: uuid
              */
             component_id: string;
+            /** Component Name */
+            component_name?: string | null;
+            /** Facility Code */
+            facility_code?: string | null;
             /**
              * Facility Id
              * Format: uuid
              */
             facility_id: string;
+            /** Facility Name */
+            facility_name?: string | null;
             /**
              * Inventory Id
              * Format: uuid
@@ -1059,6 +1095,8 @@ export interface components {
         };
         /** UnitEvidence */
         UnitEvidence: {
+            /** Asset Tag */
+            asset_tag?: string | null;
             operational_status: components["schemas"]["EquipmentOperationalStatus"];
             /**
              * Unit Id
@@ -1078,6 +1116,8 @@ export interface components {
              * Format: uuid
              */
             incident_id: string;
+            /** Reference Code */
+            reference_code?: string | null;
             status: components["schemas"]["IncidentStatus"];
         };
         /** ValidationError */
@@ -1099,19 +1139,31 @@ export interface components {
             blocked: boolean;
             /** Due At */
             due_at: string | null;
+            /** Facility Code */
+            facility_code?: string | null;
             /**
              * Facility Id
              * Format: uuid
              */
             facility_id: string;
+            /** Facility Name */
+            facility_name?: string | null;
+            /** Incident Equipment Asset Tag */
+            incident_equipment_asset_tag?: string | null;
             /** Incident Equipment Unit Id */
             incident_equipment_unit_id: string | null;
+            /** Originating Incident Code */
+            originating_incident_code?: string | null;
             /** Originating Incident Id */
             originating_incident_id: string | null;
             /** Overdue */
             overdue: boolean;
             priority: components["schemas"]["WorkOrderPriority"];
+            /** Reference Code */
+            reference_code?: string | null;
             status: components["schemas"]["WorkOrderStatus"];
+            /** Target Equipment Asset Tag */
+            target_equipment_asset_tag?: string | null;
             /** Target Equipment Unit Id */
             target_equipment_unit_id: string | null;
             /**

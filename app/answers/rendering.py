@@ -86,52 +86,87 @@ def _yes(value: bool) -> str:
     return "yes" if value else "no"
 
 
-def _record(kind: str, identity: UUID | None) -> str:
-    return f"{kind} {identity}" if identity else "not recorded"
+def _record(
+    kind: str, identity: UUID | None, code: str | None = None, name: str | None = None
+) -> str:
+    if identity is None:
+        return "not recorded"
+    # Stored labels are quoted plain-text literals, never instructions or markup.
+    # Codes disambiguate names; older saved evidence falls back to its exact UUID.
+    if code:
+        label = (
+            json.dumps(name, ensure_ascii=True) + " (" + json.dumps(code) + ")"
+            if name
+            else json.dumps(code)
+        )
+        return f"{kind} {label}"
+    return f"{kind} {identity}"
 
 
 def _sentence(fact: EvidenceFact) -> str:
     if isinstance(fact, FacilityFact):
         facility = fact.evidence
-        units = "; ".join(f"unit {u.unit_id} is {u.operational_status}" for u in facility.units)
+        unit_labels = {u.unit_id: u.asset_tag for u in facility.units}
+        units = "; ".join(
+            f"{_record('unit', u.unit_id, u.asset_tag)} is {u.operational_status}"
+            for u in facility.units
+        )
         incidents = "; ".join(
-            f"incident {i.incident_id} is {i.status} on unit {i.equipment_unit_id}"
+            f"{_record('incident', i.incident_id, i.reference_code)} is {i.status} on "
+            f"{_record('unit', i.equipment_unit_id, unit_labels.get(i.equipment_unit_id))}"
             for i in facility.incidents
         )
-        return f"Facility {facility.facility_id}: {units}. " + (
-            f"Supporting incidents: {incidents}."
-            if incidents
-            else "No supporting incidents were returned for these units."
+        return (
+            f"{_record('Facility', facility.facility_id, facility.facility_code, facility.facility_name)}: {units}. "
+            + (
+                f"Supporting incidents: {incidents}."
+                if incidents
+                else "No supporting incidents were returned for these units."
+            )
         )
     if isinstance(fact, StockFact):
         stock = fact.evidence
         quantity = (
             "no inventory record was returned; stock quantity is unknown"
             if stock.inventory_id is None
-            else f"inventory {stock.inventory_id} records quantity {stock.quantity_on_hand}"
+            else (
+                f"recorded stock quantity {stock.quantity_on_hand}"
+                if stock.component_code
+                else f"inventory {stock.inventory_id} records quantity {stock.quantity_on_hand}"
+            )
         )
         return (
-            f"Component {stock.component_id} is compatible with model {stock.model_id}; {quantity}."
+            f"{_record('Component', stock.component_id, stock.component_code, stock.component_name)} "
+            f"is compatible with {_record('model', stock.model_id, stock.model_code, stock.model_name)}; {quantity}."
         )
     if isinstance(fact, WorkOrderFact):
         order = fact.evidence
         return (
-            f"Work order {order.work_order_id} at facility {order.facility_id}: "
+            f"{_record('Work order', order.work_order_id, order.reference_code)} at "
+            f"{_record('facility', order.facility_id, order.facility_code, order.facility_name)}: "
             f"status {order.status.replace('_', ' ')}, priority {order.priority}, "
             f"due date {_time(order.due_at)}, overdue {_yes(order.overdue)}, blocked {_yes(order.blocked)}. "
-            f"Originating incident: {_record('incident', order.originating_incident_id)}; "
-            f"incident-affected unit: {_record('unit', order.incident_equipment_unit_id)}; "
-            f"direct target: {_record('unit', order.target_equipment_unit_id)}."
+            f"Originating incident: {_record('incident', order.originating_incident_id, order.originating_incident_code)}; "
+            f"incident-affected unit: {_record('unit', order.incident_equipment_unit_id, order.incident_equipment_asset_tag)}; "
+            f"direct target: {_record('unit', order.target_equipment_unit_id, order.target_equipment_asset_tag)}."
         )
     if isinstance(fact, IncidentFact):
         incident = fact.evidence
         fault = _quoted(incident.fault_code) if incident.fault_code is not None else "not recorded"
         return (
-            f"Incident {incident.incident_id} at facility {incident.facility_id}: "
-            f"affected unit: {_record('unit', incident.unit_id)}, status {incident.status}, "
+            f"{_record('Incident', incident.incident_id, incident.reference_code)} at "
+            f"{_record('facility', incident.facility_id, incident.facility_code, incident.facility_name)}: "
+            f"affected unit: {_record('unit', incident.unit_id, incident.asset_tag)}, status {incident.status}, "
             f"severity {incident.severity}, fault code {fault}, occurred at {_time(incident.occurred_at)}."
         )
     inventory = fact.evidence
+    if inventory.facility_code and inventory.component_code:
+        return (
+            f"{_record('Facility', inventory.facility_id, inventory.facility_code, inventory.facility_name)} "
+            f"has {inventory.quantity_on_hand} in stock of "
+            f"{_record('component', inventory.component_id, inventory.component_code, inventory.component_name)}: "
+            f"reorder point {inventory.reorder_point}, shortfall {inventory.shortfall}."
+        )
     return (
         f"Inventory {inventory.inventory_id} at facility {inventory.facility_id} for component "
         f"{inventory.component_id}: quantity {inventory.quantity_on_hand}, reorder point "
@@ -169,7 +204,11 @@ def _summary(request: AnswerRequest) -> list[str]:
             lines.append("Incident evidence was not required by this query.")
     if result.operation == "compatible_stock" and result.incident_ids:
         lines.append(
-            "Supporting incidents: " + ", ".join(str(i) for i in result.incident_ids) + "."
+            "Supporting incidents: "
+            + ", ".join(json.dumps(code) for code in result.incident_codes)
+            + "."
+            if result.incident_codes
+            else "Supporting incidents: " + ", ".join(str(i) for i in result.incident_ids) + "."
         )
     if result.operation == "compatible_stock" and not result.incident_ids:
         lines.append("No supporting incidents were returned for this query.")

@@ -13,7 +13,12 @@ from app.llm.service import ModelService
 from app.queries.contracts import DeclinedPlan, QueryContext, QueryPageRequest
 from app.queries.errors import QueryError, QueryErrorKind
 from app.queries.service import QueryService
-from scripts.query_evaluation_dataset import SupportedCase, load_evaluation, resolve_case
+from scripts.query_evaluation_dataset import (
+    SupportedCase,
+    evidence_matches,
+    load_evaluation,
+    resolve_case,
+)
 
 
 class FakeProvider(ModelProvider):
@@ -117,7 +122,7 @@ def test_supported_fixtures_complete_model_to_database_path(query_data, case, ca
                 assert outcome.response is None
                 outcome = subject.confirm_scope(ctx, outcome, expected.expected_plan)
         assert outcome.plan == expected.expected_plan
-        assert outcome.response.result == expected.expected_result
+        assert evidence_matches(outcome.response.result, expected.expected_result)
         assert outcome.response.context == ctx
         assert len(provider.requests) == 1
         request = provider.requests[0]

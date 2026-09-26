@@ -40,6 +40,7 @@ from scripts.query_evaluation_dataset import (
     DEFAULT_EVALUATION,
     EvaluationDataset,
     ResolvedCase,
+    evidence_matches,
     load_evaluation,
     resolve_case,
 )
@@ -146,9 +147,9 @@ def score_case(expected: ResolvedCase, actual: QueryOutcome, duration_ms: float)
         or actual_plan.get(key) != expected_plan.get(key)
     )
     intent = not mismatched_fields
-    evidence = (
-        actual.response.result if actual.response is not None else None
-    ) == expected.expected_result
+    evidence = evidence_matches(
+        actual.response.result if actual.response is not None else None, expected.expected_result
+    )
     policy = (actual.response is not None) == expected.execution_allowed
     if not expected.execution_allowed and actual.response is not None:
         category = "unexpected_execution"
@@ -206,7 +207,7 @@ def preflight(
             else operations
         )
         actual = executor.execute(context, case.expected_plan, QueryPageRequest(limit=100))
-        if actual.result != case.expected_result:
+        if not evidence_matches(actual.result, case.expected_result):
             raise ValueError("Baseline evidence mismatch")
 
 

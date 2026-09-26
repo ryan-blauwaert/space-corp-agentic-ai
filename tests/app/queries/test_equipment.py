@@ -13,7 +13,12 @@ from app.queries.equipment import EquipmentQueryExecutor
 from app.queries.errors import QueryError, QueryErrorKind
 from app.workspaces.models import WorkspaceRecord
 from scripts.dataset_manifest import operational_id, shared_id
-from scripts.query_evaluation_dataset import SupportedCase, load_evaluation, resolve_case
+from scripts.query_evaluation_dataset import (
+    SupportedCase,
+    evidence_matches,
+    load_evaluation,
+    resolve_case,
+)
 
 
 def context(workspace=None):
@@ -111,7 +116,7 @@ def test_canonical_and_extended_evidence_in_two_workspaces(seeded, case):
         assert actual.catalog_release_id == shared_id(
             manifest.catalog.version, "release", manifest.catalog.version
         )
-        assert actual.result == expected.expected_result
+        assert evidence_matches(actual.result, expected.expected_result)
 
 
 @pytest.mark.integration

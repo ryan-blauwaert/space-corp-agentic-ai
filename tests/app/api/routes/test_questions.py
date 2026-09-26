@@ -13,10 +13,15 @@ from app.api.pending_answers import PendingAnswers, PendingAnswerUnavailable
 from app.config import Settings
 from app.llm.service import ModelService
 from app.main import create_app
-from app.queries.contracts import QueryResponse
+from app.queries.contracts import QUERY_RESULT, QueryResponse
 from app.queries.errors import QueryError, QueryErrorKind
 from app.queries.service import QueryOutcome, QueryService
-from scripts.query_evaluation_dataset import SupportedCase, load_evaluation, resolve_case
+from scripts.query_evaluation_dataset import (
+    SupportedCase,
+    evidence_matches,
+    load_evaluation,
+    resolve_case,
+)
 from tests.app.answers.test_validation import request_for
 from tests.app.api.test_pending_answers import pending_turn
 from tests.app.queries import conftest as query_fixtures
@@ -349,7 +354,9 @@ def test_http_to_real_query_and_answer_in_two_workspaces(query_data, case):
                 assert response.status_code == 200, response.text
                 body = response.json()
             if isinstance(case, SupportedCase):
-                assert body["evidence"] == expected.expected_result.model_dump(mode="json")
+                assert evidence_matches(
+                    QUERY_RESULT.validate_python(body["evidence"]), expected.expected_result
+                )
                 if expected.expected_result.page.total == 0:
                     assert body["outcome"]["reason"] == "no_results"
                 else:

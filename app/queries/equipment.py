@@ -167,9 +167,12 @@ class EquipmentQueryExecutor:
                 evidence.append(
                     FacilityEquipmentEvidence(
                         facility_id=facility.id,
+                        facility_name=facility.name,
+                        facility_code=facility.code,
                         units=tuple(
                             UnitEvidence(
                                 unit_id=u.id,
+                                asset_tag=u.asset_tag,
                                 operational_status=EquipmentOperationalStatus(u.operational_status),
                             )
                             for u in unit_rows
@@ -178,6 +181,7 @@ class EquipmentQueryExecutor:
                         incidents=tuple(
                             UnitIncidentEvidence(
                                 incident_id=i.id,
+                                reference_code=i.reference_code,
                                 equipment_unit_id=i.equipment_unit_id,
                                 status=IncidentStatus(i.status),
                             )
@@ -217,10 +221,11 @@ class EquipmentQueryExecutor:
         if unit is None:
             raise QueryError(context, QueryErrorKind.NOT_FOUND)
         incident_ids: tuple[UUID, ...] = ()
+        incident_codes: tuple[str, ...] = ()
         if plan.incident_statuses is not None:
-            incident_ids = tuple(
-                session.scalars(
-                    select(IncidentRecord.id)
+            incident_rows = tuple(
+                session.execute(
+                    select(IncidentRecord.id, IncidentRecord.reference_code)
                     .where(
                         IncidentRecord.workspace_id == workspace,
                         IncidentRecord.facility_id == unit.facility_id,
@@ -231,6 +236,8 @@ class EquipmentQueryExecutor:
                     .limit(self.max_evidence + 1)
                 )
             )
+            incident_ids = tuple(row.id for row in incident_rows)
+            incident_codes = tuple(row.reference_code for row in incident_rows)
             self._check_size(len(incident_ids), context)
             if not incident_ids:
                 return CompatibleStockResult(
@@ -245,6 +252,10 @@ class EquipmentQueryExecutor:
         stock = (
             select(
                 ComponentRecord.id.label("component_id"),
+                ComponentRecord.name.label("component_name"),
+                ComponentRecord.code.label("component_code"),
+                EquipmentModelRecord.name.label("model_name"),
+                EquipmentModelRecord.code.label("model_code"),
                 InventoryItemRecord.id.label("inventory_id"),
                 InventoryItemRecord.quantity_on_hand,
             )
@@ -254,6 +265,13 @@ class EquipmentQueryExecutor:
                 and_(
                     links.c.component_id == ComponentRecord.id,
                     links.c.catalog_release_id == release,
+                ),
+            )
+            .join(
+                EquipmentModelRecord,
+                and_(
+                    EquipmentModelRecord.id == links.c.equipment_model_id,
+                    EquipmentModelRecord.catalog_release_id == release,
                 ),
             )
             .outerjoin(
@@ -280,6 +298,7 @@ class EquipmentQueryExecutor:
             operation="compatible_stock",
             status="matched" if total else "no_compatibility",
             incident_ids=incident_ids,
+            incident_codes=incident_codes,
             page=EvidencePage[CompatibleStockEvidence](
                 rows=tuple(
                     CompatibleStockEvidence(model_id=unit.equipment_model_id, **row._mapping)

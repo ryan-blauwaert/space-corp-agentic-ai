@@ -3,7 +3,7 @@
 from uuid import UUID
 
 from sqlalchemy import and_, func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import InstrumentedAttribute, Session
 from sqlalchemy.sql.elements import ColumnElement
 
 from app.database import Database
@@ -119,6 +119,29 @@ class OperationsQueryExecutor:
         ):
             raise QueryError(context, QueryErrorKind.NOT_FOUND)
 
+    @staticmethod
+    def _unit_tag(
+        identity: InstrumentedAttribute[UUID | None],
+        facility: InstrumentedAttribute[UUID],
+        context: QueryContext,
+        release: UUID,
+    ) -> ColumnElement[str]:
+        return (
+            select(EquipmentUnitRecord.asset_tag)
+            .join(
+                EquipmentModelRecord,
+                EquipmentModelRecord.id == EquipmentUnitRecord.equipment_model_id,
+            )
+            .where(
+                EquipmentUnitRecord.id == identity,
+                EquipmentUnitRecord.facility_id == facility,
+                EquipmentUnitRecord.workspace_id == context.workspace_id,
+                EquipmentModelRecord.catalog_release_id == release,
+            )
+            .correlate(WorkOrderRecord, IncidentRecord)
+            .scalar_subquery()
+        )
+
     def _work(
         self,
         session: Session,
@@ -148,6 +171,19 @@ class OperationsQueryExecutor:
         query = (
             select(
                 WorkOrderRecord.id.label("work_order_id"),
+                WorkOrderRecord.reference_code,
+                FacilityRecord.name.label("facility_name"),
+                FacilityRecord.code.label("facility_code"),
+                IncidentRecord.reference_code.label("originating_incident_code"),
+                self._unit_tag(
+                    IncidentRecord.equipment_unit_id, WorkOrderRecord.facility_id, context, release
+                ).label("incident_equipment_asset_tag"),
+                self._unit_tag(
+                    WorkOrderRecord.target_equipment_unit_id,
+                    WorkOrderRecord.facility_id,
+                    context,
+                    release,
+                ).label("target_equipment_asset_tag"),
                 WorkOrderRecord.facility_id,
                 WorkOrderRecord.status,
                 WorkOrderRecord.priority,
@@ -218,6 +254,12 @@ class OperationsQueryExecutor:
         query = (
             select(
                 IncidentRecord.id.label("incident_id"),
+                IncidentRecord.reference_code,
+                FacilityRecord.name.label("facility_name"),
+                FacilityRecord.code.label("facility_code"),
+                self._unit_tag(
+                    IncidentRecord.equipment_unit_id, IncidentRecord.facility_id, context, release
+                ).label("asset_tag"),
                 IncidentRecord.equipment_unit_id.label("unit_id"),
                 IncidentRecord.facility_id,
                 IncidentRecord.status,
@@ -298,6 +340,10 @@ class OperationsQueryExecutor:
         query = (
             select(
                 InventoryItemRecord.id.label("inventory_id"),
+                FacilityRecord.name.label("facility_name"),
+                FacilityRecord.code.label("facility_code"),
+                ComponentRecord.name.label("component_name"),
+                ComponentRecord.code.label("component_code"),
                 InventoryItemRecord.facility_id,
                 InventoryItemRecord.component_id,
                 InventoryItemRecord.quantity_on_hand,

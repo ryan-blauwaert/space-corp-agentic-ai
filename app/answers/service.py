@@ -17,7 +17,7 @@ from app.queries.errors import QueryError, QueryErrorKind
 from app.queries.service import QueryService
 
 logger = logging.getLogger(__name__)
-RENDERER_VERSION = "1"
+RENDERER_VERSION = "2"
 
 
 @contextmanager

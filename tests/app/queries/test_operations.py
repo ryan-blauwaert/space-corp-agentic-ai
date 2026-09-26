@@ -13,7 +13,12 @@ from app.queries.contracts import InventoryPlan, QueryContext, QueryPageRequest
 from app.queries.errors import QueryError, QueryErrorKind
 from app.queries.operations import OperationsQueryExecutor
 from scripts.dataset_manifest import operational_id, shared_id
-from scripts.query_evaluation_dataset import SupportedCase, load_evaluation, resolve_case
+from scripts.query_evaluation_dataset import (
+    SupportedCase,
+    evidence_matches,
+    load_evaluation,
+    resolve_case,
+)
 
 NOW = "2026-01-31T12:00:00Z"
 START = "2026-01-01T00:00:00Z"
@@ -119,7 +124,7 @@ def test_all_remaining_canonical_and_extended_cases_in_two_workspaces(seeded, ca
         assert actual.catalog_release_id == shared_id(
             manifest.catalog.version, "release", manifest.catalog.version
         )
-        assert actual.result == expected.expected_result
+        assert evidence_matches(actual.result, expected.expected_result)
 
 
 @pytest.mark.integration

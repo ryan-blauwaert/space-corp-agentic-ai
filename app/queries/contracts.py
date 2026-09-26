@@ -186,18 +186,26 @@ class EvidencePage(QueryPageRequest, Generic[T]):
         return self
 
 
+DisplayName = Annotated[str, Field(min_length=1, max_length=256, pattern=r"\S")]
+DisplayCode = Annotated[str, Field(min_length=1, max_length=64, pattern=r"\S")]
+
+
 class UnitEvidence(Frozen):
+    asset_tag: DisplayCode | None = None
     unit_id: UUID
     operational_status: EquipmentOperationalStatus
 
 
 class UnitIncidentEvidence(Frozen):
+    reference_code: DisplayCode | None = None
     incident_id: UUID
     equipment_unit_id: UUID
     status: IncidentStatus
 
 
 class FacilityEquipmentEvidence(Frozen):
+    facility_name: DisplayName | None = None
+    facility_code: DisplayCode | None = None
     facility_id: UUID
     units: tuple[UnitEvidence, ...] = Field(min_length=1)
     incidents: tuple[UnitIncidentEvidence, ...]
@@ -215,6 +223,10 @@ class FacilityEquipmentEvidence(Frozen):
 
 
 class CompatibleStockEvidence(Frozen):
+    component_name: DisplayName | None = None
+    component_code: DisplayCode | None = None
+    model_name: DisplayName | None = None
+    model_code: DisplayCode | None = None
     model_id: UUID
     component_id: UUID
     inventory_id: UUID | None
@@ -228,6 +240,12 @@ class CompatibleStockEvidence(Frozen):
 
 
 class WorkOrderEvidence(Frozen):
+    reference_code: DisplayCode | None = None
+    facility_name: DisplayName | None = None
+    facility_code: DisplayCode | None = None
+    originating_incident_code: DisplayCode | None = None
+    incident_equipment_asset_tag: DisplayCode | None = None
+    target_equipment_asset_tag: DisplayCode | None = None
     work_order_id: UUID
     facility_id: UUID
     status: WorkOrderStatus
@@ -251,6 +269,10 @@ class WorkOrderEvidence(Frozen):
 
 
 class IncidentEvidence(Frozen):
+    reference_code: DisplayCode | None = None
+    facility_name: DisplayName | None = None
+    facility_code: DisplayCode | None = None
+    asset_tag: DisplayCode | None = None
     incident_id: UUID
     status: IncidentStatus
     severity: IncidentSeverity
@@ -261,6 +283,10 @@ class IncidentEvidence(Frozen):
 
 
 class InventoryEvidence(Frozen):
+    facility_name: DisplayName | None = None
+    facility_code: DisplayCode | None = None
+    component_name: DisplayName | None = None
+    component_code: DisplayCode | None = None
     inventory_id: UUID
     facility_id: UUID
     component_id: UUID
@@ -281,6 +307,7 @@ class FacilityEquipmentResult(Frozen):
 
 
 class CompatibleStockResult(Frozen):
+    incident_codes: tuple[DisplayCode, ...] = ()
     operation: Literal["compatible_stock"]
     status: Literal["matched", "no_incident_match", "no_compatibility"]
     incident_ids: tuple[UUID, ...]
@@ -290,6 +317,8 @@ class CompatibleStockResult(Frozen):
     def consistent_evidence(self) -> "CompatibleStockResult":
         if len(set(self.incident_ids)) != len(self.incident_ids):
             raise ValueError("Incident evidence must be distinct")
+        if self.incident_codes and len(self.incident_codes) != len(self.incident_ids):
+            raise ValueError("Incident codes must match the ordered incident IDs")
         if self.status == "no_incident_match" and self.incident_ids:
             raise ValueError("Status must agree with supporting incidents")
         if (self.status == "matched") != (self.page.total > 0):

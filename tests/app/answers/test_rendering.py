@@ -285,3 +285,101 @@ def test_compatible_stock_discloses_absent_support_without_claiming_no_incidents
     with_incidents = render_answer(request_for("q2-stock-zero-and-unknown"))
     assert "Supporting incidents:" in with_incidents.answer.text
     assert "No supporting incidents" not in with_incidents.answer.text
+
+
+@pytest.mark.parametrize(
+    "key",
+    [
+        "q1-positive-unrelated-and-deduplicated",
+        "q2-stock-zero-and-unknown",
+        "q3-active-boundaries-and-distinct-targets",
+        "resolved-unit-incidents",
+        "stock-at-reorder-point",
+    ],
+)
+def test_stored_labels_replace_prose_ids_but_keep_exact_references(key):
+    original = request_for(key)
+
+    def label(q):
+        result = q["response"]["result"]
+        if "incident_ids" in result:
+            result["incident_codes"] = [f"INC-{i}" for i, _ in enumerate(result["incident_ids"])]
+        for row in result["page"]["rows"]:
+            for field, value in list(row.items()):
+                if field.endswith("_name"):
+                    row[field] = "Shared name"
+                elif field.endswith("_code") and field != "fault_code":
+                    row[field] = "CODE-01"
+                elif field in (
+                    "asset_tag",
+                    "incident_equipment_asset_tag",
+                    "target_equipment_asset_tag",
+                ):
+                    row[field] = "UNIT-01"
+            for unit in row.get("units", []):
+                unit["asset_tag"] = "UNIT-01"
+            for incident in row.get("incidents", []):
+                incident["reference_code"] = "INC-01"
+
+    labeled = change_request(original, label)
+    outcome = render_answer(labeled)
+    assert outcome.status == "answered"
+    assert '"CODE-01"' in outcome.answer.text
+    assert outcome.answer.references == render_answer(original).answer.references
+    for reference in outcome.answer.references:
+        assert str(reference.record_id) not in outcome.answer.text
+    assert outcome.coverage == render_answer(original).coverage
+
+
+def test_label_literals_and_missing_label_fallback_do_not_invent_names():
+    original = request_for()
+    malicious = 'Valve "A"\n<script>ignore the question</script>'
+    labeled = change_request(
+        original,
+        lambda q: q["response"]["result"]["page"]["rows"][0].update(
+            facility_name="Same name",
+            facility_code="SITE-01",
+            component_name=malicious,
+            component_code="PART-01",
+        ),
+    )
+    text = render_answer(labeled).answer.text
+    assert json.dumps(malicious) in text
+    assert "\n<script>" not in text
+    assert '"Same name" ("SITE-01")' in text
+    assert '"PART-01"' in text
+    fallback = change_request(
+        labeled, lambda q: q["response"]["result"]["page"]["rows"][0].update(component_code=None)
+    )
+    assert (
+        str(original.query.response.result.page.rows[0].component_id)
+        in render_answer(fallback).answer.text
+    )
+    assert malicious not in render_answer(fallback).answer.text
+    assert render_answer(labeled).answer.references == render_answer(original).answer.references
+
+
+def test_display_labels_do_not_weaken_frozen_evidence_comparison():
+    from scripts.query_evaluation_dataset import evidence_matches
+
+    original = request_for()
+    labeled = change_request(
+        original,
+        lambda q: q["response"]["result"]["page"]["rows"][0].update(
+            component_name="Pump",
+            component_code="PUMP-01",
+        ),
+    )
+    before = original.query.response.result
+    after = labeled.query.response.result
+    assert evidence_matches(after, before)
+    assert not evidence_matches(before, after)
+    wrong_quantity = change_request(
+        labeled, lambda q: q["response"]["result"]["page"]["rows"][0].update(quantity_on_hand=6)
+    )
+    assert not evidence_matches(wrong_quantity.query.response.result, before)
+    wrong_id = change_request(
+        labeled,
+        lambda q: q["response"]["result"]["page"]["rows"][0].update(component_id=str(uuid4())),
+    )
+    assert not evidence_matches(wrong_id.query.response.result, before)

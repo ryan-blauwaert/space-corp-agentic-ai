@@ -4,6 +4,7 @@ from uuid import UUID
 import pytest
 from pydantic import ValidationError
 
+from app.answers.service import RENDERER_VERSION
 from scripts.answer_evaluation_dataset import load_answer_evaluation
 from scripts.assess_answers import assess_answer_report, assess_batch
 from scripts.dataset_manifest import digest, load_manifest
@@ -194,7 +195,7 @@ def batch(tmp_path):
         "version": "test",
         "implementation_sha256": answer_digest(),
         "prompt_sha256": prompt_digest(),
-        "renderer_version": "1",
+        "renderer_version": RENDERER_VERSION,
         "model_id": "test-model",
         "reasoning_effort": "medium",
         "repetitions": 3,
